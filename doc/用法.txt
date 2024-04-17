@@ -1,0 +1,7 @@
+tags:
+    https://www.typedoc.cn/guides/tags/
+
+command:
+    npx typedoc --entryPoints ./*.ts --out ./dist
+    npx typedoc  --tsconfig ..\tsconfigdoc.json   
+
