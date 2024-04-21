@@ -1,7 +1,7 @@
 import { matrix } from "./matrix"
-import { Mat3, Mat4, Quat } from "wgpu-matrix";
-import { mat3, mat4 } from "wgpu-matrix";
+import { Vec2, Vec3, Vec4, vec2, vec3, vec4, mat3, mat4, Mat3, Mat4, Quat } from "wgpu-matrix";
 
+import { Vector3 } from "./vector3"
 import { Vector2 } from "./vector2"
 
 
@@ -117,30 +117,100 @@ class Matrix3 extends matrix<Matrix3> {
             return v;
         }
     }
-    getAxis(axis: number,dst?: Vector2) {
+    getAxis(axis: number, dst?: Vector2) {
         if (dst) {
-            dst.vec = mat3.getAxis(this.mat);
+            dst.vec = mat3.getAxis(this.mat, axis);
             return dst;
         }
         else {
             let v = new Vector2();
-            v.vec = mat3.getAxis(this.mat);
+            v.vec = mat3.getAxis(this.mat, axis);
             return v;
         }
     }
-    setAxis(axis: number,dst?: Vector2) {
+    setAxis(v: Vector2, axis: number) {
+        this.mat = mat3.setAxis(this.mat, v.vec, axis);
+    }
+    getScaling(dst?: Vector2) {
         if (dst) {
-            dst.vec = mat3.setAxis(this.mat);
+            dst.vec = mat3.getScaling(this.mat, dst.vec);
             return dst;
         }
         else {
             let v = new Vector2();
-            v.vec = mat3.setAxis(this.mat);
+            v.vec = mat3.getScaling(this.mat, v.vec);
             return v;
         }
     }
+    translation(v: Vector2) {
+        this.mat = mat3.translation(v.vec);
+    }
 
+    translate(v: Vector2, dst?: Matrix3) {
+        if (dst) {
+            dst.mat = mat3.translate(this.mat, v.vec);
+            return dst;
+        }
+        else {
+            this.mat = mat3.translate(this.mat, v.vec);
+            return this;
+        }
+    }
+    rotation(angleInRadians: number, dst?: Matrix3) {
+        if (dst) {
+            dst.mat = mat3.rotation(angleInRadians);
+            return dst;
+        }
+        else {
+            this.mat = mat3.rotation(angleInRadians);
+            return this;
+        }
+    }
+    rotate(angleInRadians: number, dst?: Matrix3) {
+        if (dst) {
+            dst.mat = mat3.rotate(this.mat, angleInRadians);
+            return dst;
+        }
+        else {
+            this.mat = mat3.rotate(this.mat, angleInRadians);
+            return this;
+        }
+    }
+    scaling(v: Vector2, dst?: Matrix3) {
+        if (dst) {
+            dst.mat = mat3.scaling(v.vec);
+            return dst;
+        }
+        else {
+            this.mat = mat3.scaling(v.vec);
+            return this;
+        }
+    }
+    scale(v: Vector2, dst?: Matrix3) {
+        if (dst) {
+            dst.mat = mat3.scale(this.mat, v.vec);
+            return dst;
+        }
+        else {
+            this.mat = mat3.scale(this.mat, v.vec);
+            return this;
+        }
+    }
+    uniformScaling(s: number) {
 
+        this.mat = mat3.uniformScaling(s);
+
+    }
+    uniformScale(s: number, dst?: Matrix3) {
+        if (dst) {
+            dst.mat = mat3.uniformScale(this.mat, s);
+            return dst;
+        }
+        else {
+            this.mat = mat3.uniformScale(this.mat, s);
+            return this;
+        }
+    }
 }
 
 

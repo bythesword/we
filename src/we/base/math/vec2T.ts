@@ -1,4 +1,4 @@
-import { vec, Vector3 } from "./vector"
+// import { vec, Vector3 } from "./vector"
 import { vec2, vec3, vec4 } from "wgpu-matrix";
 import { Vec2, Vec3, Vec4 } from "wgpu-matrix";
 import { Mat3, Mat4 } from "wgpu-matrix";
