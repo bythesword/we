@@ -10,14 +10,19 @@
     "test": "jest"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "rollup": "^4.13.2",
+    "@webgpu/types": "^0.1.40",
     "@types/jest": "^29.5.12",
     "jest": "^29.7.0",
-    "ts-jest": "^29.1.2", 
+    "ts-jest": "^29.1.2",
     "typescript": "^5.0.2",
     "vite": "^4.4.0"
   },
-  "dependencies": { 
-    "@webgpu/types": "^0.1.40", 
+  "dependencies": {
+    "dat.gui": "^0.7.9",
     "webgpu-utils": "^1.7.0",
     "wgpu-matrix": "^2.8.0",
     "wgsl-preprocessor": "^1.0.1"
