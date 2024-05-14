@@ -7,22 +7,24 @@ import {
   cubePositionOffset,
   cubeVertexCount,
 } from '../meshes/cube';
-import cubeWGSL from './cube.wgsl?raw';
+import cubeWGSL from "./cube.wgsl?raw";
 import { ArcballCamera, WASDCamera } from './camera';
 import { createInputHandler } from './input';
 
+//获取canvas
 const canvas = document.querySelector('canvas') as HTMLCanvasElement;
 
-// The input handler
+//输入的句柄 The input handler
 const inputHandler = createInputHandler(window, canvas);
 
-// The camera types
-const initialCameraPosition = vec3.create(3, 2, 5);
+// The camera types  摄像机参数
+const initialCameraPosition = vec3.create(3, 2, 2);//位置
 const cameras = {
   arcball: new ArcballCamera({ position: initialCameraPosition }),
   WASD: new WASDCamera({ position: initialCameraPosition }),
 };
 
+//初始化新的GUI
 const gui = new GUI();
 
 // GUI parameters
@@ -30,10 +32,10 @@ const params: { type: 'arcball' | 'WASD' } = {
   type: 'arcball',
 };
 
-// Callback handler for camera mode
+// Callback handler for camera mode,
 let oldCameraType = params.type;
 gui.add(params, 'type', ['arcball', 'WASD']).onChange(() => {
-  // Copy the camera matrix from old to new
+  // Copy the camera matrix from old to new,同步与复制两种摄像机的矩阵
   const newCameraType = params.type;
   cameras[newCameraType].matrix = cameras[oldCameraType].matrix;
   oldCameraType = newCameraType;
@@ -43,7 +45,7 @@ const adapter = await navigator.gpu.requestAdapter();
 const device = await adapter.requestDevice();
 const context = canvas.getContext('webgpu') as GPUCanvasContext;
 
-const devicePixelRatio = window.devicePixelRatio;
+const devicePixelRatio = window.devicePixelRatio;//设备像素比
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -51,15 +53,16 @@ const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 context.configure({
   device,
   format: presentationFormat,
-  alphaMode: 'premultiplied',
+  alphaMode: 'premultiplied',//预乘透明度
 });
 
-// Create a vertex buffer from the cube data.
+//创建 顶点buffer Create a vertex buffer from the cube data.
 const verticesBuffer = device.createBuffer({
   size: cubeVertexArray.byteLength,
   usage: GPUBufferUsage.VERTEX,
   mappedAtCreation: true,
 });
+//设置顶点数据，然后unmap（将访问权返回GPU）
 new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
 verticesBuffer.unmap();
 
@@ -69,6 +72,7 @@ const pipeline = device.createRenderPipeline({
     module: device.createShaderModule({
       code: cubeWGSL,
     }),
+    entryPoint: "vertex_main",
     buffers: [
       {
         arrayStride: cubeVertexSize,
@@ -93,6 +97,7 @@ const pipeline = device.createRenderPipeline({
     module: device.createShaderModule({
       code: cubeWGSL,
     }),
+    entryPoint: "fragment_main",
     targets: [
       {
         format: presentationFormat,
@@ -110,18 +115,21 @@ const pipeline = device.createRenderPipeline({
   },
 });
 
+//深度buffer
 const depthTexture = device.createTexture({
   size: [canvas.width, canvas.height],
   format: 'depth24plus',
   usage: GPUTextureUsage.RENDER_ATTACHMENT,
 });
 
+//uniform  矩阵
 const uniformBufferSize = 4 * 16; // 4x4 matrix
 const uniformBuffer = device.createBuffer({
   size: uniformBufferSize,
   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 
+//创建GPU纹理，并copy png 到纹理
 // Fetch the image and upload it into a GPUTexture.
 let cubeTexture: GPUTexture;
 {
@@ -143,12 +151,15 @@ let cubeTexture: GPUTexture;
   );
 }
 
+//创建采样
 // Create a sampler with linear filtering for smooth interpolation.
 const sampler = device.createSampler({
   magFilter: 'linear',
   minFilter: 'linear',
 });
 
+
+//创建bindgroup，以后到group 0的位置
 const uniformBindGroup = device.createBindGroup({
   layout: pipeline.getBindGroupLayout(0),
   entries: [
@@ -169,11 +180,13 @@ const uniformBindGroup = device.createBindGroup({
   ],
 });
 
+//创建渲染通道描述
 const renderPassDescriptor: GPURenderPassDescriptor = {
   colorAttachments: [
     {
-      view: undefined, // Assigned later
-
+      view: context
+      .getCurrentTexture()
+      .createView(), // Assigned later
       clearValue: [0.5, 0.5, 0.5, 1.0],
       loadOp: 'clear',
       storeOp: 'store',
@@ -188,10 +201,13 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
   },
 };
 
+//scene 基础部分
 const aspect = canvas.width / canvas.height;
 const projectionMatrix = mat4.perspective((2 * Math.PI) / 5, aspect, 1, 100.0);
 const modelViewProjectionMatrix = mat4.create();
 
+
+//获取更新后的摄像机矩阵
 function getModelViewProjectionMatrix(deltaTime: number) {
   const camera = cameras[params.type];
   const viewMatrix = camera.update(deltaTime, inputHandler());
@@ -207,6 +223,8 @@ function frame() {
   lastFrameMS = now;
 
   const modelViewProjection = getModelViewProjectionMatrix(deltaTime);
+
+  //每次写摄像机的矩阵
   device.queue.writeBuffer(
     uniformBuffer,
     0,
@@ -214,6 +232,7 @@ function frame() {
     modelViewProjection.byteOffset,
     modelViewProjection.byteLength
   );
+ 
   renderPassDescriptor.colorAttachments[0].view = context
     .getCurrentTexture()
     .createView();
@@ -221,7 +240,7 @@ function frame() {
   const commandEncoder = device.createCommandEncoder();
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
-  passEncoder.setBindGroup(0, uniformBindGroup);
+  passEncoder.setBindGroup(0, uniformBindGroup); //每次绑定group，buffer已经在GPU memory 中
   passEncoder.setVertexBuffer(0, verticesBuffer);
   passEncoder.draw(cubeVertexCount);
   passEncoder.end();
