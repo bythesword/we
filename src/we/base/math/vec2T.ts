@@ -185,7 +185,7 @@ class Vector2<T extends Vector2<T>> {
         }
     }
 
-    cross(a: Vector2<T>, b: Vector2<T>, dst?: Vector3) {
+    cross(a: Vector2<T>, b: Vector2<T>, dst?: Vector2) {
         if (dst) {
             dst.vec = vec2.cross(a.vec, b.vec, dst.vec);
             return dst;
