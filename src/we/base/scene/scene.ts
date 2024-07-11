@@ -12,19 +12,21 @@ declare interface cameras {
 class Scene {
     /** scene 的初始化参数 */
     input: sceneInputJson;
-    aspect: number | undefined;
+    aspect!: number;
     projectionMatrix: Mat4;
     modelViewProjectionMatrix: Mat4;
-    /**webgpuo adapter */
-    adapter: GPUAdapter | undefined;
-    /**webgpuo device */
-    device: GPUDevice | undefined;
+    /**webgpu adapter */
+    adapter!: GPUAdapter;
+    /**webgpu device */
+    device!: GPUDevice;
     /** 默认的渲染对象*/
-    renderTo: HTMLCanvasElement | undefined | GPUTexture;
+    renderTo!: HTMLCanvasElement | GPUTexture;
     /**默认的渲染对象输出*/
-    context: GPUCanvasContext | GPUTextureView | undefined;
+    context!: GPUCanvasContext;
+    // context!: GPUCanvasContext | GPUTexture ;
+    depthTexture!: GPUTexture;
     /** presentationFormat*/
-    presentationFormat: GPUTextureFormat | undefined;
+    presentationFormat!: GPUTextureFormat;
     /**每帧的webGPU的command集合 */
     command: any[];
     /**架构的uniform */
@@ -61,6 +63,46 @@ class Scene {
         // this.init();
         return this;
     }
+    /**
+     * 作废，不需要获取，直接更新
+     * 获取scene 的uniform 
+     */
+    getuniformSystem() { }
+    /**
+     * 获取scene 默认的canvas的render pass 
+     * @returns GPURenderPassDescriptor
+     */
+    getRenderPassDescriptor() {
+        let scope = this;
+        const renderPassDescriptor: GPURenderPassDescriptor = {
+            colorAttachments: [
+                {
+                    view: this.context
+                        .getCurrentTexture()
+                        .createView(), // Assigned later
+                    clearValue: [0.5, 0.5, 0.5, 1.0],
+                    loadOp: 'clear',
+                    storeOp: 'store',
+                },
+            ],
+            depthStencilAttachment: {
+                view: this.depthTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            },
+        };
+        return renderPassDescriptor;
+    }
+    /**
+     * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
+     * 这个需要确保每帧只更新一次
+     */
+    updateSystemUnifrombuffer() { }
+    /**
+     * uniform of system  bindGroup to  group  0 for pershader
+     */
+    updateSystemUnifrombufferForPerShader() { }
     async init() {
         if (!("gpu" in navigator)) this.fatal("WebGPU not supported.");
 
@@ -93,6 +135,12 @@ class Scene {
         this.projectionMatrix = mat4.perspective((2 * Math.PI) / 5, this.aspect, 1, 100.0);
         // const modelViewProjectionMatrix = mat4.create();
 
+        //深度buffer
+        this.depthTexture = device.createTexture({
+            size: [canvas.width, canvas.height],
+            format: 'depth24plus',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
     }
     get projectionOfMatrix() {
         return this.projectionMatrix;

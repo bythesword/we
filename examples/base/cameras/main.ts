@@ -217,6 +217,7 @@ function getModelViewProjectionMatrix(deltaTime: number) {
 
 let lastFrameMS = Date.now();
 
+
 function frame() {
   const now = Date.now();
   const deltaTime = (now - lastFrameMS) / 1000;

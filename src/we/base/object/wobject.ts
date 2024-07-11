@@ -1,7 +1,7 @@
-import { PrimitiveCommand } from "../command/primitiveDrawCommand";
+import { DrawCommand } from "../command/DrawCommand";
 class WObject {
     constructor() {
-        this.
+        
     }
     destory() {
 

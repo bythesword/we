@@ -1,14 +1,21 @@
 import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
-// import * as baseDefine from "../scene/base"
+import * as baseDefine from "../scene/base"
 
 
-
+/**
+ * 单个VSbuffer的属性，传递给shader的
+ */
+interface vsAttribute {
+    shaderLocation: number,
+    offset: number,
+    format: GPUVertexFormat,
+}
 /** VS的buffer的typearray的结构 
  * same as  GPUVertexBufferLayout
  * add vertexArray
 */
-export interface vsAttributes {
+interface vsAttributes {
     /** vs 顶点数组
      * GPUBuffer =传入的GPUBuffer，直接使用
      * 其他TypedArray，需要转换成为GPUbuffer
@@ -24,7 +31,7 @@ export interface vsAttributes {
 /**
  * pipeline layout d vertex 定义
  */
-export interface vsPart {
+interface vsPart {
     code: string,
     entryPoint: string,
     /**todo */
@@ -35,7 +42,7 @@ export interface vsPart {
 /**
  * pipeline layout  fragment 定义
  */
-export interface fsPart {
+interface fsPart {
     code: string,
     entryPoint: string,
     /**todo */
@@ -43,8 +50,23 @@ export interface fsPart {
     targets: GPUColorTargetState[]
 }
 
-export type TypedArrayString = "Int8Array" | "Uint8Array" | "Int16Array" | "Uint16Array" | "Int32Array" | "Uint32Array" | "Float32Array" | "Float64Array";
-
+type TypedArrayString = "Int8Array" | "Uint8Array" | "Int16Array" | "Uint16Array" | "Int32Array" | "Uint32Array" | "Float32Array" | "Float64Array";
+/**
+ * 返回uniform的数据( maxUniformBuffersPerShaderStage:12,最多12个。建议使用结构体在WGSL和JS之间传递数据)
+ *  
+    * buffer:TypedArray,通过()=>{return TypedArray }返回TypedArray
+    * 
+    * size:是TypedArray的大小，以byte计算
+    * 
+ */
+interface uniformPerOne {
+    label?: string,
+    size: number,//
+    buffer: () => TypedArray,
+    // buffer: TypedArray,
+    // format: "Float32" | "Float64" | "Uint8Array" | "Uint16Array" | "Uint32Array"
+    // format: TypedArrayString;
+}
 // type isUniformPerOne<T> = T extends { format: string } ? true : false;
 
 /**
@@ -56,8 +78,13 @@ export type TypedArrayString = "Int8Array" | "Uint8Array" | "Int16Array" | "Uint
  * @buffer :TypedArray,通过()=>{return TypedArray }返回TypedArray
     
  * @size :是TypedArray的大小，以byte计算
+ * @resource
+     * uniformPerOne
+     * GPUSampler or GPUTextureView or GPUBufferBinding or GPUExternalTexture) 的四种资源之一
+     * 可以使用()=>{return GPUBindingResource}的形式返回
+     * GPUBufferBinding的更新在WObject中进行，由上一级进行维护
  */
-export interface uniformBufferPart {
+interface uniformBufferPart {
     binding: number,
     // resource: uniformPerOne,
     label?: string,
@@ -65,8 +92,11 @@ export interface uniformBufferPart {
     buffer: () => TypedArray,
 }
 
-
-export type uniformEntries = GPUBindGroupEntry | uniformBufferPart
+// interface uniformEntries {
+//     entry: GPUBindGroupEntry | uniformPart,
+//     isUniformPart: boolean
+// }
+type uniformEntries = GPUBindGroupEntry | uniformBufferPart
 /**
  * unifromGroup  只进行绑定，不负责更新，更新在WObject中进行
  * @layout 
@@ -92,14 +122,14 @@ export type uniformEntries = GPUBindGroupEntry | uniformBufferPart
         * texture(maxStorageTexturesPerShaderStage):4(Chrome:8,firefox:64)
     *          
  */
-export interface unifromGroup {
+interface unifromGroup {
     layout: number,
     entries: uniformEntries[],
 }
 /**
  * indexBuffer,非必须，
  */
-export interface indexBuffer {
+interface indexBuffer {
     buffer: GPUBuffer | Uint16Array | Uint32Array,
     type: "GPUBuffer" | "Uint16Array" | "Uint32Array",
     indexForat: "uint16" | "uint32",
@@ -107,35 +137,8 @@ export interface indexBuffer {
     /**Size in bytes of the index data in buffer */
     size: number,
 }
-/**
- * @vertexCount 绘制的顶点数量
- * @instanceCount 实例化数量，默认=1
- * @firstVertex  从第几个顶点开始绘制，默认=0
- * @firstInstance 从第几个实例开始，默认=0
- */
-export interface drawMode {
-    vertexCount: number,
-    instanceCount?: number,
-    firstVertex?: number
-    firstInstance?: number
-}
-/**
- * @indexCount The number of indices to draw.
- * @instanceCount 多少个，默认=1
- * @firstIndex ,从第几个index开始绘制，默认=0
- * @baseVertex ,Added to each index value before indexing into the vertex buffers.
- * @firstInstance 从第几个实例开始，默认=0
- */
-export interface drawModeIndexed {
-    indexCount: number,
-    instanceCount: number,
-    firstIndex: number,
-    baseVertex: number,
-    firstInstance: number,
-}
-
 /** 初始化参数 */
-export interface primitiveOption {
+declare interface primitiveOption {
     /** scene object ，必须 */
     scene: any,
     /** todo ,摄像机对象或default,也可以是光源的，比如shadow map */
@@ -163,28 +166,10 @@ export interface primitiveOption {
     instanceCount?: number,
 
     /** draw mode:  */
-    draw: {
-        mode: "draw" | "index",
-        values: drawMode | drawModeIndexed,
-    }
-
-
+    draw: "draw" | "index"
 }
 
-/**单个layout的uniformBuffer的GPUBuffer的收集器 */
-export type uniformBuffer = {
-    [n in number]: GPUBuffer
-}
-/** 所有layout的uniformBuffer的GPUBuffer的收集器 */
-export type uniformBufferAll = {
-    [n in number]: uniformBuffer
-}
-
-export type localUniformGroups = {
-    [n in number]: GPUBindGroup
-}
-
-export class DrawCommand {
+class PrimitiveCommand {
     /** scene ,必须 */
     scene: any;
     /** 渲染的camera，scene.cameraDefault || 指定的camera */
@@ -195,24 +180,23 @@ export class DrawCommand {
     pipeline!: GPURenderPipeline;
     /**保存 pipeline 用的buffer ,不超过(maxVertexBuffers:8,maxVertexAttributes:16)*/
     verticesBuffer!: GPUBuffer[]//GPUBuffer[] | undefined;
-    unifromBuffer!: uniformBufferAll;
     /**
      * [0]=系统的uniform参数
      * 其他最多3个绑定组，dawn（4个），wgpu（8个） */
-    uniformGroups!: localUniformGroups;
+    uniformGroups: GPUBindGroup[] | undefined;
     /** 这个是这个系统的uniform ,camera,lights ,mvp....
      *  也就是uniform0
      */
-    // uniformSystem!: GPUBindGroup ;
+    uniformSystem: GPUBindGroup[] | undefined;
     /**renderPassDescriptor */
     renderPassDescriptor!: GPURenderPassDescriptor;
     /**这个类的webGPU的 commandEncoder */
+    commandEncoder!: GPUCommandEncoder;
     input!: primitiveOption;
     primitive!: GPUPrimitiveState;
     pipelineLayout!: GPUPipelineLayout | "auto";
     depthStencil!: GPUDepthStencilState | undefined;
     label!: string;
-    _isDestory!: boolean;
 
 
     constructor(options: primitiveOption) {
@@ -248,56 +232,21 @@ export class DrawCommand {
         else {
             this.label = "";
         }
-
-        //todo indexBuffer
-        if (options.indexBuffer != undefined) {
-
-        }
         this.pipeline = this.createPipeline();
-        // this.uniformSystem = this.scene.getuniformSystem();
+        this.uniformSystem = this.scene.getuniformSystem();
         this.uniformGroups = this.createUniformGroups();//在pipeline 之后
-        if (options.renderPassDescriptor !== undefined) {
+        if (options.renderPassDescriptor) {
             this.renderPassDescriptor = options.renderPassDescriptor;
         }
         else {
             this.renderPassDescriptor = this.scene.getRenderPassDescriptor();
         }
-        this._isDestory = false;
         this.init();
     }
-    /**
-     * 销毁本DrawCommand中的资源
-     * 
-     */
-    destory() {
-        for (let i of this.verticesBuffer) {
-            i.destroy();
-        }
-        let unifromGroupSource = this.input.uniforms;
-        for (let perGroup of unifromGroupSource) {
-            for (let perOne of perGroup.entries) {
-                if ("size" in perOne) {
-                    this.unifromBuffer[perGroup.layout][perOne.binding].destroy();
-                }
-            }
-        }
-        this.isDestory = true;
-    }
-    set isDestory(visable: boolean) {
-        this._isDestory = visable;
-    }
-    get isDestory() {
-        return this._isDestory;
-    }
+    destory() { }
+    isDestory() { }
     init() { }
 
-    /**
-     * 创建顶点GPUBuffer
-     * @param VertexArray ：TypedArray
-     * @param type :"Float32Array" | "Uint8Array" | "Uint32Array" | "Float64Array" | "Uint16Array"
-     * @param label :string
-     * @returns GPUBuffer
-     */
     createverticesBuffer(VertexArray: TypedArray, type: "Float32Array" | "Uint8Array" | "Uint32Array" | "Float64Array" | "Uint16Array", label: string) {
         let device = this.device;
         //创建 顶点buffer Create a vertex buffer from the cube data.
@@ -321,12 +270,6 @@ export class DrawCommand {
         verticesBuffer.unmap();
         return verticesBuffer;
     }
-    /**
-     * 创建pipeline，并创建vertexBuffer；
-     *  并将buffer push 到this.verticesBuffer中;
-     *  传入的GPUBuffer 不push
-     * @returns GPURenderPipeline
-     */
     createPipeline() {
         let label = this.input.label;
         let device = this.device;
@@ -355,7 +298,7 @@ export class DrawCommand {
             else {
                 const vab = perLocation.vertexArray as Float32Array | Uint8Array | Uint32Array | Float64Array | Uint16Array;
                 const oneGPUBuffer = this.createverticesBuffer(vab, perLocation.type, this.label);
-                this.verticesBuffer.push(oneGPUBuffer);//这里是buffer[]的数组顺序，入栈
+                this.verticesBuffer.push(oneGPUBuffer);
             }
         }
 
@@ -420,7 +363,6 @@ export class DrawCommand {
         const pipeline = device.createRenderPipeline(descriptor);
         return pipeline;
     }
-    /** 创建uniform Buffer，  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST*/
     creatUniformBuffer(size: number, label: string) {
         let device = this.device;
         const uniformBuffer = device.createBuffer({
@@ -431,21 +373,13 @@ export class DrawCommand {
         return uniformBuffer;
 
     }
-    /**
-     * 创建uniform buffer 用的描述，并将uniformBuffer(GPUBuffer) 存储到this.unifromBuffer中。
-     * @param layout  bingdGroup：1--3
-     * @param perOne  每个uniform buffer的描述 
-     * @returns GPUBindGroupEntry
-     */
-    createUniformBufferBindGroupDescriptor(layout: number, perOne: uniformBufferPart) {
+    createUniformBufferBindGroupDescriptor(perOne: uniformBufferPart) {
 
         let label = this.input.label as string;
-        if ("label" in perOne) {
-            label = perOne.label as string;
+        if ("label" in perOne.resource) {
+            label = perOne.resource.label as string;
         }
-        const uniformBuffer = this.creatUniformBuffer(perOne.size, label);
-
-        this.unifromBuffer[layout][perOne.binding] = uniformBuffer;
+        const uniformBuffer = this.creatUniformBuffer(perOne.resource.size, label);
 
         let one: GPUBindGroupEntry = {
             binding: perOne.binding,
@@ -456,21 +390,17 @@ export class DrawCommand {
         return one;
     }
 
-
-    /**
-     * 创建 bindGroup 1--3 
-     * @returns localUniformGroups
-     */
     createUniformGroups() {
         let device = this.device;
         let pipeline = this.pipeline;
         let unifromGroupSource = this.input.uniforms;
-        let bindGroup: localUniformGroups = [];
+        let descriptors: GPUBindGroupDescriptor[] = [];
+        let bindGroup: GPUBindGroup[] = [];
         for (let perGroup of unifromGroupSource) {
             let entries: GPUBindGroupEntry[] = [];
             for (let perOne of perGroup.entries) {
                 if ("size" in perOne) {
-                    const perOneBuffer: GPUBindGroupEntry = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
+                    const perOneBuffer: GPUBindGroupEntry = this.createUniformBufferBindGroupDescriptor(perOne as uniformBufferPart);
                     entries.push(perOneBuffer as GPUBindGroupEntry);
                 }
                 else {
@@ -481,82 +411,67 @@ export class DrawCommand {
                 layout: pipeline.getBindGroupLayout(perGroup.layout),
                 entries: entries,
             }
-            const uniformBindGroup = device.createBindGroup(groupDesc);
-            bindGroup[perGroup.layout] = uniformBindGroup;
+            descriptors.push(groupDesc);
+        }
+        for (let perOneGroupDesc of descriptors) {
+            //创建bindgroup，以后到group 0的位置
+            const uniformBindGroup = device.createBindGroup(perOneGroupDesc);
+            bindGroup.push(uniformBindGroup);
         }
         return bindGroup;
     }
-
-    /**
-     * 更新单个layout的uniform buffer的TypedArray
-     * @param layout  uniformBindGroup的layout的位置数字
-     * @param perOne  在uniformBufferPart ，即单个uniformBuffer的定义
-     */
-    updataOneUniformBuffer(layout: number, perOne: uniformBufferPart) {
+    createCommandEncoder() {
         let device = this.device;
-        const uniformBuffer = this.unifromBuffer[layout][perOne.binding];
-        const buffer = perOne.buffer();
+        // const now = Date.now();
+        // const deltaTime = (now - lastFrameMS) / 1000;
+        // lastFrameMS = now;
+
+        // const modelViewProjection = getModelViewProjectionMatrix(deltaTime);
+
         //每次写摄像机的矩阵
         device.queue.writeBuffer(
             uniformBuffer,
             0,
-            buffer.buffer,
-            0,//buffer.byteOffset,
-            buffer.byteLength
+            modelViewProjection.buffer,
+            modelViewProjection.byteOffset,
+            modelViewProjection.byteLength
         );
+
+        renderPassDescriptor.colorAttachments[0].view = context
+            .getCurrentTexture()
+            .createView();
+
+        const commandEncoder = device.createCommandEncoder();
+        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup); //每次绑定group，buffer已经在GPU memory 中
+        passEncoder.setVertexBuffer(0, verticesBuffer);
+        passEncoder.draw(cubeVertexCount);
+        passEncoder.end();
+        device.queue.submit([commandEncoder.finish()]);
     }
-    /**
-     * 更新1--3+的 unifrom group的buffer，系统的（0）单独更新，通过scene中的updateSystemUnifrombuffer()进行更调用
-     */
     updateUniformBuffer() {
+        let device = this.device;
+        let pipeline = this.pipeline;
         let unifromGroupSource = this.input.uniforms;
+        let descriptors: GPUBindGroupDescriptor[] = [];
+        let bindGroup: GPUBindGroup[] = [];
         for (let perGroup of unifromGroupSource) {
+            let entries: GPUBindGroupEntry[] = [];
             for (let perOne of perGroup.entries) {
                 if ("size" in perOne) {
-                    this.updataOneUniformBuffer(perGroup.layout, perOne as uniformBufferPart);
+                    const perOneBuffer: GPUBindGroupEntry = this.createUniformBufferBindGroupDescriptor(perOne as uniformBufferPart);
+                    entries.push(perOneBuffer as GPUBindGroupEntry);
                 }
             }
         }
     }
-    /**
-     * 目前使用scene的colorAttachments,
-     * todo ，增加texture
-     */
     submit() {
-        const device = this.device;
-        this.scene.updateSystemUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
-        this.updateUniformBuffer();
-        if (this.renderPassDescriptor.colorAttachments != null) {
-            (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context
-                .getCurrentTexture()
-                .createView();
-        }
-
-        const commandEncoder = device.createCommandEncoder();
-        const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-        passEncoder.setPipeline(this.pipeline);
-        for (let i in this.uniformGroups) {
-            let perGroup = this.uniformGroups[i]
-            passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
-        }
-        for (let i in this.verticesBuffer) {
-            const verticesBuffer = this.verticesBuffer[i];
-            passEncoder.setVertexBuffer(parseInt(i), verticesBuffer);
-        }
-        if (this.input.draw.mode == "draw") {
-            passEncoder.draw((this.input.draw.values as drawMode).vertexCount);
-        }
-        else if (this.input.draw.mode == "index") {
-            //todo 
-            // passEncoder.setIndexBuffer(GPUBuffer buffer, GPUIndexFormat indexFormat, optional GPUSize64 offset = 0, optional GPUSize64 size)
-            // passEncoder.draw(cubeVertexCount);
-        }
-        else {
-            throw new Error("draw 模式设置错误", this.input.draw.mode);
-        }
-        passEncoder.end();
-        device.queue.submit([commandEncoder.finish()]);
+        if (this.device && this.commandEncoder)
+            this.device.queue.submit([this.commandEncoder.finish()]);
     }
+
 }
 
+export { PrimitiveCommand }
 
