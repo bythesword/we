@@ -134,7 +134,13 @@ export interface drawModeIndexed {
     firstInstance: number,
 }
 
-/** 初始化参数 */
+/** 初始化参数 
+ * 
+ * scene:必须
+ * 
+ * camera?: any,
+ * 
+*/
 export interface primitiveOption {
     /** scene object ，必须 */
     scene: any,
@@ -146,8 +152,6 @@ export interface primitiveOption {
     fragment: fsPart,
     primitive?: GPUPrimitiveState,
     layout?: GPUPipelineLayout | "auto",
-    //pipeline 使用的 depthStencil的初始化参数
-    depthStencil?: GPUDepthStencilState,
     /**数组会按照1--3进行重组，生成GPUBindGroup */
     uniforms: unifromGroup[],
     /** 如果没有，使用scene的默认设置，需要 */
@@ -185,7 +189,7 @@ export type localUniformGroups = {
 }
 
 export class DrawCommand {
-    /** scene ,必须 */
+    /** scene ,必须,cavas or texture */
     scene: any;
     /** 渲染的camera，scene.cameraDefault || 指定的camera */
     camera: any;
@@ -236,19 +240,20 @@ export class DrawCommand {
         else {
             this.pipelineLayout = "auto";
         }
-        if (options.depthStencil) {
-            this.depthStencil = options.depthStencil;
-        }
-        else {
-            this.depthStencil = undefined;
-        }
         if (options.label) {
             this.label = options.label;
         }
         else {
             this.label = "";
         }
-
+        if (options.renderPassDescriptor !== undefined) {
+            this.renderPassDescriptor = options.renderPassDescriptor;
+        }
+        else {
+            this.renderPassDescriptor = this.scene.getRenderPassDescriptor();
+            if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor )
+                this.depthStencil = this.scene.depthStencil;
+        }
         //todo indexBuffer
         if (options.indexBuffer != undefined) {
 
@@ -256,12 +261,7 @@ export class DrawCommand {
         this.pipeline = this.createPipeline();
         // this.uniformSystem = this.scene.getuniformSystem();
         this.uniformGroups = this.createUniformGroups();//在pipeline 之后
-        if (options.renderPassDescriptor !== undefined) {
-            this.renderPassDescriptor = options.renderPassDescriptor;
-        }
-        else {
-            this.renderPassDescriptor = this.scene.getRenderPassDescriptor();
-        }
+
         this._isDestory = false;
         this.init();
     }
@@ -524,10 +524,13 @@ export class DrawCommand {
      */
     submit() {
         const device = this.device;
-        this.scene.updateSystemUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
+        this.scene.updateUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
         this.updateUniformBuffer();
         if (this.renderPassDescriptor.colorAttachments != null) {
-            (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context
+            // (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context
+            //     .getCurrentTexture()
+            //     .createView();
+            this.renderPassDescriptor.colorAttachments[0].view = this.scene.context
                 .getCurrentTexture()
                 .createView();
         }
@@ -544,7 +547,8 @@ export class DrawCommand {
             passEncoder.setVertexBuffer(parseInt(i), verticesBuffer);
         }
         if (this.input.draw.mode == "draw") {
-            passEncoder.draw((this.input.draw.values as drawMode).vertexCount);
+            const count = (this.input.draw.values as drawMode).vertexCount
+            passEncoder.draw(count);
         }
         else if (this.input.draw.mode == "index") {
             //todo 
@@ -555,7 +559,8 @@ export class DrawCommand {
             throw new Error("draw 模式设置错误", this.input.draw.mode);
         }
         passEncoder.end();
-        device.queue.submit([commandEncoder.finish()]);
+        const commandBuffer = commandEncoder.finish();
+        device.queue.submit([commandBuffer]);
     }
 }
 
