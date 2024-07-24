@@ -1,4 +1,4 @@
-import { DrawCommand } from "../command/DrawCommand";
+// import { DrawCommand } from "../command/DrawCommand";
 class WObject {
     constructor() {
         

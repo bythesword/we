@@ -18,16 +18,17 @@
     "jsx": "preserve",
     /* Linting */
     "strict": true,
+    "types": ["vite/client", "@webgpu/types","wgpu-matrix"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
   "typedocOptions": {
     "entryPoints": [
-      "src/module/**/*.ts"
+      "src/we/**/*.ts"
     ],
     "out": "./doc/dist"
   },
-  "include": ["src/module/**/*.ts"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src/we/**/*.ts"]
+  // "references": [{ "path": "./tsconfig.node.json" }]
 }

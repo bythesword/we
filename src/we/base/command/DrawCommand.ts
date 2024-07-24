@@ -1,4 +1,4 @@
-import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
+// import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
 // import * as baseDefine from "../scene/base"
 
@@ -17,6 +17,22 @@ export interface vsAttributes {
     type: "Float32Array" | "Uint8Array" | "Uint32Array" | "Float64Array" | "Uint16Array" | "GPUBuffer",
     /** 单个数据宽度 */
     arrayStride: number,
+    /** GPUVertexAttribute[] 
+     * exp:
+     * 
+     * [
+          {
+            shaderLocation: 0,
+            offset: 0,
+            format: 'float32x3',
+          },
+          {
+            shaderLocation: 1,
+            offset: 12,
+            format: 'float32x4',
+          },
+        ]
+    */
     attributes: GPUVertexAttribute[],
     /** "vertex" | "instance" ,默认=vertex*/
     stepMode?: GPUVertexStepMode,
@@ -27,7 +43,7 @@ export interface vsAttributes {
 export interface vsPart {
     code: string,
     entryPoint: string,
-    /**todo */
+    /**GPU 的常数替换*/
     constants?: any,
     buffers: vsAttributes[],
 }
@@ -38,7 +54,7 @@ export interface vsPart {
 export interface fsPart {
     code: string,
     entryPoint: string,
-    /**todo */
+    /**GPU 的常数替换*/
     constants?: any,
     targets: GPUColorTargetState[]
 }
@@ -54,15 +70,33 @@ export type TypedArrayString = "Int8Array" | "Uint8Array" | "Int16Array" | "Uint
     * maxUniformBuffersPerShaderStage 在webGPU的最小最大值：12
     * 0：被系统占用，剩余1--3
  * @buffer :TypedArray,通过()=>{return TypedArray }返回TypedArray
-    
- * @size :是TypedArray的大小，以byte计算
+ * 
+ * @type:buffer 类型，buffer 类型，默认：uniform  
+ *     
+ * @size :是TypedArray的大小，以byte计算;这个size是需要数据对齐的
+ * 
+ * @update :是否每帧更新，默认：true 
  */
 export interface uniformBufferPart {
+    /**
+     * WGSL中的@binding(x)的位置，不能重复;
+     * 
+     * 必须是JS中与WGSL中的一定要对应，否则报错
+     */
     binding: number,
-    // resource: uniformPerOne,
     label?: string,
+    /** buffer 类型,uniform|storage，默认：uniform */
+    type?: "uniform" | "storage"
+    /**TypedArray的大小，以byte计算 ;这个size是需要数据对齐的*/
     size: number,//
-    buffer: () => TypedArray,
+    /**TypedArray,通过()=>{return TypedArray }返回TypedArray */
+    get: () => TypedArray,
+    /** 
+     * 是否每帧更新，默认：true 
+     * 
+     * 至少更新一次
+    */
+    update?: boolean,
 }
 
 
@@ -94,18 +128,25 @@ export type uniformEntries = GPUBindGroupEntry | uniformBufferPart
  */
 export interface unifromGroup {
     layout: number,
+    /**
+     * type，两种类型
+     * 
+     * 一个是webGPU的标准的，
+     * 
+     * 一个是架构的自定义的uniform|storage的TypeArray的interface
+     */
     entries: uniformEntries[],
 }
 /**
  * indexBuffer,非必须，
  */
 export interface indexBuffer {
-    buffer: GPUBuffer | Uint16Array | Uint32Array,
-    type: "GPUBuffer" | "Uint16Array" | "Uint32Array",
-    indexForat: "uint16" | "uint32",
+    buffer:   Uint32Array,
+    type?:   "Uint32Array",
+    indexForat?: "uint16" | "uint32",
     offset?: number,
     /**Size in bytes of the index data in buffer */
-    size: number,
+    size?: number,
 }
 /**
  * @vertexCount 绘制的顶点数量
@@ -128,10 +169,10 @@ export interface drawMode {
  */
 export interface drawModeIndexed {
     indexCount: number,
-    instanceCount: number,
-    firstIndex: number,
-    baseVertex: number,
-    firstInstance: number,
+    instanceCount?: number,
+    firstIndex?: number,
+    baseVertex?: number,
+    firstInstance?: number,
 }
 
 /** 初始化参数 
@@ -141,7 +182,7 @@ export interface drawModeIndexed {
  * camera?: any,
  * 
 */
-export interface primitiveOption {
+export interface drawOption {
     /** scene object ，必须 */
     scene: any,
     /** todo ,摄像机对象或default,也可以是光源的，比如shadow map */
@@ -175,15 +216,25 @@ export interface primitiveOption {
 
 }
 
-/**单个layout的uniformBuffer的GPUBuffer的收集器 */
+/**
+ * 单个layout的uniformBuffer的GPUBuffer的收集器 
+ * 
+ * 这相当于@group(x) @binding(y) 的y
+*/
 export type uniformBuffer = {
     [n in number]: GPUBuffer
 }
-/** 所有layout的uniformBuffer的GPUBuffer的收集器 */
+/** 
+ * 所有layout的uniformBuffer的GPUBuffer的收集器
+ * 
+ * 这个相当于@group(x) @binding(y)  中的X，其内容相当于Y
+ */
 export type uniformBufferAll = {
     [n in number]: uniformBuffer
 }
-
+/**
+ * DC保存 bindGroup的用途的收集器
+ */
 export type localUniformGroups = {
     [n in number]: GPUBindGroup
 }
@@ -199,6 +250,7 @@ export class DrawCommand {
     pipeline!: GPURenderPipeline;
     /**保存 pipeline 用的buffer ,不超过(maxVertexBuffers:8,maxVertexAttributes:16)*/
     verticesBuffer!: GPUBuffer[]//GPUBuffer[] | undefined;
+    indexBuffer!: GPUBuffer;
     unifromBuffer!: uniformBufferAll;
     /**
      * [0]=系统的uniform参数
@@ -211,18 +263,25 @@ export class DrawCommand {
     /**renderPassDescriptor */
     renderPassDescriptor!: GPURenderPassDescriptor;
     /**这个类的webGPU的 commandEncoder */
-    input!: primitiveOption;
+    input!: drawOption;
+
     primitive!: GPUPrimitiveState;
+
     pipelineLayout!: GPUPipelineLayout | "auto";
+    /** 深度与模板的 参数，pipeline 的描述使用*/
     depthStencil!: GPUDepthStencilState | undefined;
+
     label!: string;
+    /**注销标志位 */
     _isDestory!: boolean;
 
 
-    constructor(options: primitiveOption) {
+    constructor(options: drawOption) {
         this.input = options;
         this.scene = options.scene;
         this.device = options.scene.device;
+        this.verticesBuffer = [];
+        this.unifromBuffer = [];
         if (options.camera) this.camera = options.camera;
         else this.camera = this.scene.cameraDefault;
         if (options.primitive) {
@@ -251,8 +310,8 @@ export class DrawCommand {
         }
         else {
             this.renderPassDescriptor = this.scene.getRenderPassDescriptor();
-            if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor )
-                this.depthStencil = this.scene.depthStencil;
+            if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor)
+                this.depthStencil = this.scene.depthStencil;//scene extend baseScene
         }
         //todo indexBuffer
         if (options.indexBuffer != undefined) {
@@ -289,8 +348,41 @@ export class DrawCommand {
     get isDestory() {
         return this._isDestory;
     }
-    init() { }
+    init() {
+        if (this.input.draw.mode == "index") {
+            this.indexBuffer = this.createIndexBuffer("index buffer");
+        }
+    }
+    /**
+     * 创建顶点GPUBuffer
+     * @param indexArray ：TypedArray
+     * @param type :"Float32Array" | "Uint8Array" | "Uint32Array" | "Float64Array" | "Uint16Array"
+     * @param label :string
+     * @returns GPUBuffer
+     */
+    createIndexBuffer(label: string) {
+        // if ("indexBuffer" in this.input) {
+        if(this.input.indexBuffer){
+            const indexdata = this.input.indexBuffer.buffer;
 
+            let device = this.device;
+            //创建 顶点buffer Create a vertex buffer from the cube data.
+            const indexBuffer = device.createBuffer({
+                label: label,
+                size: indexdata.byteLength,
+                usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+                // mappedAtCreation: true,
+            });
+
+            device.queue.writeBuffer(indexBuffer, 0, indexdata);
+            //  new Uint32Array(indexBuffer.getMappedRange()).set(indexdata);
+            //  indexBuffer.unmap();
+            return indexBuffer;
+        }
+        else {
+            throw new Error("createIndexBuffer 错误,未发现 index 参数");
+        }
+    }
     /**
      * 创建顶点GPUBuffer
      * @param VertexArray ：TypedArray
@@ -368,29 +460,6 @@ export class DrawCommand {
                 }),
                 entryPoint: this.input.vertex.entryPoint,
                 buffers: buffer,
-                // [
-                //     // position
-                //     {
-                //         arrayStride: 3 * 4, // 3 floats, 4 bytes each
-                //         attributes: [
-                //             { shaderLocation: 0, offset: 0, format: 'float32x3' },
-                //         ],
-                //     },
-                //     // normals
-                //     {
-                //         arrayStride: 3 * 4, // 3 floats, 4 bytes each
-                //         attributes: [
-                //             { shaderLocation: 1, offset: 0, format: 'float32x3' },
-                //         ],
-                //     },
-                //     // texcoords
-                //     {
-                //         arrayStride: 2 * 4, // 2 floats, 4 bytes each
-                //         attributes: [
-                //             { shaderLocation: 2, offset: 0, format: 'float32x2', },
-                //         ],
-                //     },
-                // ],
             },
             fragment: {
                 module: device.createShaderModule({
@@ -398,21 +467,10 @@ export class DrawCommand {
                 }),
                 entryPoint: this.input.fragment.entryPoint,
                 targets: this.input.fragment.targets,
-                // targets: [
-                //     { format: navigator.gpu.getPreferredCanvasFormat() },
-                // ],
+
             },
             primitive: this.primitive,
-            // depthStencil: {
-            //     depthWriteEnabled: true,
-            //     depthCompare: 'less',
-            //     format: 'depth24plus',
-            // },
-            // // ...(canvasInfo.sampleCount > 1 && {
-            // //     multisample: {
-            // //         count: canvasInfo.sampleCount,
-            // //     },
-            // // }),
+
         };
         if (this.depthStencil) {
             descriptor.depthStencil = this.depthStencil;
@@ -431,27 +489,64 @@ export class DrawCommand {
         return uniformBuffer;
 
     }
+    /** 创建uniform Buffer，  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST*/
+    creatUniformStorageBuffer(size: number, label: string) {
+        let device = this.device;
+        const uniformBuffer = device.createBuffer({
+            label: label,
+            size: size,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+        return uniformBuffer;
+
+    }
     /**
      * 创建uniform buffer 用的描述，并将uniformBuffer(GPUBuffer) 存储到this.unifromBuffer中。
      * @param layout  bingdGroup：1--3
      * @param perOne  每个uniform buffer的描述 
      * @returns GPUBindGroupEntry
      */
-    createUniformBufferBindGroupDescriptor(layout: number, perOne: uniformBufferPart) {
+    createUniformBufferBindGroupDescriptor(layout: number, perOne: uniformBufferPart): GPUBindGroupEntry {
 
         let label = this.input.label as string;
         if ("label" in perOne) {
             label = perOne.label as string;
         }
-        const uniformBuffer = this.creatUniformBuffer(perOne.size, label);
-
-        this.unifromBuffer[layout][perOne.binding] = uniformBuffer;
-
+        let uniformBuffer: GPUBuffer;
+        if ("type" in perOne && perOne.type == "storage") {
+            uniformBuffer = this.creatUniformStorageBuffer(perOne.size, label);
+            const buffer = perOne.get();
+            this.device.queue.writeBuffer(
+                uniformBuffer,
+                0,
+                buffer,
+                // buffer.buffer,
+                // buffer.byteOffset,
+                // buffer.byteLength
+              );
+            //   两个都是正确的
+            //   this.device.queue.writeBuffer(
+            //     uniformBuffer,
+            //     0,
+            //     // buffer,
+            //     buffer.buffer,
+            //     buffer.byteOffset,
+            //     buffer.byteLength
+            //   );
+        }
+        else {
+            uniformBuffer = this.creatUniformBuffer(perOne.size, label);
+        }
+        let oneUniformBuffer = [];
+        oneUniformBuffer[perOne.binding] = uniformBuffer;
+        this.unifromBuffer[layout] = oneUniformBuffer;
+        const res: GPUBufferBinding =
+        {
+            buffer: uniformBuffer
+        }
         let one: GPUBindGroupEntry = {
             binding: perOne.binding,
-            resource: {
-                buffer: uniformBuffer
-            }
+            resource: res
         }
         return one;
     }
@@ -461,7 +556,17 @@ export class DrawCommand {
      * 创建 bindGroup 1--3 
      * @returns localUniformGroups
      */
-    createUniformGroups() {
+    createUniformGroups(): localUniformGroups {
+        // let abc = [
+        //     { 
+        //         binding: 1, 
+        //         visibility: ShaderStage:: Fragment, 
+        //         buffer: { 
+        //             type: BufferBindingType:: Uniform, 
+        //             minBindingSize: 16, 
+        //             hasDynamicOffset: 0 } 
+        //     }
+        // ]
         let device = this.device;
         let pipeline = this.pipeline;
         let unifromGroupSource = this.input.uniforms;
@@ -470,15 +575,17 @@ export class DrawCommand {
             let entries: GPUBindGroupEntry[] = [];
             for (let perOne of perGroup.entries) {
                 if ("size" in perOne) {
-                    const perOneBuffer: GPUBindGroupEntry = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
-                    entries.push(perOneBuffer as GPUBindGroupEntry);
+                    const perOneBuffer = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
+                    entries.push(perOneBuffer);
                 }
                 else {
                     entries.push(perOne as GPUBindGroupEntry);
                 }
-            }
+            };
+            const bindLayout = pipeline.getBindGroupLayout(perGroup.layout);
             let groupDesc: GPUBindGroupDescriptor = {
-                layout: pipeline.getBindGroupLayout(perGroup.layout),
+                label: "bind to " + perGroup.layout,
+                layout: bindLayout,
                 entries: entries,
             }
             const uniformBindGroup = device.createBindGroup(groupDesc);
@@ -493,17 +600,21 @@ export class DrawCommand {
      * @param perOne  在uniformBufferPart ，即单个uniformBuffer的定义
      */
     updataOneUniformBuffer(layout: number, perOne: uniformBufferPart) {
-        let device = this.device;
-        const uniformBuffer = this.unifromBuffer[layout][perOne.binding];
-        const buffer = perOne.buffer();
-        //每次写摄像机的矩阵
-        device.queue.writeBuffer(
-            uniformBuffer,
-            0,
-            buffer.buffer,
-            0,//buffer.byteOffset,
-            buffer.byteLength
-        );
+        if ("update" in perOne && perOne.update == false) {
+            return;
+        }
+        else {
+            let device = this.device;
+            const uniformBuffer = this.unifromBuffer[layout][perOne.binding];
+            const buffer = perOne.get();
+            device.queue.writeBuffer(
+                uniformBuffer,
+                0,
+                buffer.buffer,
+                0,//buffer.byteOffset,
+                buffer.byteLength
+            );
+        }
     }
     /**
      * 更新1--3+的 unifrom group的buffer，系统的（0）单独更新，通过scene中的updateSystemUnifrombuffer()进行更调用
@@ -526,13 +637,23 @@ export class DrawCommand {
         const device = this.device;
         this.scene.updateUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
         this.updateUniformBuffer();
+
+        //20240722:这里有个问题，1、为什么每次必须写新的，2、depth是否需要每次新的
+        /*
+        20240723:
+            1、如果不更改loadOP的状态，即初始化的"clear",则每个pipeline都clear，则只有一次的draw
+            2、如果需要加载之前的，需要将 loadOP = "load"   
+        */
+
         if (this.renderPassDescriptor.colorAttachments != null) {
-            // (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context
-            //     .getCurrentTexture()
-            //     .createView();
-            this.renderPassDescriptor.colorAttachments[0].view = this.scene.context
-                .getCurrentTexture()
-                .createView();
+            (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
+            // (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context.getCurrentTexture().createView();//ok
+            // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view = this.scene.context.getCurrentTexture().createView();//ok
+            // this.renderPassDescriptor.colorAttachments[0].view = this.scene.context.getCurrentTexture().createView();//ok
+        }
+        if (this.renderPassDescriptor.depthStencilAttachment != null) {
+            // this.renderPassDescriptor.depthStencilAttachment.depthLoadOp = "load";
+            // this.renderPassDescriptor.depthStencilAttachment.depthStoreOp = "discard";
         }
 
         const commandEncoder = device.createCommandEncoder();
@@ -547,16 +668,46 @@ export class DrawCommand {
             passEncoder.setVertexBuffer(parseInt(i), verticesBuffer);
         }
         if (this.input.draw.mode == "draw") {
-            const count = (this.input.draw.values as drawMode).vertexCount
-            passEncoder.draw(count);
+            const count = (this.input.draw.values as drawMode).vertexCount;
+            let instanceCount = 1;
+            let firstIndex = 0;
+            let firstInstance = 0;
+            if ("instanceCount" in this.input.draw.values) {
+                instanceCount = this.input.draw.values.instanceCount as number;
+            }
+            if ("firstIndex" in this.input.draw.values) {
+                firstIndex = this.input.draw.values.firstIndex as number;
+            }
+            if ("firstInstance" in this.input.draw.values) {
+                firstInstance = this.input.draw.values.firstInstance as number;
+            }
+
+            passEncoder.draw(count, instanceCount, firstIndex, firstInstance);
+
         }
         else if (this.input.draw.mode == "index") {
-            //todo 
-            // passEncoder.setIndexBuffer(GPUBuffer buffer, GPUIndexFormat indexFormat, optional GPUSize64 offset = 0, optional GPUSize64 size)
-            // passEncoder.draw(cubeVertexCount);
+            const indexCount = (this.input.draw.values as drawModeIndexed).indexCount;
+            let instanceCount = 1;
+            let firstIndex = 0;
+            let firstInstance = 0;
+            let baseVertex = 0;
+            if ("instanceCount" in this.input.draw.values) {
+                instanceCount = this.input.draw.values.instanceCount as number;
+            }
+            if ("firstIndex" in this.input.draw.values) {
+                firstIndex = this.input.draw.values.firstIndex as number;
+            }
+            if ("firstInstance" in this.input.draw.values) {
+                firstInstance = this.input.draw.values.firstInstance as number;
+            }
+            if ("baseVertex" in this.input.draw.values) {
+                baseVertex = this.input.draw.values.baseVertex as number;
+            }
+            passEncoder.setIndexBuffer(this.indexBuffer, 'uint32');
+            passEncoder.drawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
         }
         else {
-            throw new Error("draw 模式设置错误", this.input.draw.mode);
+            throw new Error("draw 模式设置错误");
         }
         passEncoder.end();
         const commandBuffer = commandEncoder.finish();

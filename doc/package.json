@@ -4,12 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "make":"npx typedoc  --tsconfig ../tsconfigdoc.json   "
+    "make": "npx typedoc  --tsconfig ../tsconfigdoc.json   "
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "typedoc": "^0.25.2"
+    "typedoc": "^0.26.3",
+    "typescript": "^5.5.2",
+    "webgpu-utils": "^1.7.0",
+    "wgpu-matrix": "^2.8.0",
+    "@webgpu/types": "^0.1.43"
   }
 }

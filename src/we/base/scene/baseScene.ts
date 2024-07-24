@@ -1,5 +1,9 @@
-import { Mat4, mat4, vec3 } from 'wgpu-matrix';
-import { Clock } from '../scene/clock';
+import {
+    Mat4,
+    // mat4,
+    // vec3
+} from 'wgpu-matrix';
+// import { Clock } from '../scene/clock';
 
 export declare interface sceneJson {
     /**canvas id */
@@ -49,36 +53,28 @@ export abstract class BaseScene {
     }
     abstract init(): any
 
-    //创建GPURenderPassDescriptor
+    /**
+     * 抽象function
+     * 创建GPURenderPassDescriptor
+     */
     abstract createRenderPassDescriptor(): GPURenderPassDescriptor
-    // renderPassDescriptor= {
-    //     colorAttachments: [
-    //         {
-    //             view: context
-    //                 .getCurrentTexture()
-    //                 .createView(), // Assigned later
-    //             clearValue: [0.5, 0.5, 0.5, 1.0],
-    //             loadOp: 'clear',
-    //             storeOp: 'store',
-    //         },
-    //     ],
-    //     depthStencilAttachment: {
-    //         view: depthTexture.createView(),
-    //         depthClearValue: 1.0,
-    //         depthLoadOp: 'clear',
-    //         depthStoreOp: 'store',
-    //     },
-    // };
 
+    /**
+       * 抽象function
+       *     abstract getRenderPassDescriptor(): GPURenderPassDescriptor  
+       */
     abstract getRenderPassDescriptor(): GPURenderPassDescriptor
+
+
     /**
     * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
     * 这个需要确保每帧只更新一次
     */
     abstract updateUnifrombuffer(): any
+
     /**
- * uniform of system  bindGroup to  group  0 for pershader
- */
+     * uniform of system  bindGroup to  group  0 for pershader
+     */
     abstract updateUnifrombufferForPerShader(): any
     abstract getMVP(): any
     abstract getProjectionOfMatrix(): Mat4

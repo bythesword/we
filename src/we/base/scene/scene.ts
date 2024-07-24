@@ -1,11 +1,50 @@
-import { Mat4, mat4, vec3 } from 'wgpu-matrix';
+import {
+    Mat4,
+    mat4,
+    //  vec3 
+} from 'wgpu-matrix';
+
 import { Clock } from '../scene/clock';
-import { BaseScene, sceneJson } from './baseScene';
+
+import {
+    BaseScene,
+    sceneJson
+} from './baseScene';
+
+import {
+    DrawCommand,
+    // primitiveOption,
+    // drawModeIndexed,
+    // drawMode,
+    // indexBuffer,
+    // unifromGroup,
+    // uniformEntries,
+    // uniformBufferPart,
+    // fsPart,
+    // vsPart,
+    // vsAttributes
+} from "../command/DrawCommand"
+
+
 declare interface sceneInputJson extends sceneJson {
     /**canvas id */
     canvas: string,
 }
-declare interface cameras {
+declare interface camera {
+    stage: number | boolean,//是否只在一个stage中
+}
+declare interface light { }
+declare interface BVH { }
+export declare interface stage {
+    root: [],
+    name: string,
+    enable: boolean,
+    visible: boolean,
+    depthTest: boolean,
+    BVH_Enable: boolean,
+    BVHS_Dynamic: boolean,
+    BVH?: BVH,
+    transparent: boolean,
 
 }
 
@@ -14,27 +53,32 @@ class Scene extends BaseScene {
     /** scene 的初始化参数 */
     declare input: sceneInputJson;
     /**每帧的webGPU的command集合 */
-    command: any[];
+    command!: DrawCommand[];
     /**架构的uniform */
-    uniform: any[];
+    uniformSystem!: any[];
     /**clock */
-    clock: any;
+    clock: Clock;
     /** todo */
     MQ: any;
     /** todo */
     WW: any;
     /**cameras list */
-    cameras: {};
+    cameras!: camera[];
+    cameraDefualt!: camera;
     /** main camera */
     cameraDefault: any;
     /** lights array */
-    lights: any[];
+    lights!: light[];
     /** todo  */
-    stages!: any[];
+    stages!: stage[];
+    stagesOrders!: number[]
     /** root of group  */
-    root: any[];
+
     aspect!: number;
     projectionMatrix!: Mat4;
+
+    cocolorAttachment!: GPUTextureView;
+    depthStencilAttachment!: GPUTextureView;
 
 
     constructor(input: sceneInputJson) {
@@ -43,11 +87,11 @@ class Scene extends BaseScene {
         this.input = input;
         // this.projectionMatrix = mat4.create();
         // this.modelViewProjectionMatrix = mat4.create();
-        this.root = [];
-        this.command = [];
-        this.uniform = [];
-        this.cameras = [];
-        this.lights = [];
+        // this.root = [];
+        // this.command = [];
+        // this.uniform = [];
+        // this.cameras = [];
+        // this.lights = [];
         return this;
     }
     async init() {
@@ -62,7 +106,7 @@ class Scene extends BaseScene {
         this.device = device;
 
         const canvas = document.getElementById(this.input.canvas) as HTMLCanvasElement;
- 
+
         const context = canvas.getContext('webgpu') as GPUCanvasContext;
         this.context = context;
 
@@ -104,21 +148,24 @@ class Scene extends BaseScene {
      * @returns GPURenderPassDescriptor
      */
     createRenderPassDescriptor() {
-        let scope = this;
+        // let scope = this;
+        this.cocolorAttachment = (this.context as GPUCanvasContext)
+            .getCurrentTexture()
+            .createView();
+        this.depthStencilAttachment = this.depthTexture.createView();
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
                 {
-                    view: (this.context as GPUCanvasContext)
-                        .getCurrentTexture()
-                        .createView(), // Assigned later
+                    view: this.cocolorAttachment, // Assigned later
                     clearValue: [0.5, 0.5, 0.5, 1.0],
                     loadOp: 'clear',
                     storeOp: 'store',
                 },
             ],
             depthStencilAttachment: {
-                view: this.depthTexture.createView(),
+                view: this.depthStencilAttachment,
                 depthClearValue: 1.0,
+                // depthLoadOp: 'load',
                 depthLoadOp: 'clear',
                 depthStoreOp: 'store',
             },
@@ -141,14 +188,15 @@ class Scene extends BaseScene {
     getProjectionOfMatrix() {
         return this.projectionMatrix;
     }
-    addUserUpdate(fun: any) {    }
-    updateUserDefine() {    }
+    // addUserUpdate(fun: any) { }
+    updateUserDefine() { }
+
 
     requestAnimationFrame() {
         let scope = this;
         this.clock.update();
         function run() {
-            let deltaTime = scope.clock.deltaTime;
+            // let deltaTime = scope.clock.deltaTime;
             scope.clock.update();
             scope.update();
             scope.oneFrame();
@@ -156,7 +204,12 @@ class Scene extends BaseScene {
         }
         requestAnimationFrame(run)
     }
+    updateUniformSystem() {
+
+    }
     oneFrame() {
+        (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
+            (<GPUCanvasContext>this.context).getCurrentTexture().createView();//ok
         if (this.command.length > 0) {
 
         }
@@ -164,13 +217,13 @@ class Scene extends BaseScene {
     update() {
         this.updateUnifrombuffer();
         this.command = [];
-        for (let i of this.root) {
-            let perCommand = i.update();
-            if (perCommand.lenght > 0) {
-                for (let j of perCommand)
-                    this.command.push(j);
-            }
-        }
+        // for (let i of this.root) {
+        //     let perCommand = i.update();
+        //     if (perCommand.lenght > 0) {
+        //         for (let j of perCommand)
+        //             this.command.push(j);
+        //     }
+        // }
     }
     observer() {
         // new ResizeObserver(entries => {
