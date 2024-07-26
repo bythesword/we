@@ -537,9 +537,15 @@ export class DrawCommand {
         else {
             uniformBuffer = this.creatUniformBuffer(perOne.size, label);
         }
-        let oneUniformBuffer = [];
-        oneUniformBuffer[perOne.binding] = uniformBuffer;
-        this.unifromBuffer[layout] = oneUniformBuffer;
+        if(this.unifromBuffer[layout]){
+            this.unifromBuffer[layout][perOne.binding] = uniformBuffer;
+        }
+        else {
+            let oneUniformBuffer = [];
+            oneUniformBuffer[perOne.binding] = uniformBuffer;
+            this.unifromBuffer[layout] = oneUniformBuffer;
+        }
+
         const res: GPUBufferBinding =
         {
             buffer: uniformBuffer
