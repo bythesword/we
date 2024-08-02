@@ -76,6 +76,7 @@ let options: primitiveOption = {
       vertexCount: 3
     }
   },
+  rawUniform: true,
   // depthStencil: {
   //   depthWriteEnabled: true,
   //   depthCompare: 'less',

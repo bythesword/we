@@ -143,6 +143,7 @@ let options: drawOption = {
     }
   },
   instanceCount: 3,
+  rawUniform: true,
   // }
 }
 

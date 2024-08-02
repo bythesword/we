@@ -119,7 +119,7 @@ let options: drawOption = {
         {
           label: "storage color",
           binding: 0,
-          size: 4 * 4 ,
+          size: 4 * 4,
           type: "storage",
           update: false,
           get: () => { return uniformOneColor },
@@ -133,9 +133,16 @@ let options: drawOption = {
       vertexCount: 3
     }
   },
+  afterUpdate: async (_scope) => {
+    console.log("========================");
+  },
+  rawUniform: true,
 }
 
 let DC = new DrawCommand(options);
 // await DC.init();
 window.DC = DC;
-DC.submit()
+// DC.update()   //不等待异步
+await DC.update() // 等待异步
+console.log("***************")
+// DC.submit()

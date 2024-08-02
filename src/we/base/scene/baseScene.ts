@@ -75,7 +75,7 @@ export abstract class BaseScene {
     /**
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    abstract updateUnifrombufferForPerShader(): any
+    abstract updateUnifrombufferForPerShader(pipeline: GPURenderPipeline): GPUBindGroup 
     abstract getMVP(): any
     abstract getProjectionOfMatrix(): Mat4
     fatal(msg: string | undefined) {

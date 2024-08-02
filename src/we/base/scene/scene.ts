@@ -25,6 +25,10 @@ import {
     // vsAttributes
 } from "../command/DrawCommand"
 
+import { projectionOptions, BaseCamera, } from "../camera/baseCamera"
+import { perspProjectionOptions, PerspectiveCamera } from "../camera/perspectiveCamera"
+import { optionCamreaControl } from "../control/cameracCntrol"
+import { ArcballCameraControl } from "../control/arcballCameraControl"
 
 declare interface sceneInputJson extends sceneJson {
     /**canvas id */
@@ -64,7 +68,7 @@ class Scene extends BaseScene {
     WW: any;
     /**cameras list */
     cameras!: camera[];
-    cameraDefualt!: camera;
+    cameraDefualt: camera | undefined;
     /** main camera */
     cameraDefault: any;
     /** lights array */
@@ -135,9 +139,7 @@ class Scene extends BaseScene {
         //
         this.renderPassDescriptor = this.createRenderPassDescriptor();
     }
-    getMVP() {
-        throw new Error('Method not implemented.');
-    }
+
     /**
      * 作废，不需要获取，直接更新
      * 获取scene 的uniform 
@@ -183,8 +185,32 @@ class Scene extends BaseScene {
     /**
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    updateUnifrombufferForPerShader() { }
+    updateUnifrombufferForPerShader(pipeline: GPURenderPipeline): GPUBindGroup {
+        let device = this.device;
+        const bindLayout = pipeline.getBindGroupLayout(0);
+        let groupDesc: GPUBindGroupDescriptor = {
+            label: "global Group bind to 0",
+            layout: bindLayout,
+            entries: [
 
+            ],
+        }
+        const bindGroup: GPUBindGroup = device.createBindGroup(groupDesc);
+        return bindGroup;
+    }
+
+    getMVP(): GPUBuffer {
+        const uniformBufferSize =
+            4 * 4 + // color is 4 32bit floats (4bytes each)
+            2 * 4 + // scale is 2 32bit floats (4bytes each)
+            2 * 4;  // offset is 2 32bit floats (4bytes each)
+        const MVP = this.device.createBuffer({
+            label: 'system MVP',
+            size: uniformBufferSize,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        return MVP;
+    }
     getProjectionOfMatrix() {
         return this.projectionMatrix;
     }

@@ -1,30 +1,142 @@
+import {
+    BaseCommand,
+    // uniformBufferPart,
+    // unifromGroup,
+    // uniformBuffer,
+    uniformBufferAll,
+    // uniformEntries,
+    // localUniformGroups,
+    baseOption,
+} from './baseCommand';
 
 
-export interface computePart{
+export interface computePart {
     code: string,
     entryPoint: string,
     /**GPU 的常数替换*/
     constants?: any,
 }
 
-export interface computeOption {
-     /** scene object ，必须 */
-    scene:any,
-    compute:computePart,
-    uniforms:
-
+export interface computeOption extends baseOption {
+    compute: computePart,
+    /** 
+     * callback function 
+     * 
+     * 进行map操作，由上级程序保障正确性
+     * 
+     * examp：
+     *  encoder.copyBufferToBuffer(workgroupBuffer, 0, workgroupReadBuffer, 0, size);
+     * 
+     * workgroupBuffer=this.unifromBuffer[0][0],对应：@group(0)@binding(0)  
+     */
+    map?: (scope: any, encode: GPUCommandEncoder) => Promise<any>,
+    /**
+     * 数组 ,长度3
+     */
+    dispatchCount: number[],
 }
 
 
-export class DrawCommand { 
-    /** scene ,必须,cavas or texture */
-    scene: any;
-    /** 渲染的camera，scene.cameraDefault || 指定的camera */
-    camera: any;
-    /** webGPU 的device */
-    device!: GPUDevice;
+
+export class ComputeCommand extends BaseCommand {
+
+    declare input: computeOption;
+
+    mapBuffer!: uniformBufferAll;
+
+
     /***pipeline 句柄 */
-    pipeline!:  GPUComputePipeline;
+    declare pipeline: GPUComputePipeline;
 
 
+    constructor(options: computeOption) {
+        super(options);
+        this.unifromBuffer = [];
+        if (options.layout) {
+            this.pipelineLayout = options.layout;
+        }
+        else {
+            this.pipelineLayout = "auto";
+        }
+        if (options.label) {
+            this.label = options.label;
+        }
+        else {
+            this.label = "";
+        }
+        this.pipeline = this.createPipeline();
+        // this.uniformSystem = this.scene.getuniformSystem();
+        this.uniformGroups = this.createUniformGroups();//在pipeline 之后
+
+        this._isDestory = false;
+        this.init();
+    }
+    init() {
+        // throw new Error('Method not implemented.');
+    }
+    destory() {
+        let unifromGroupSource = this.input.uniforms;
+        for (let perGroup of unifromGroupSource) {
+            for (let perOne of perGroup.entries) {
+                if ("size" in perOne) {
+                    this.unifromBuffer[perGroup.layout][perOne.binding].destroy();
+                }
+            }
+        }
+        this.isDestory = true;
+    }
+
+    /**
+ * 创建pipeline，并创建vertexBuffer；
+ *  并将buffer push 到this.verticesBuffer中;
+ *  传入的GPUBuffer 不push
+ * @returns GPURenderPipeline
+ */
+    createPipeline() {
+        let label = this.input.label;
+        let device = this.device;
+
+
+        let descriptor: GPUComputePipelineDescriptor = {
+            label: label,
+            layout: this.pipelineLayout,
+            compute: {
+                module: device.createShaderModule({
+                    code: this.input.compute.code
+                }),
+                entryPoint: this.input.compute.entryPoint
+            },
+        };
+
+        const pipeline = device.createComputePipeline(descriptor);
+        return pipeline;
+    }
+
+    async submit() {
+        const device = this.device;
+        this.scene.updateUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
+        this.updateUniformBuffer();
+
+
+        // Encode commands to do the computation
+        const encoder = device.createCommandEncoder({ label: 'compute builtin encoder' });
+        const passEncoder = encoder.beginComputePass({ label: 'compute builtin pass' });
+        passEncoder.setPipeline(this.pipeline);
+
+        for (let i in this.uniformGroups) {
+            let perGroup = this.uniformGroups[i]
+            passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
+        }
+        // let x = 1, y = 1, z = 1;
+        let [x=1, y=1, z=1] = [...this.input.dispatchCount]  ;
+        passEncoder.dispatchWorkgroups(x, y, z);
+        // passEncoder.dispatchWorkgroups(...this.input.dispatchCount);
+        passEncoder.end();
+        if (this.input.map) {
+            await this.input.map!(this, encoder)
+        }
+        // Finish encoding and submit the commands
+        const commandBuffer = encoder.finish();
+        device.queue.submit([commandBuffer]);
+    }
 }

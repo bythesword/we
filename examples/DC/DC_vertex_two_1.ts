@@ -109,6 +109,7 @@ let options: drawOption = {
       instanceCount: 2
     }
   },
+  rawUniform: true,
   // }
 }
 

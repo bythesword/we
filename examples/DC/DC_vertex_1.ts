@@ -93,6 +93,7 @@ let options: drawOption = {
       vertexCount: 3
     }
   },
+  rawUniform: true,
   // depthStencil: {
   //   depthWriteEnabled: true,
   //   depthCompare: 'less',

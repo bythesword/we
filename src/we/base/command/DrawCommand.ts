@@ -1,3 +1,13 @@
+import {
+    BaseCommand,
+    // uniformBufferPart,
+    // unifromGroup,
+    // uniformBuffer,
+    // uniformBufferAll,
+    // uniformEntries,
+    // localUniformGroups,
+    baseOption,
+} from './baseCommand';
 // import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
 // import * as baseDefine from "../scene/base"
@@ -64,85 +74,11 @@ export type TypedArrayString = "Int8Array" | "Uint8Array" | "Int16Array" | "Uint
 // type isUniformPerOne<T> = T extends { format: string } ? true : false;
 
 /**
- * uniformPart  是buffer使用的更新，会每帧更新
- * @binding
-    * number ,WGSL中的@binding(x)的位置，不能重复;
-    * maxUniformBuffersPerShaderStage 在webGPU的最小最大值：12
-    * 0：被系统占用，剩余1--3
- * @buffer :TypedArray,通过()=>{return TypedArray }返回TypedArray
- * 
- * @type:buffer 类型，buffer 类型，默认：uniform  
- *     
- * @size :是TypedArray的大小，以byte计算;这个size是需要数据对齐的
- * 
- * @update :是否每帧更新，默认：true 
- */
-export interface uniformBufferPart {
-    /**
-     * WGSL中的@binding(x)的位置，不能重复;
-     * 
-     * 必须是JS中与WGSL中的一定要对应，否则报错
-     */
-    binding: number,
-    label?: string,
-    /** buffer 类型,uniform|storage，默认：uniform */
-    type?: "uniform" | "storage"
-    /**TypedArray的大小，以byte计算 ;这个size是需要数据对齐的*/
-    size: number,//
-    /**TypedArray,通过()=>{return TypedArray }返回TypedArray */
-    get: () => TypedArray,
-    /** 
-     * 是否每帧更新，默认：true 
-     * 
-     * 至少更新一次
-    */
-    update?: boolean,
-}
-
-
-export type uniformEntries = GPUBindGroupEntry | uniformBufferPart
-/**
- * unifromGroup  只进行绑定，不负责更新，更新在WObject中进行
- * @layout 
-    * number
-    * 在一个group中绑定的位置，在一个group中，不能重复;
-    * 这里的group的id需要与后面的encoder的pipeline中bindgroup的id对应
-    * maxBindGroups在webGPU的最小最大值：4
-    * 从1--3（最小的最大maxBindGroups），有多少个需要看系统实现（20240705 dawn=4,wgpu=8）
-    * 0：被系统占用，剩余1--3
- * @resource 
-    *GPUBindGroupEntry[] | uniformPart[]
-     * GPUSampler or GPUTextureView or GPUBufferBinding or GPUExternalTexture) 的四种资源之一
-     * 可以使用()=>{return GPUBindingResource}的形式返回
-     * GPUBufferBinding的更新在WObject中进行，由上一级进行维护     
- * @entries 
-    * 以最小最大值表述
-    * uniform :
-        * uniform(maxUniformBuffersPerShaderStage) :8
-        * texture (maxSampledTexturesPerShaderStage):16
-        * sampler (maxSamplersPerShaderStage):16
-    * storage 
-        * buffer(maxStorageBuffersPerShaderStage):8(Chrome：10,firefox:64)
-        * texture(maxStorageTexturesPerShaderStage):4(Chrome:8,firefox:64)
-    *          
- */
-export interface unifromGroup {
-    layout: number,
-    /**
-     * type，两种类型
-     * 
-     * 一个是webGPU的标准的，
-     * 
-     * 一个是架构的自定义的uniform|storage的TypeArray的interface
-     */
-    entries: uniformEntries[],
-}
-/**
  * indexBuffer,非必须，
  */
 export interface indexBuffer {
-    buffer:   Uint32Array,
-    type?:   "Uint32Array",
+    buffer: Uint32Array,
+    type?: "Uint32Array",
     indexForat?: "uint16" | "uint32",
     offset?: number,
     /**Size in bytes of the index data in buffer */
@@ -182,21 +118,18 @@ export interface drawModeIndexed {
  * camera?: any,
  * 
 */
-export interface drawOption {
-    /** scene object ，必须 */
-    scene: any,
-    /** todo ,摄像机对象或default,也可以是光源的，比如shadow map */
-    camera?: any,
-    /** label */
-    label?: string,
+export interface drawOption extends baseOption {
     vertex: vsPart,
+
     fragment: fsPart,
+
     primitive?: GPUPrimitiveState,
+
     layout?: GPUPipelineLayout | "auto",
-    /**数组会按照1--3进行重组，生成GPUBindGroup */
-    uniforms: unifromGroup[],
+
     /** 如果没有，使用scene的默认设置，需要 */
     renderPassDescriptor?: GPURenderPassDescriptor,
+
     /**索引模式 */
     indexBuffer?: indexBuffer,
     /**实例化数量，默认=1 
@@ -205,6 +138,7 @@ export interface drawOption {
      *          B、这些参数在shader中操作
      *          C、也可以通过shader生成random,进行随机（上述）操作，比如花草的摇曳的matrix
     */
+
     instanceCount?: number,
 
     /** draw mode:  */
@@ -212,74 +146,30 @@ export interface drawOption {
         mode: "draw" | "index",
         values: drawMode | drawModeIndexed,
     }
-
-
 }
 
-/**
- * 单个layout的uniformBuffer的GPUBuffer的收集器 
- * 
- * 这相当于@group(x) @binding(y) 的y
-*/
-export type uniformBuffer = {
-    [n in number]: GPUBuffer
-}
-/** 
- * 所有layout的uniformBuffer的GPUBuffer的收集器
- * 
- * 这个相当于@group(x) @binding(y)  中的X，其内容相当于Y
- */
-export type uniformBufferAll = {
-    [n in number]: uniformBuffer
-}
-/**
- * DC保存 bindGroup的用途的收集器
- */
-export type localUniformGroups = {
-    [n in number]: GPUBindGroup
-}
 
-export class DrawCommand {
-    /** scene ,必须,cavas or texture */
-    scene: any;
-    /** 渲染的camera，scene.cameraDefault || 指定的camera */
-    camera: any;
-    /** webGPU 的device */
-    device!: GPUDevice;
+export class DrawCommand extends BaseCommand {
+
     /***pipeline 句柄 */
-    pipeline!: GPURenderPipeline;
+    declare pipeline: GPURenderPipeline;
     /**保存 pipeline 用的buffer ,不超过(maxVertexBuffers:8,maxVertexAttributes:16)*/
     verticesBuffer!: GPUBuffer[]//GPUBuffer[] | undefined;
     indexBuffer!: GPUBuffer;
-    unifromBuffer!: uniformBufferAll;
-    /**
-     * [0]=系统的uniform参数
-     * 其他最多3个绑定组，dawn（4个），wgpu（8个） */
-    uniformGroups!: localUniformGroups;
-    /** 这个是这个系统的uniform ,camera,lights ,mvp....
-     *  也就是uniform0
-     */
-    // uniformSystem!: GPUBindGroup ;
     /**renderPassDescriptor */
     renderPassDescriptor!: GPURenderPassDescriptor;
     /**这个类的webGPU的 commandEncoder */
-    input!: drawOption;
-
+    declare input: drawOption;
     primitive!: GPUPrimitiveState;
-
-    pipelineLayout!: GPUPipelineLayout | "auto";
     /** 深度与模板的 参数，pipeline 的描述使用*/
     depthStencil!: GPUDepthStencilState | undefined;
 
-    label!: string;
-    /**注销标志位 */
-    _isDestory!: boolean;
-
 
     constructor(options: drawOption) {
-        this.input = options;
-        this.scene = options.scene;
-        this.device = options.scene.device;
+        super(options)
+        // this.input = options;
+        // this.scene = options.scene;
+        // this.device = options.scene.device;
         this.verticesBuffer = [];
         this.unifromBuffer = [];
         if (options.camera) this.camera = options.camera;
@@ -362,7 +252,7 @@ export class DrawCommand {
      */
     createIndexBuffer(label: string) {
         // if ("indexBuffer" in this.input) {
-        if(this.input.indexBuffer){
+        if (this.input.indexBuffer) {
             const indexdata = this.input.indexBuffer.buffer;
 
             let device = this.device;
@@ -478,170 +368,16 @@ export class DrawCommand {
         const pipeline = device.createRenderPipeline(descriptor);
         return pipeline;
     }
-    /** 创建uniform Buffer，  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST*/
-    creatUniformBuffer(size: number, label: string) {
-        let device = this.device;
-        const uniformBuffer = device.createBuffer({
-            label: label,
-            size: size,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
-        return uniformBuffer;
 
-    }
-    /** 创建uniform Buffer，  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST*/
-    creatUniformStorageBuffer(size: number, label: string) {
-        let device = this.device;
-        const uniformBuffer = device.createBuffer({
-            label: label,
-            size: size,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        });
-        return uniformBuffer;
-
-    }
-    /**
-     * 创建uniform buffer 用的描述，并将uniformBuffer(GPUBuffer) 存储到this.unifromBuffer中。
-     * @param layout  bingdGroup：1--3
-     * @param perOne  每个uniform buffer的描述 
-     * @returns GPUBindGroupEntry
-     */
-    createUniformBufferBindGroupDescriptor(layout: number, perOne: uniformBufferPart): GPUBindGroupEntry {
-
-        let label = this.input.label as string;
-        if ("label" in perOne) {
-            label = perOne.label as string;
-        }
-        let uniformBuffer: GPUBuffer;
-        if ("type" in perOne && perOne.type == "storage") {
-            uniformBuffer = this.creatUniformStorageBuffer(perOne.size, label);
-            const buffer = perOne.get();
-            this.device.queue.writeBuffer(
-                uniformBuffer,
-                0,
-                buffer,
-                // buffer.buffer,
-                // buffer.byteOffset,
-                // buffer.byteLength
-              );
-            //   两个都是正确的
-            //   this.device.queue.writeBuffer(
-            //     uniformBuffer,
-            //     0,
-            //     // buffer,
-            //     buffer.buffer,
-            //     buffer.byteOffset,
-            //     buffer.byteLength
-            //   );
-        }
-        else {
-            uniformBuffer = this.creatUniformBuffer(perOne.size, label);
-        }
-        if(this.unifromBuffer[layout]){
-            this.unifromBuffer[layout][perOne.binding] = uniformBuffer;
-        }
-        else {
-            let oneUniformBuffer = [];
-            oneUniformBuffer[perOne.binding] = uniformBuffer;
-            this.unifromBuffer[layout] = oneUniformBuffer;
-        }
-
-        const res: GPUBufferBinding =
-        {
-            buffer: uniformBuffer
-        }
-        let one: GPUBindGroupEntry = {
-            binding: perOne.binding,
-            resource: res
-        }
-        return one;
-    }
-
-
-    /**
-     * 创建 bindGroup 1--3 
-     * @returns localUniformGroups
-     */
-    createUniformGroups(): localUniformGroups {
-        // let abc = [
-        //     { 
-        //         binding: 1, 
-        //         visibility: ShaderStage:: Fragment, 
-        //         buffer: { 
-        //             type: BufferBindingType:: Uniform, 
-        //             minBindingSize: 16, 
-        //             hasDynamicOffset: 0 } 
-        //     }
-        // ]
-        let device = this.device;
-        let pipeline = this.pipeline;
-        let unifromGroupSource = this.input.uniforms;
-        let bindGroup: localUniformGroups = [];
-        for (let perGroup of unifromGroupSource) {
-            let entries: GPUBindGroupEntry[] = [];
-            for (let perOne of perGroup.entries) {
-                if ("size" in perOne) {
-                    const perOneBuffer = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
-                    entries.push(perOneBuffer);
-                }
-                else {
-                    entries.push(perOne as GPUBindGroupEntry);
-                }
-            };
-            const bindLayout = pipeline.getBindGroupLayout(perGroup.layout);
-            let groupDesc: GPUBindGroupDescriptor = {
-                label: "bind to " + perGroup.layout,
-                layout: bindLayout,
-                entries: entries,
-            }
-            const uniformBindGroup = device.createBindGroup(groupDesc);
-            bindGroup[perGroup.layout] = uniformBindGroup;
-        }
-        return bindGroup;
-    }
-
-    /**
-     * 更新单个layout的uniform buffer的TypedArray
-     * @param layout  uniformBindGroup的layout的位置数字
-     * @param perOne  在uniformBufferPart ，即单个uniformBuffer的定义
-     */
-    updataOneUniformBuffer(layout: number, perOne: uniformBufferPart) {
-        if ("update" in perOne && perOne.update == false) {
-            return;
-        }
-        else {
-            let device = this.device;
-            const uniformBuffer = this.unifromBuffer[layout][perOne.binding];
-            const buffer = perOne.get();
-            device.queue.writeBuffer(
-                uniformBuffer,
-                0,
-                buffer.buffer,
-                0,//buffer.byteOffset,
-                buffer.byteLength
-            );
-        }
-    }
-    /**
-     * 更新1--3+的 unifrom group的buffer，系统的（0）单独更新，通过scene中的updateSystemUnifrombuffer()进行更调用
-     */
-    updateUniformBuffer() {
-        let unifromGroupSource = this.input.uniforms;
-        for (let perGroup of unifromGroupSource) {
-            for (let perOne of perGroup.entries) {
-                if ("size" in perOne) {
-                    this.updataOneUniformBuffer(perGroup.layout, perOne as uniformBufferPart);
-                }
-            }
-        }
-    }
     /**
      * 目前使用scene的colorAttachments,
      * todo ，增加texture
      */
     submit() {
         const device = this.device;
-        this.scene.updateUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
+        //是否是raw shader
+        if (typeof this.input.rawUniform == 'undefined' || this.input.rawUniform === false)
+            this.uniformGroups[0] = this.scene.updateUnifrombufferForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
         this.updateUniformBuffer();
 
         //20240722:这里有个问题，1、为什么每次必须写新的，2、depth是否需要每次新的
@@ -652,9 +388,11 @@ export class DrawCommand {
         */
 
         if (this.renderPassDescriptor.colorAttachments != null) {
+            //如果 loadOp="clear",则只有一个的绘制结果
             (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
+            //loadOp = "load",无论是否创建view都是一个效果，可以多次绘制，但底色消失
             // (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context.getCurrentTexture().createView();//ok
-            // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view = this.scene.context.getCurrentTexture().createView();//ok
+            (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view = this.scene.context.getCurrentTexture().createView();//ok
             // this.renderPassDescriptor.colorAttachments[0].view = this.scene.context.getCurrentTexture().createView();//ok
         }
         if (this.renderPassDescriptor.depthStencilAttachment != null) {

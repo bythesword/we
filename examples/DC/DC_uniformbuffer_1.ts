@@ -122,6 +122,7 @@ let options: drawOption = {
       vertexCount: 3
     }
   },
+  rawUniform: true,
 }
 
 let DC = new DrawCommand(options);

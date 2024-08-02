@@ -276,6 +276,7 @@ let options1: drawOption = {
       instanceCount: 2
     }
   },
+  rawUniform: true,
   // }
 }
 let DC1 = new DrawCommand(options1);
