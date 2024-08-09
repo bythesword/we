@@ -307,9 +307,10 @@ export class ArcballCamera extends CameraBase implements Camera {
       this.distance *= 1 + input.analog.zoom * this.zoomSpeed;
     }
     this.position = vec3.scale(this.back, this.distance);
-
+    // console.log(this.position);
     // Invert the camera matrix to build the view matrix
     this.view = mat4.invert(this.matrix);
+    // console.log(this.view)
     return this.view;
   }
 

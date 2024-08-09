@@ -11,7 +11,7 @@ import {
 // import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
 // import * as baseDefine from "../scene/base"
-
+import { getReplaceVertexConstants } from './shaderFormat';
 
 
 /** VS的buffer的typearray的结构 
@@ -340,28 +340,63 @@ export class DrawCommand extends BaseCommand {
                 this.verticesBuffer.push(oneGPUBuffer);//这里是buffer[]的数组顺序，入栈
             }
         }
+        let constantsVertex = this.input.vertex.constants;
+        let constantsFrag = this.input.fragment.constants;
+        let descriptor: GPURenderPipelineDescriptor;
 
-        let descriptor: GPURenderPipelineDescriptor = {
-            label: label,
-            layout: this.pipelineLayout,
-            vertex: {
-                module: device.createShaderModule({
-                    code: this.input.vertex.code,
-                }),
-                entryPoint: this.input.vertex.entryPoint,
-                buffers: buffer,
-            },
-            fragment: {
-                module: device.createShaderModule({
-                    code: this.input.fragment.code,
-                }),
-                entryPoint: this.input.fragment.entryPoint,
-                targets: this.input.fragment.targets,
+        //todo 
+        if (typeof this.input.rawUniform == 'undefined' || this.input.rawUniform === false) {
 
-            },
-            primitive: this.primitive,
+            let codeVS=getReplaceVertexConstants(this.input.vertex.code,this.input.vertex.entryPoint);
+            let codeFS=getReplaceVertexConstants(this.input.fragment.code,this.input.fragment.entryPoint);
+            descriptor = {
+                label: label,
+                layout: this.pipelineLayout,
+                vertex: {
+                    module: device.createShaderModule({
+                        code: codeVS,
+                    }),
+                    entryPoint: this.input.vertex.entryPoint,
+                    buffers: buffer,
+                    constants: constantsVertex,
+                },
+                fragment: {
+                    module: device.createShaderModule({
+                        code: codeFS,
+                    }),
+                    entryPoint: this.input.fragment.entryPoint,
+                    targets: this.input.fragment.targets,
+                    constants: constantsFrag,
+                },
+                primitive: this.primitive,
 
-        };
+            };
+        }
+        else {
+            descriptor = {
+                label: label,
+                layout: this.pipelineLayout,
+                vertex: {
+                    module: device.createShaderModule({
+                        code: this.input.vertex.code,
+                    }),
+                    entryPoint: this.input.vertex.entryPoint,
+                    buffers: buffer,
+                    constants: constantsVertex,
+                },
+                fragment: {
+                    module: device.createShaderModule({
+                        code: this.input.fragment.code,
+                    }),
+                    entryPoint: this.input.fragment.entryPoint,
+                    targets: this.input.fragment.targets,
+                    constants: constantsFrag,
+                },
+                primitive: this.primitive,
+
+            };
+        }
+
         if (this.depthStencil) {
             descriptor.depthStencil = this.depthStencil;
         }
@@ -376,8 +411,18 @@ export class DrawCommand extends BaseCommand {
     submit() {
         const device = this.device;
         //是否是raw shader
-        if (typeof this.input.rawUniform == 'undefined' || this.input.rawUniform === false)
-            this.uniformGroups[0] = this.scene.updateUnifrombufferForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
+        if (typeof this.input.rawUniform == 'undefined' || this.input.rawUniform === false) {
+            //创建
+            if (this.uniformGroups[0] == undefined) {
+                this.uniformGroups[0] = this.scene.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
+            }
+            //更新buffer,scene中update更新
+            // else //if (this.uniformGroups[0] != undefined) 
+            // {
+            //     this.scene.updateSystemUnifromBuffer();//更新ystem的uniform ，MVP，camera，lights等
+            // }
+        }
+
         this.updateUniformBuffer();
 
         //20240722:这里有个问题，1、为什么每次必须写新的，2、depth是否需要每次新的
@@ -403,6 +448,8 @@ export class DrawCommand extends BaseCommand {
         const commandEncoder = device.createCommandEncoder();
         const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
+
+        //this.uniformGroups 包括了0-3的groups
         for (let i in this.uniformGroups) {
             let perGroup = this.uniformGroups[i]
             passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中

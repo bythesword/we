@@ -18,7 +18,7 @@ const canvas = document.querySelector('canvas') as HTMLCanvasElement;
 const inputHandler = createInputHandler(window, canvas);
 
 // The camera types  摄像机参数
-const initialCameraPosition = vec3.create(3, 2, 2);//位置
+const initialCameraPosition = vec3.create(0, 0, 5);//位置
 const cameras = {
   arcball: new ArcballCamera({ position: initialCameraPosition }),
   WASD: new WASDCamera({ position: initialCameraPosition }),
@@ -205,7 +205,7 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
 const aspect = canvas.width / canvas.height;
 const projectionMatrix = mat4.perspective((2 * Math.PI) / 5, aspect, 1, 100.0);
 const modelViewProjectionMatrix = mat4.create();
-
+console.log(projectionMatrix)
 
 //获取更新后的摄像机矩阵
 function getModelViewProjectionMatrix(deltaTime: number) {

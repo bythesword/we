@@ -25,6 +25,9 @@ export interface projectionOptions {
   // right?:number,
   // top?:number,
   // bottom?:number,
+  name?: string,
+  position: Vec3,
+  lookAt?: Vec3,
 }
 
 /***
@@ -66,6 +69,9 @@ export abstract class BaseCamera {
   /** MVP的Mat4的数组，[model,view,projection]  */
   MVP!: Mat4[];
 
+
+  lookAt!: Vec3;
+
   // // The camera matrix.
   // // This is the inverse of the view matrix.
   // matrix!: Mat4;
@@ -80,12 +86,30 @@ export abstract class BaseCamera {
   /**归一化的方向 */
   direction!: Vec4;
 
+  name!: string;
   constructor(option: projectionOptions) {
 
     this.option = option;
     if (option.upDirection) {
       vec3.copy(option.upDirection, this._upDirection);
     }
+    if (typeof option.name != 'undefined') {
+      this.name = option.name;
+    }
+    else {
+      this.name = "Camera_" + new Date().getTime();
+    }
+    if (option.position) {
+      this.position = option.position
+    }
+    if (option.lookAt) {
+      this.back = vec3.normalize(vec3.sub(option.position, option.lookAt));
+      this.lookAt = option.lookAt;
+    }
+    else {
+      this.lookAt = vec3.create(0, 0, 0);
+    }
+
 
   }
   /** 获取up方向 */
@@ -127,7 +151,11 @@ export abstract class BaseCamera {
   }
 
   getMVP() {
-    return this.MVP;
+    if (this.MVP)
+      return this.MVP;
+    else {
+      return this.update(this.position, this.back, true);
+    }
   }
 
   // Returns column vector 0 of the camera matrix

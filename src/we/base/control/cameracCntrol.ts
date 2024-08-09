@@ -150,13 +150,13 @@ export interface optionCamreaControl {
     window: Window,
     canvas: HTMLCanvasElement,//const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     camera?: BaseCamera,
-    parent: any,
+    // parent: any,
 }
 
 export abstract class CamreaControl {
     /** scene ,必须,cavas or texture */
     scene: any;
-    _camera!: BaseCamera;
+    _camera: BaseCamera | undefined;
     _isDestory!: boolean;
     _option!: optionCamreaControl;
 
@@ -165,12 +165,15 @@ export abstract class CamreaControl {
     constructor(option: optionCamreaControl) {
         this._option = option;
         if (option.camera) {
-            this._camera = option.camera;
+            this.camera = option.camera;
         }
-        else {
-            this._camera = option.parent.cameraDefault;
-        }
-        this.scene = option.parent;
+        // else if (option.parent.cameraDefault) {
+        //     this._camera = option.parent.cameraDefault;
+        // }
+        // else {
+        //     this._camera = undefined;
+        // }
+        // this.scene = option.parent;
         this.isDestory = false;
         this.inputHandler = createInputHandler(option.window, option.canvas)
         this.init();
@@ -180,8 +183,16 @@ export abstract class CamreaControl {
 
     abstract destory(): any
 
-    get camera() {
-        return this._camera;
+    set camera(camera: BaseCamera) {
+        this._camera = camera;
+    }
+    get camera(): BaseCamera | boolean {
+        if (this._camera) {
+            return this._camera;
+        }
+        else {
+            return false;
+        }
     }
     get isDestory() {
         return this._isDestory;

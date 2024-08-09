@@ -20,16 +20,34 @@ declare interface cameras {
 export abstract class BaseScene {
     /** scene 的初始化参数 */
     input: sceneJson;
+
+
+    /**webgpu adapter 
+       * 派生的Scene获取GPU相关参数；
+       * 其他的非Scene的派生可以通过set设置，使用Scene的GPU相关参数
+      */
     adapter!: GPUAdapter;
-    /**webgpu device */
+
+    /**webgpu device 
+       * 派生的Scene获取GPU相关参数；
+       * 其他的非Scene的派生可以通过set设置，使用Scene的GPU相关参数
+      */
     device!: GPUDevice;
-    /**默认的渲染对象输出*/
-    // context!: GPUCanvasContext;
+
+    /**
+     * 渲染对象
+     * 默认的渲染对象输出：GPUCanvasContext;
+     * 
+    */
     context!: GPUCanvasContext | GPUTexture;
+
+    /**todo */
     depthTexture!: GPUTexture;
+
     /** presentationFormat*/
     presentationFormat!: GPUTextureFormat;
 
+    /**depthStencil 模板参数 */
     depthStencil!: GPUDepthStencilState
     //  {
     //     depthWriteEnabled: true,
@@ -70,17 +88,17 @@ export abstract class BaseScene {
     * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
     * 这个需要确保每帧只更新一次
     */
-    abstract updateUnifrombuffer(): any
+    abstract updateSystemUniformBuffer(): any
 
     /**
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    abstract updateUnifrombufferForPerShader(pipeline: GPURenderPipeline): GPUBindGroup 
-    abstract getMVP(): any
-    abstract getProjectionOfMatrix(): Mat4
+    abstract createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline): GPUBindGroup
+    abstract getMVP(): GPUBuffer
+
     fatal(msg: string | undefined) {
         document.body.innerHTML += `<pre>${msg}</pre>`;
         throw Error(msg);
     }
-    abstract update(): any
+    abstract update(deltaTime: number): any
 }

@@ -34,12 +34,15 @@ let shader = `
         @builtin(position) position: vec4f,
         @location(0) color: vec4f,
       };
-
+      var<private > a:vec4f;
+      fn test(){
+             a=u_uv;//定义了,就必须用，不用报错
+      }
       @vertex fn vs(
          @location(0) position : vec3f,
          @location(1) color : vec4f
       ) -> OurVertexShaderOutput {
-
+        test();//这个也可以
 
         var vsOutput: OurVertexShaderOutput;
         vsOutput.position = vec4f(position,  1.0);
@@ -48,8 +51,7 @@ let shader = `
       }
 
       @fragment fn fs(@location(0) color: vec4f) -> @location(0) vec4f {
-      let uv=u_uv;//定义了,就必须用，不用报错
-
+      // let uv=u_uv;//定义了,就必须用，不用报错
         return u_color;
       }
 `;
@@ -61,7 +63,7 @@ const oneTriangleVertexArray = [
 const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
 
 const uniformOneColor = new Float32Array([1, 0, 0, 1]);
-const uniformOneUV =  new Float32Array([1, 0, 0, 1]);
+const uniformOneUV = new Float32Array([1, 0, 0, 1]);
 
 // const uniformBuffer = scene.device.createBuffer({
 //   size: 4 * 4,

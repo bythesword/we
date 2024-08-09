@@ -9,7 +9,7 @@ import {
 
 import { BaseCamera, projectionOptions } from "./baseCamera";
 
-export interface orthProjectionOptions extends projectionOptions {
+export interface optionOrthProjection extends projectionOptions {
     left?: number,
     right?: number,
     top?: number,
@@ -18,7 +18,7 @@ export interface orthProjectionOptions extends projectionOptions {
 }
 
 export class OrthographicCamera extends BaseCamera {
-    constructor(option:orthProjectionOptions) {
+    constructor(option:optionOrthProjection) {
         super(option);
     }
 
