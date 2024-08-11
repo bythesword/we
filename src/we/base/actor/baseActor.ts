@@ -51,7 +51,7 @@ export interface actorBindPool {
     animtion?: actorAnimation[],
     audio?: actorAudio[],
     /** stage(layer) */
-    stage?: coreConst.stageType,
+    stage?: coreConst.stageIndex,
     entities?: actorEntity,
 }
 
@@ -64,7 +64,7 @@ export interface optionActor {
     parent?: any,
     name: string,
     /** */
-    stage?: coreConst.stageType,
+    stage?: coreConst.stageIndex,
     // scene: any,
 
 }
@@ -81,7 +81,7 @@ export abstract class BaseActor {
     // scene: any;
     name!: string;
     /**stage ,默认= coreConst.defaultStage*/
-    _stage!: coreConst.stageType;
+    _stage!: coreConst.stageIndex;
     /**
      * 用户自定义 callback
      * scope:CameraActor
@@ -103,7 +103,7 @@ export abstract class BaseActor {
         }
 
     }
-    set stage(stage: coreConst.stageType) {
+    set stage(stage: coreConst.stageIndex) {
         this._stage = stage;
     }
 

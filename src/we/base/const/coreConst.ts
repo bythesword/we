@@ -1,27 +1,30 @@
+export type stageIndex = string;
 
-export interface stageType {
+export interface stageName {
     [name: number]: string
 }
 
-export var stagesOfSystem: stageType = [
-    "Depth",
-    "Sky",
+export var stagesOfSystem: stageName = [
+    ////// "Depth",   
     "World",
+    "Sky",
     "worldTransparent",
-    "ImmediateOpaque",
-    "ImmediateTransparent",
-    "Actor",
+
+    // "Actor",
+    // "ActorTransparent",
+    // "Immediate",//Opaque
+    // "ImmediateTransparent",
     "UI",
 ]
 
-export var defaultStage = stagesOfSystem[2];
+export var defaultStage = stagesOfSystem[0];
 
 
-export interface stagesOrderBy {
+export interface stagesOrderByRender {
     [id: number]: number
 }
 
-export var defaultStageList: stagesOrderBy = [
+export var defaultStageList: stagesOrderByRender = [
     // 1,2,3,4,5,6,7  //不包含Depth
     2 //world 
 ]

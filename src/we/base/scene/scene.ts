@@ -9,21 +9,21 @@ import { Clock } from '../scene/clock';
 
 import { BaseScene, sceneJson } from './baseScene';
 
-import {
-    DrawCommand,
-    // primitiveOption,
-    // drawModeIndexed,
-    // drawMode,
-    // indexBuffer,
-    // unifromGroup,
-    // uniformEntries,
-    // uniformBufferPart,
-    // fsPart,
-    // vsPart,
-    // vsAttributes
-} from "../command/DrawCommand"
+// import {
+//     DrawCommand,
+//     // primitiveOption,
+//     // drawModeIndexed,
+//     // drawMode,
+//     // indexBuffer,
+//     // unifromGroup,
+//     // uniformEntries,
+//     // uniformBufferPart,
+//     // fsPart,
+//     // vsPart,
+//     // vsAttributes
+// } from "../command/DrawCommand"
 
-import { ComputeCommand } from '../command/ComputeCommand';
+// import { ComputeCommand } from '../command/ComputeCommand';
 
 import {
     //  projectionOptions,
@@ -32,7 +32,7 @@ import {
 
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
-import { Stage, commmandType, stageType } from '../stage/baseStage';
+import { BaseStage, commmandType, stageType, stageOne, stageGroup } from '../stage/baseStage';
 
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
 // import { optionCamreaControl } from "../control/cameracCntrol"
@@ -53,21 +53,6 @@ declare interface timeUniform {
     time: number,
 }
 
-/**
- * todo ，需要更新，按照playcanvas的模式
- * 默认的stage结构 */
-// export declare interface stage {
-//     root: [],
-//     name: string,
-//     enable: boolean,
-//     visible: boolean,
-//     depthTest: boolean,
-//     transparent: boolean,
-//     /**每个stage的command集合 
-//      * 一个实体可以由多个command，分布在不同的stage，比如透明，不透明
-//     */
-//     command: commmandType[];
-// }
 
 /** stage 收集器/集合 */
 export interface stages {
@@ -386,9 +371,21 @@ class Scene extends BaseScene {
         for (let i in coreConst.defaultStageList) {
             const perList = coreConst.defaultStageList[i];//number，stagesOfSystem的数组角标
             const name = coreConst.stagesOfSystem[perList];
-            const perStageCommand = this.stages[name].command;
-            for (let command_i of perStageCommand) {
-                this.command.push(command_i);
+            if ("isGoup" in this.stages[name]) {//复合stage，包含透明和不透明两个stage 
+                const perStageCommandOfOpaque = (this.stages[name] as stageGroup).opaque.command;
+                for (let command_i of perStageCommandOfOpaque) {
+                    this.command.push(command_i);
+                }
+                const perStageCommandOfTransparent = (this.stages[name] as stageGroup).transparent.command;
+                for (let command_i of perStageCommandOfTransparent) {
+                    this.command.push(command_i);
+                }
+            }
+            else {
+                const perStageCommand = (this.stages[name] as stageOne).command;
+                for (let command_i of perStageCommand) {
+                    this.command.push(command_i);
+                }
             }
         }
 
@@ -405,15 +402,15 @@ class Scene extends BaseScene {
                 this.actors[i].update(deltaTime);
             }
     }
+    updateEntries(deltaTime: number) {
+
+    }
+
     /**每帧更新入口 */
     update(deltaTime: number) {
         this.updateSystemUniformBuffer();
         this.updateAcotr(deltaTime);
         this.updateEntries(deltaTime);
-    }
-
-    updateEntries(deltaTime: number) {
-
     }
 
 
