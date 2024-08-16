@@ -7,7 +7,7 @@ import {
 } from 'wgpu-matrix';
 
 
-import { BaseCamera, projectionOptions } from "./baseCamera"
+import { BaseCamera, cameraRayValues, projectionOptions } from "./baseCamera"
 
 /** 透视相机 */
 export interface optionPerspProjection extends projectionOptions {
@@ -21,6 +21,13 @@ export interface optionPerspProjection extends projectionOptions {
 }
 
 export class PerspectiveCamera extends BaseCamera {
+
+    
+    getCameraRays(): cameraRayValues {
+        throw new Error('Method not implemented.');
+    }
+
+
     declare option: optionPerspProjection
     constructor(option: optionPerspProjection) {
         super(option);

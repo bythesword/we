@@ -2,14 +2,19 @@ export class Clock {
     timeLast: number
     timeNow: number
     timeStart: number
+    _deltaTime: number
 
     constructor() {
         this.timeStart = Date.now();
         this.timeLast = this.timeStart;
         this.timeNow = this.timeLast;
+        this._deltaTime = 0;
+    }
+    getLastNowDelta() {
+        return [this.last, this.now, this.deltaTime]
     }
     get deltaTime() {
-        return (this.timeNow - this.timeLast) / 1000
+        return this._deltaTime;
     }
     get now() {
         return this.timeNow;
@@ -24,14 +29,17 @@ export class Clock {
         this.timeLast = time;
     }
 
-    updateNow() {
-        this.timeNow = Date.now();
-    }
-    updateLast() {
+    // updateNow() {
+    //     this.timeNow = Date.now();
+    // }
+    // updateLast() {
+    //     this.timeLast = this.timeNow;
+    // }
+    update() {
+        // this.updateLast();
+        // this.updateNow();
         this.timeLast = this.timeNow;
-    }
-    update(){
-        this.updateLast();
-        this.updateNow();
+        this.timeNow = Date.now();
+        this._deltaTime = (this.timeNow - this.timeLast) / 1000
     }
 }

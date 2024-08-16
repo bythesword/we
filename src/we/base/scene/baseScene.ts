@@ -15,7 +15,30 @@ declare interface cameras {
 
 }
 
-
+export interface renderPassSetting {
+    color?: {
+        clearValue?: GPUColor,
+        loadOp?: GPULoadOp,        
+        storeOp?: GPUStoreOp,
+        depthSlice?: GPUIntegerCoordinate,
+    },
+    depth?: {
+        depthClearValue?: number,
+        depthLoadOp?: GPULoadOp,
+        depthStoreOp?: GPUStoreOp,
+    },
+    colorSecond?: {
+        // clearValue?: GPUColor,
+        loadOp?: GPULoadOp,        
+        storeOp?: GPUStoreOp,
+        depthSlice?: GPUIntegerCoordinate,
+    },
+    depthSecond?: {
+        // depthClearValue?: number,
+        depthLoadOp?: GPULoadOp,
+        depthStoreOp?: GPUStoreOp,
+    }
+}
 
 export abstract class BaseScene {
     /** scene 的初始化参数 */

@@ -37,6 +37,7 @@ import { CameraActor, optionCameraActor } from "../../src/we/base/actor/cameraAc
 
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import { DrawCommand, drawOption } from "../../src/we/base/command/DrawCommand"
+import { stageOne } from "../../src/we/base/stage/baseStage"
 declare global {
   interface Window {
     scene: any
@@ -190,5 +191,5 @@ let options: drawOption = {
 
 let DC = new DrawCommand(options);
 window.DC = DC;
-scene.stages["World"].command.push(DC)
+(<stageOne>scene.stages["World"]).command.push(DC)
 scene.run()

@@ -30,6 +30,14 @@ export interface projectionOptions {
   lookAt?: Vec3,
 }
 
+export interface cameraRayValues {
+  direction: Vec3,
+  left: Vec3,
+  right: Vec3,
+  up: Vec3,
+  down: Vec3,
+}
+
 /***
  * 摄像机抽象类
  */
@@ -125,7 +133,7 @@ export abstract class BaseCamera {
    * Mat4[model,view,projection]
    */
   abstract update(position: Vec3, direction: Vec3, normalize: boolean): Mat4[];
-
+  abstract getCameraRays(): cameraRayValues
   /**
    * 更新投影参数
    * @param options :projectionOptions

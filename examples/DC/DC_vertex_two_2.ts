@@ -12,13 +12,21 @@ import {
   vsPart,
   vsAttributes
 } from "../../src/we/base/command/DrawCommand"
+import { stageOne } from "../../src/we/base/stage/baseStage"
 declare global {
   interface Window {
     scene: any
     DC: any
   }
 }
-let input: sceneInputJson = { canvas: "render" }
+let input: sceneInputJson = {
+  canvas: "render",
+  renderPassSetting:{
+    color:{
+      clearValue:[0.5,0.5,0.5,1]
+    }
+  }
+}
 let scene = new Scene(input);
 await scene.init();
 
@@ -70,7 +78,7 @@ const uniformOneColor = new Float32Array([
 
 ]);
 
-const rand = (min:number=0, max:number=1) => {
+const rand = (min: number = 0, max: number = 1) => {
   if (min === undefined) {
     min = 0;
     max = 1;
@@ -123,15 +131,15 @@ let options: drawOption = {
           /** 这个需要数据对齐的 
            * 4+3=7，对齐=8
           */
-          size: 4*8,//uniformOneColor.byteLength,
-          get: () => { 
-            const uniformOneColor=
-            new Float32Array([
-              rand(), rand(), rand(), 1,
-              rand(-0.51,0.51), rand(-0.51,0.51), 0,
-            ]);
-            return             uniformOneColor
-           },
+          size: 4 * 8,//uniformOneColor.byteLength,
+          get: () => {
+            const uniformOneColor =
+              new Float32Array([
+                rand(), rand(), rand(), 1,
+                rand(-0.51, 0.51), rand(-0.51, 0.51), 0,
+              ]);
+            return uniformOneColor
+          },
           // update: false,
         }
       ]
@@ -194,15 +202,15 @@ let options1: drawOption = {
           /** 这个需要数据对齐的 
            * 4+3=7，对齐=8
           */
-          size: 4*8,//uniformOneColor.byteLength,
-          get: () => { 
-            const uniformOneColor=
-            new Float32Array([
-              rand(), rand(), rand(), 1,
-              rand(-0.31,0.31), rand(-0.51,0.51), 0,
-            ]);
-            return             uniformOneColor
-           },
+          size: 4 * 8,//uniformOneColor.byteLength,
+          get: () => {
+            const uniformOneColor =
+              new Float32Array([
+                rand(), rand(), rand(), 1,
+                rand(-0.31, 0.31), rand(-0.51, 0.51), 0,
+              ]);
+            return uniformOneColor
+          },
           // update: false,
         }
       ]
@@ -219,6 +227,10 @@ let options1: drawOption = {
   // }
 }
 let DC1 = new DrawCommand(options1);
-// await DC.init();
-// window.DC1 = DC1;
-DC1.submit()
+
+// DC1.submit()
+
+(<stageOne>scene.stages["World"]).command.push(DC);
+(<stageOne>scene.stages["World"]).command.push(DC1);
+scene.run()
+

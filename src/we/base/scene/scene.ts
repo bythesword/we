@@ -6,8 +6,8 @@ import {
 } from 'wgpu-matrix';
 
 import { Clock } from '../scene/clock';
-
-import { BaseScene, sceneJson } from './baseScene';
+import { cameraRayValues } from "../camera/baseCamera";
+import { BaseScene, sceneJson, renderPassSetting } from './baseScene';
 
 // import {
 //     DrawCommand,
@@ -33,6 +33,7 @@ import {
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageType, stageOne, stageGroup } from '../stage/baseStage';
+import { BaseEntity } from "../entity/baseEntity";
 
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
 // import { optionCamreaControl } from "../control/cameracCntrol"
@@ -41,6 +42,7 @@ import { BaseStage, commmandType, stageType, stageOne, stageGroup } from '../sta
 declare interface sceneInputJson extends sceneJson {
     /**canvas id */
     canvas: string,
+    renderPassSetting?: renderPassSetting,
 }
 
 
@@ -56,7 +58,7 @@ declare interface timeUniform {
 
 /** stage 收集器/集合 */
 export interface stages {
-    [name: string]: stageType
+    [name: string]: BaseStage
 }
 
 /** system uniform 的结构 ，都是GPUBuffer，为更新uniform使用，
@@ -127,12 +129,49 @@ class Scene extends BaseScene {
      */
     defaultActor!: BaseActor;
 
+    /**scene 的默认renderPassSetting */
+    renderPassSetting!: renderPassSetting;
+
     constructor(input: sceneInputJson) {
         super(input)
         this.systemUniformBuffers = {};
 
         this.clock = new Clock();
         this.input = input;
+        this.renderPassSetting = {
+            color: {
+                clearValue: [0, 0, 0, 0],
+                loadOp: "clear",
+                storeOp: "store",
+            },
+            depth: {
+                depthClearValue: 1.0,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            },
+            colorSecond: {
+                // clearValue: [0, 0, 0, 0],
+                loadOp: "load",
+                storeOp: "store",
+            },
+            depthSecond: {
+                // depthClearValue: 1.0,
+                depthLoadOp: 'load',
+                depthStoreOp: 'store',
+            }
+        }
+        if (input.renderPassSetting) {
+            if (input.renderPassSetting.color) {
+                if (input.renderPassSetting.color.clearValue) this.renderPassSetting.color!.clearValue = input.renderPassSetting.color.clearValue;
+                if (input.renderPassSetting.color.loadOp) this.renderPassSetting.color!.loadOp = input.renderPassSetting.color.loadOp;
+                if (input.renderPassSetting.color.storeOp) this.renderPassSetting.color!.storeOp = input.renderPassSetting.color.storeOp;
+            }
+            if (input.renderPassSetting.depth) {
+                if (input.renderPassSetting.depth.depthClearValue) this.renderPassSetting.depth!.depthClearValue = input.renderPassSetting.depth.depthClearValue;
+                if (input.renderPassSetting.depth.depthLoadOp) this.renderPassSetting.depth!.depthLoadOp = input.renderPassSetting.depth.depthLoadOp;
+                if (input.renderPassSetting.depth.depthStoreOp) this.renderPassSetting.depth!.depthStoreOp = input.renderPassSetting.depth.depthStoreOp;
+            }
+        }
         // this.projectionMatrix = mat4.create();
         // this.modelViewProjectionMatrix = mat4.create();
         // this.root = [];
@@ -201,18 +240,15 @@ class Scene extends BaseScene {
      * depth buffer 在此初始化，todo
     */
     initStages() {
-        let worldStage: stageType = {
-            root: [],
-            name: '',
-            enable: true,
-            visible: true,
-            depthTest: true,
-            transparent: false,
-            command: []
-        }
+        let worldStage: BaseStage = new BaseStage();
         this.stages = {
             "World": worldStage
         };
+    }
+    add = this.addToStage;
+    addToStage(entity: BaseEntity, stage: coreConst.stageIndex = coreConst.defaultStageName) {
+        this.stages[stage].add(entity);
+
     }
     setDefaultCamera(camera: BaseCamera) {
         this.defaultCamera = camera;
@@ -230,10 +266,18 @@ class Scene extends BaseScene {
         }
         this.actors[one.name] = one;
         if (isDefault === true) {
-            this.setDefaultActor(one);
+            this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
         }
-
     }
+    /**
+     * 增加actor，
+     * 增加到stage：//todo
+     *     "Actor",不透明
+           "ActorTransparent",透明
+
+     * @param one :BaseActor
+     * @param isDefault :boolean,default=false
+     */
     addActor(one: BaseActor, isDefault = false) {
         if (this.actors == undefined) {
             this.actors = {};
@@ -261,17 +305,17 @@ class Scene extends BaseScene {
             colorAttachments: [
                 {
                     view: this.cocolorAttachment, // Assigned later
-                    clearValue: [0.5, 0.5, 0.5, 1.0],
-                    loadOp: 'clear',
-                    storeOp: 'store',
+                    clearValue: this.renderPassSetting.color?.clearValue,// [0.5, 0.5, 0.5, 1.0],
+                    loadOp: this.renderPassSetting.color!.loadOp!,// 'clear',
+                    storeOp: this.renderPassSetting.color!.storeOp!,//"store"
                 },
             ],
             depthStencilAttachment: {
                 view: this.depthStencilAttachment,
-                depthClearValue: 1.0,
+                depthClearValue: this.renderPassSetting.depth!.depthClearValue!,// 1.0,
                 // depthLoadOp: 'load',
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
+                depthLoadOp: this.renderPassSetting.depth!.depthLoadOp!,// 'clear',
+                depthStoreOp: this.renderPassSetting.depth!.depthStoreOp! //'store',
             },
         };
         return renderPassDescriptor;
@@ -358,11 +402,28 @@ class Scene extends BaseScene {
     }
 
     // addUserUpdate(fun: any) { }
+    /**
+     * 用户自定义的更新
+     * 比如：
+     *  订阅，触发、MQ、WW等
+     */
     updateUserDefine() { }
 
 
     /**
      * 每帧绘制入口
+     * 1、清空scene.commmand
+     * 
+     * 2、循环所有stages
+     *      A、每个stage的root——>command[]
+     *          //这个可能需要分成透明、不透明进行渲染，有可能涉及到2个stage，todo
+     *      B、scene.command.push(percommand)
+     * 
+     * 3、执行scene的command
+     *      A、恢复loadOp的参数（一次）
+     *      B、创建view(一次)
+     *      C、更新loadOp的参数到load(一次)
+     *      D、执行command.update()
      */
     oneFrameRender() {
         this.command = [];
@@ -390,27 +451,75 @@ class Scene extends BaseScene {
         }
 
         if (this.command.length > 0) {
-            for (let i of this.command) {
-                i.update();
+            for (let i in this.command) {
+                if (i == "0") {
+                    (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = this.renderPassSetting.color!.loadOp!;
+                    // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].clearValue = this.renderPassSetting.color!.clearValue!;
+                    this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = this.renderPassSetting.depth!.depthLoadOp!;
+                    (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
+                        (this.context as GPUCanvasContext)
+                            .getCurrentTexture()
+                            .createView();
+                }
+                else if (i == "1") {
+                    (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = this.renderPassSetting.colorSecond!.loadOp!;
+                    this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = this.renderPassSetting.depthSecond!.depthLoadOp!;
+                }
+                this.command[i].update();
             }
         }
     }
-    /**更新Actor */
+    /**更新Actor
+     * 循环所有actor ，并执行update
+     * todo：
+     * 1、有效性与可见性判断（对应每个摄像机）
+     *          距离
+     *          方向（BVH）
+     *          视锥
+     * 2、是否为动态Actor
+     * 3、生命周期
+     */
     updateAcotr(deltaTime: number) {
         if (this.actors)
             for (let i in this.actors) {
-                this.actors[i].update(deltaTime);
+                if (this.defaultActor && this.actors[i] != this.defaultActor)
+                    this.actors[i].update(deltaTime);
             }
     }
-    updateEntries(deltaTime: number) {
+    /**实体更新 
+     * 1、执行所有entity
+     *      A、判断stage，是否有效与可见性，是否可见
+     *      B、判断实体的可见性与有效性
+     *      C、判断摄像机（每个）的可见性
+     *          距离
+     *          方向（BVH）
+     *          视锥
+    */
+    updateEntities(deltaTime: number,) {
 
     }
 
-    /**每帧更新入口 */
+    updateBVH(cameraValues: cameraRayValues) {
+
+    }
+
+    /**每帧更新入口
+     * 1、更新system uniform
+     * 2、更新Acter
+     * 3、更新实体 entity
+     */
     update(deltaTime: number) {
+        this.defaultActor.update(deltaTime);
         this.updateSystemUniformBuffer();
-        this.updateAcotr(deltaTime);
-        this.updateEntries(deltaTime);
+
+        // 四个中间点，稍稍延迟
+        // let rays = this.defaultCamera!.getCameraRays();
+
+        /// 四个中间点，稍稍延迟
+        // this.updateBVH(rays)
+
+        this.updateAcotr(deltaTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
+        this.updateEntities(deltaTime);
     }
 
 

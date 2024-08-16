@@ -5,19 +5,21 @@ export interface stageName {
 }
 
 export var stagesOfSystem: stageName = [
-    ////// "Depth",   
+    ////// "Depth",   //这个是必须的，目前不在stage中
     "World",
-    "Sky",
     "worldTransparent",
-
-    // "Actor",
-    // "ActorTransparent",
-    // "Immediate",//Opaque
-    // "ImmediateTransparent",
-    "UI",
+    "Actor",//延迟
+    "ActorTransparent",//延迟
+    "Immediate",//Opaque//延迟//立即模式，不进入command
+    "ImmediateTransparent",//延迟
+    "Sky",
+    "UI",//延迟
 ]
 
-export var defaultStage = stagesOfSystem[0];
+export var defaultStage = 0;//stagesOfSystem[0];
+export var defaultStageName = stagesOfSystem[defaultStage]
+export var defaultStageTransparent = 1;//stagesOfSystem[2];
+export var defaultStageTransparentName = stagesOfSystem[defaultStageTransparent];
 
 
 export interface stagesOrderByRender {
@@ -25,6 +27,6 @@ export interface stagesOrderByRender {
 }
 
 export var defaultStageList: stagesOrderByRender = [
-    // 1,2,3,4,5,6,7  //不包含Depth
-    2 //world 
+    // 
+    0 //world 
 ]

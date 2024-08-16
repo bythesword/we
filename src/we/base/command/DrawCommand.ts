@@ -145,6 +145,18 @@ export interface drawOption extends baseOption {
     draw: {
         mode: "draw" | "index",
         values: drawMode | drawModeIndexed,
+    },
+    renderPass?: {
+        color?: {
+            clearValue?: GPUColor,
+            loadOp?: GPULoadOp,
+            storeOp?: GPUStoreOp,
+        },
+        depth?: {
+            depthClearValue?: number,
+            depthLoadOp?: GPULoadOp,
+            depthStoreOp?: GPUStoreOp,
+        }
     }
 }
 
@@ -347,8 +359,8 @@ export class DrawCommand extends BaseCommand {
         //todo 
         if (typeof this.input.rawUniform == 'undefined' || this.input.rawUniform === false) {
 
-            let codeVS=getReplaceVertexConstants(this.input.vertex.code,this.input.vertex.entryPoint);
-            let codeFS=getReplaceVertexConstants(this.input.fragment.code,this.input.fragment.entryPoint);
+            let codeVS = getReplaceVertexConstants(this.input.vertex.code, this.input.vertex.entryPoint);
+            let codeFS = getReplaceVertexConstants(this.input.fragment.code, this.input.fragment.entryPoint);
             descriptor = {
                 label: label,
                 layout: this.pipelineLayout,
@@ -432,18 +444,18 @@ export class DrawCommand extends BaseCommand {
             2、如果需要加载之前的，需要将 loadOP = "load"   
         */
 
-        if (this.renderPassDescriptor.colorAttachments != null) {
-            //如果 loadOp="clear",则只有一个的绘制结果
-            (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
-            //loadOp = "load",无论是否创建view都是一个效果，可以多次绘制，但底色消失
-            // (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context.getCurrentTexture().createView();//ok
-            (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view = this.scene.context.getCurrentTexture().createView();//ok
-            // this.renderPassDescriptor.colorAttachments[0].view = this.scene.context.getCurrentTexture().createView();//ok
-        }
-        if (this.renderPassDescriptor.depthStencilAttachment != null) {
-            // this.renderPassDescriptor.depthStencilAttachment.depthLoadOp = "load";
-            // this.renderPassDescriptor.depthStencilAttachment.depthStoreOp = "discard";
-        }
+        // if (this.renderPassDescriptor.colorAttachments != null) {
+        //     //如果 loadOp="clear",则只有一个的绘制结果
+        //     (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
+        //     //loadOp = "load",无论是否创建view都是一个效果，可以多次绘制，但底色消失
+        //     // (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.scene.context.getCurrentTexture().createView();//ok
+        //     (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view = this.scene.context.getCurrentTexture().createView();//ok
+        //     // this.renderPassDescriptor.colorAttachments[0].view = this.scene.context.getCurrentTexture().createView();//ok
+        // }
+        // if (this.renderPassDescriptor.depthStencilAttachment != null) {
+        //     // this.renderPassDescriptor.depthStencilAttachment.depthLoadOp = "load";
+        //     // this.renderPassDescriptor.depthStencilAttachment.depthStoreOp = "discard";
+        // }
 
         const commandEncoder = device.createCommandEncoder();
         const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
