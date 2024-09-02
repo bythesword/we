@@ -94,12 +94,13 @@ export interface unifromGroup {
  * camera?: any,
  * 
 */
-export interface baseOption {
+export interface baseOptionOfCommand {
     /** scene object ，必须 */
     scene: any,
 
-    /** todo ,摄像机对象或default,也可以是光源的，比如shadow map */
-    camera?: any,
+    //作废，camera和DC没有关系，20240825
+    // /** todo ,摄像机对象或default,也可以是光源的，比如shadow map */
+    // camera?: any,
 
     /** label */
     label?: string,
@@ -110,7 +111,7 @@ export interface baseOption {
     uniforms: unifromGroup[],
 
     /**是否使用system 的group 0 */
-    rawUniform?:boolean,
+    rawUniform?: boolean,
 
     /** callback function 
      * 
@@ -159,8 +160,9 @@ export abstract class BaseCommand {
     /** scene ,必须,cavas or texture */
     scene: any;
 
-    /** 渲染的camera，scene.cameraDefault || 指定的camera */
-    camera: any;
+    //作废，camera和DC没有关系，20240825
+    // /** 渲染的camera，scene.cameraDefault || 指定的camera */
+    // camera: any;
 
     /** webGPU 的device */
     device!: GPUDevice;
@@ -184,9 +186,9 @@ export abstract class BaseCommand {
     _isDestory!: boolean;
 
     /**这个类的webGPU的 commandEncoder */
-    input!: baseOption;
+    input!: baseOptionOfCommand;
 
-    constructor(options: baseOption) {
+    constructor(options: baseOptionOfCommand) {
         this.input = options;
         this.scene = options.scene;
         this.device = options.scene.device;

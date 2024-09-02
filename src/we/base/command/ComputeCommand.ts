@@ -6,7 +6,7 @@ import {
     uniformBufferAll,
     // uniformEntries,
     // localUniformGroups,
-    baseOption,
+    baseOptionOfCommand,
 } from './baseCommand';
 
 
@@ -17,7 +17,7 @@ export interface computePart {
     constants?: any,
 }
 
-export interface computeOption extends baseOption {
+export interface computeOptionOfCommand extends baseOptionOfCommand {
     compute: computePart,
     /** 
      * callback function 
@@ -40,7 +40,7 @@ export interface computeOption extends baseOption {
 
 export class ComputeCommand extends BaseCommand {
 
-    declare input: computeOption;
+    declare input: computeOptionOfCommand;
 
     mapBuffer!: uniformBufferAll;
 
@@ -49,7 +49,7 @@ export class ComputeCommand extends BaseCommand {
     declare pipeline: GPUComputePipeline;
 
 
-    constructor(options: computeOption) {
+    constructor(options: computeOptionOfCommand) {
         super(options);
         this.unifromBuffer = [];
         if (options.layout) {

@@ -22,11 +22,19 @@ export interface optionBaseMaterial {
 
 export abstract class BaseMaterial {
     input!: optionBaseMaterial;
+    _destory: boolean;
+    
     constructor(input?: optionBaseMaterial) {
+        this._destory = false;
         if (input)
             this.input = input;
         else
             this.input = {};
     }
     abstract getCodeFS(): string;
+    abstract destory(): any
+
+    isDestory() {
+        return this._destory;
+    }
 }

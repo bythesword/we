@@ -126,21 +126,24 @@ export abstract class BaseEntity {
     children!: BaseEntity[];
     name!: string;
     id!: entityID;
-    parent: any;
-    /** 
-     * 不透明实体的stage
-     * 1、可以在多个stage中
-     * 2、可以为undefined,即默认=World
-    */
-    stage!: number[];
-    /** 
-     * 透明物体的stage
-     * 1、可以在多个stage中
-     * 2、可以为undefined,即默认=worldTransparent
-    */
-    stageTransparent!: number[];
+    parent: BaseEntity | undefined;
+
+
+    /**透明属性
+     * 默认=false，
+     * 通过后续材质或函数设置
+     */
+    //20240825
+    _transparent!: boolean;
+    /**
+     * 本次是否更新，BVH的可见性,默认=true
+     */
+    _output: boolean;
+
 
     constructor(input?: optionBaseEntity) {
+        this._output = true;
+        this.transparent = false;
         this.input = input;
         this._dynamic = false;
         this._LOD = [];
@@ -162,31 +165,41 @@ export abstract class BaseEntity {
         if (input) {
             if (input.name) this.name = input.name;
             if (input.vertexAndMaterialGroup) this._vertexAndMaterialGroup = input.vertexAndMaterialGroup;
-            if (input.stage) {
-                if (input.stage.Opaque) this.stage = input.stage.Opaque;
-                else this.stage = [coreConst.defaultStage];
-                if (input.stage.Transparent) this.stage = input.stage.Transparent;
-                else this.stageTransparent = [coreConst.defaultStageTransparent];
 
-            }
-            else {
-                this.stage = [coreConst.defaultStage];
-                this.stageTransparent = [coreConst.defaultStageTransparent];
-            }
+            //作废，原因，stage与entity更改为一对一关系
+            // if (input.stage) {
+            //     if (input.stage.Opaque) this.stage = input.stage.Opaque;
+            //     else this.stage = [coreConst.defaultStage];
+            //     if (input.stage.Transparent) this.stage = input.stage.Transparent;
+            //     else this.stageTransparent = [coreConst.defaultStageTransparent];
+
+            // }
+            // else {
+            //     this.stage = [coreConst.defaultStage];
+            //     this.stageTransparent = [coreConst.defaultStageTransparent];
+            // }
         }
         this.init()
     }
+    abstract init(): any
 
-    async init() {
-        this._init = this.createDCC();
+    async initDCC(scene:any) {
+        this._init = this.createDCC(scene);
         this.generateBox();
+    }
+    set transparent(transparent: boolean) {
+        this._transparent = transparent;
+    }
+
+    get transparent() {
+        return this._transparent;
     }
 
     /**
      * 创建this._vertexAndMaterialGroup对应的DrawCommand组
      * 
      */
-    abstract createDCC(): initStateEntity
+    abstract createDCC(scene:any): initStateEntity
 
 
 
@@ -266,28 +279,34 @@ export abstract class BaseEntity {
     /**todo */
     updateMatrixWorld() { }
 
-    abstract updateUniformBuffer(deltaTime: number): any
 
     /**每帧更新入口
      * 1、完成初始化，进行DCC更新
      * 2、未完成初始化，返回空数组
      */
-    update(deltaTime: number, updateForce: boolean = false) {
-        if (this._init === initStateEntity.finished
-            && this._dynamic === true
-            //  && this.checkStatus() && this.checkCameraVisualRange(rays)
-        ) {
-            if (this.input && this.input.update) {
-                this.input.update(this);
+    update(scene:any, deltaTime: number, updateForce: boolean = false) {
+        //初始化DCC
+        if (this._init === initStateEntity.unstart) {
+            this.initDCC(scene);
+        }
+        //初始化是完成状态，同时checkStatus=true
+        else if (this._init === initStateEntity.finished && this.checkStatus()) {
+            //动态物体 或 强制更新
+            if (this._dynamic === true || updateForce === true) {
+                if (this.input && this.input.update) {
+                    this.input.update(this);
+                }
+                this.updateUniformBuffer(scene, deltaTime);
+                this.updateDCC(scene, deltaTime);
+                return this._commmands;
             }
-            this.updateUniformBuffer(deltaTime);
-            this.updateDCC(deltaTime);
-            return this._commmands;
-        }
-        else if (this._dynamic === false) {
-            return this._commmands;
-        }
-        else
+            //静态，直接返回commands
+            else
+            // if (this._dynamic === false)
+            {
+                return this._commmands;
+            }
+        } else
             return [];
     }
     /**
@@ -306,9 +325,16 @@ export abstract class BaseEntity {
     // abstract checkCameraVisualRange(rays: cameraRayValues): boolean
 
 
+    /**
+     * 被update调用，更新vs、fs的uniform
+     * 
+     * @param deltaTime 
+     */
+    abstract updateUniformBuffer(scene:any, deltaTime: number): any
 
 
     /**
+     * 被update调用
      * 更新this._vertexAndMaterialGroup对应的DrawCommand组
      * 
      * 1、主要是GPUBuffer和材质，是本class管理的（非DrawCommand自己管理范围内的，DC管理自己的）
@@ -317,7 +343,7 @@ export abstract class BaseEntity {
      * 2、如果没有更新直接返回DCC的数组
      * 
      */
-    abstract updateDCC(deltaTime: number): DrawCommand[];
+    abstract updateDCC(scene:any, deltaTime: number): DrawCommand[];
 
     /**
      * 循环注销children

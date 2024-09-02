@@ -200,5 +200,15 @@ export class BoxGeometry extends BaseGeometry {
         this.numberOfVertices += vertexCounter;
 
     }
+    destory() {
+        this._destory = false;
+        this.buffer = {
+            position: [],
+            normal: [],
+            uv: [],
+            indeices: [],
+            materialStep: []
+        }
+    }
 
 }

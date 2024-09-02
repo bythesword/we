@@ -7,9 +7,10 @@ import {
 
 export declare interface sceneJson {
     /**canvas id */
+    name?: string,
     renderTo?: HTMLCanvasElement | GPUTexture,
     depthStencil?: GPUDepthStencilState,
-
+    renderPassSetting?: renderPassSetting,
 }
 declare interface cameras {
 
@@ -18,7 +19,7 @@ declare interface cameras {
 export interface renderPassSetting {
     color?: {
         clearValue?: GPUColor,
-        loadOp?: GPULoadOp,        
+        loadOp?: GPULoadOp,
         storeOp?: GPUStoreOp,
         depthSlice?: GPUIntegerCoordinate,
     },
@@ -29,7 +30,7 @@ export interface renderPassSetting {
     },
     colorSecond?: {
         // clearValue?: GPUColor,
-        loadOp?: GPULoadOp,        
+        loadOp?: GPULoadOp,
         storeOp?: GPUStoreOp,
         depthSlice?: GPUIntegerCoordinate,
     },
@@ -41,6 +42,7 @@ export interface renderPassSetting {
 }
 
 export abstract class BaseScene {
+    name!: string;
     /** scene 的初始化参数 */
     input: sceneJson;
 
@@ -64,8 +66,26 @@ export abstract class BaseScene {
     */
     context!: GPUCanvasContext | GPUTexture;
 
-    /**todo */
+
+    /**
+     * 必须
+     * 充分应用webGPU的texture的理念
+     * 每个stage都是一个texture
+     * scene，合并stage的texture，可以对stage进行缓存，即不变，就用上一张texture
+     * 缓存用（比如world的缓存，镜头不动）
+     * */
+    colorTexture!: GPUTexture;
+    /**renderPassDescriptor 需要 */
+    colorAttachment!: GPUTextureView;
+
+    /**
+     * 深度缓存,stage必须
+     * 与其他stage合并texture或shader使用
+     * 透明和不透明都需要；
+     */
     depthTexture!: GPUTexture;
+    /**renderPassDescriptor 需要 */
+    depthStencilAttachment!: GPUTextureView;
 
     /** presentationFormat*/
     presentationFormat!: GPUTextureFormat;

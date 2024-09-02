@@ -191,5 +191,5 @@ let options: drawOption = {
 
 let DC = new DrawCommand(options);
 window.DC = DC;
-(<stageOne>scene.stages["World"]).command.push(DC)
+scene.stages["World"].opaque!.command.push(DC)
 scene.run()

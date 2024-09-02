@@ -13,16 +13,18 @@ export interface geometryAttribute {
 
 
 
-export interface optionBaseGemetry {}
+export interface optionBaseGemetry { }
 /**
  * 设计目标提供静态的基础几何体
  */
 export abstract class BaseGeometry {
     input: optionBaseGemetry;
     buffer!: geometryAttribute;
+    _destory: boolean;
 
     constructor(input: optionBaseGemetry) {
-        this.buffer={
+        this._destory = false;
+        this.buffer = {
             position: [],
             normal: [],
             uv: [],
@@ -34,6 +36,10 @@ export abstract class BaseGeometry {
     }
 
     abstract init(input: optionBaseGemetry): any
+    abstract destory(): any
 
+    isDestory() {
+        return this._destory;
+    }
 
 }

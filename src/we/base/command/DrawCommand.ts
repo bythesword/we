@@ -6,7 +6,7 @@ import {
     // uniformBufferAll,
     // uniformEntries,
     // localUniformGroups,
-    baseOption,
+    baseOptionOfCommand,
 } from './baseCommand';
 // import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
@@ -118,7 +118,7 @@ export interface drawModeIndexed {
  * camera?: any,
  * 
 */
-export interface drawOption extends baseOption {
+export interface drawOptionOfCommand extends baseOptionOfCommand {
     vertex: vsPart,
 
     fragment: fsPart,
@@ -171,21 +171,22 @@ export class DrawCommand extends BaseCommand {
     /**renderPassDescriptor */
     renderPassDescriptor!: GPURenderPassDescriptor;
     /**这个类的webGPU的 commandEncoder */
-    declare input: drawOption;
+    declare input: drawOptionOfCommand;
     primitive!: GPUPrimitiveState;
     /** 深度与模板的 参数，pipeline 的描述使用*/
     depthStencil!: GPUDepthStencilState | undefined;
 
 
-    constructor(options: drawOption) {
+    constructor(options: drawOptionOfCommand) {
         super(options)
         // this.input = options;
         // this.scene = options.scene;
         // this.device = options.scene.device;
         this.verticesBuffer = [];
         this.unifromBuffer = [];
-        if (options.camera) this.camera = options.camera;
-        else this.camera = this.scene.cameraDefault;
+        //作废，camera和DC没有关系，20240825
+        // if (options.camera) this.camera = options.camera;
+        // else this.camera = this.scene.cameraDefault;
         if (options.primitive) {
             this.primitive = options.primitive;
         }

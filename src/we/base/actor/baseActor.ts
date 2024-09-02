@@ -50,9 +50,10 @@ export interface actorBindPool {
     light?: actorLight[],
     animtion?: actorAnimation[],
     audio?: actorAudio[],
-    /** stage(layer) */
-    stage?: coreConst.stageIndex,
-    entities?: actorEntity,
+    //作废，20240827，pool只有附属的对象，无上级对象
+    // /** stage(layer) */
+    // stage?: coreConst.stageIndex,
+    entities?: actorEntity[],
 }
 
 /**actor 基础初始化参数 */
@@ -63,9 +64,9 @@ export interface optionActor {
     update?: boolean,
     parent?: any,
     name: string,
-    /** */
-    stage?: coreConst.stageIndex,
-    // scene: any,
+    // /** */
+    // stage?: coreConst.stageIndex,
+    // // scene: any,
 
 }
 /**
@@ -80,8 +81,9 @@ export abstract class BaseActor {
     bindPool!: actorBindPool;
     // scene: any;
     name!: string;
-    /**stage ,默认= coreConst.defaultStage*/
-    _stage!: coreConst.stageIndex;
+    //作废，20240827，只处理简单的逻辑，不做循环引用
+    // /**stage ,默认= coreConst.defaultStage*/
+    // _stage!: coreConst.stageIndex;
     /**
      * 用户自定义 callback
      * scope:CameraActor
@@ -94,22 +96,22 @@ export abstract class BaseActor {
     constructor(option: optionActor) {
         this._option = option;
         this.name = this._option.name;
-        // this.scene = option.scene;
-        if (option.stage) {
-            this.stage = option.stage;
-        }
-        else {
-            this.stage = coreConst.defaultStage;
-        }
+        // // this.scene = option.scene;
+        // if (option.stage) {
+        //     this.stage = option.stage;
+        // }
+        // else {
+        //     this.stage = coreConst.defaultStageName;
+        // }
 
     }
-    set stage(stage: coreConst.stageIndex) {
-        this._stage = stage;
-    }
+    // set stage(stage: coreConst.stageIndex) {
+    //     this._stage = stage;
+    // }
 
-    get stage() {
-        return this._stage;
-    }
+    // get stage() {
+    //     return this._stage;
+    // }
 
     abstract initBindPool(): any
     /**更新入口 */
