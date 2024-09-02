@@ -32,7 +32,7 @@ import {
 
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
-import { BaseStage, commmandType, stageType, stageOne, stageGroup } from '../stage/baseStage';
+import { BaseStage, commmandType,    stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
 
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
@@ -42,7 +42,7 @@ import { BaseEntity } from "../entity/baseEntity";
 declare interface sceneInputJson extends sceneJson {
     /**canvas id */
     canvas: string,
-    renderPassSetting?: renderPassSetting,
+    // renderPassSetting?: renderPassSetting,
 }
 
 
@@ -56,10 +56,6 @@ declare interface timeUniform {
 }
 
 
-/** stage 收集器/集合 */
-export interface stages {
-    [name: string]: BaseStage
-}
 
 /** system uniform 的结构 ，都是GPUBuffer，为更新uniform使用，
 */
@@ -83,6 +79,10 @@ export interface actorGroup {
     // [name in string]: BaseActor
 }
 
+/** stage 收集器/集合 */
+export interface stagesCollection {
+    [name: string]: stageGroup
+}
 class Scene extends BaseScene {
 
     /** scene 的初始化参数 */
@@ -91,7 +91,7 @@ class Scene extends BaseScene {
     /**每帧的webGPU的command集合 */
     command!: commmandType[];
 
-
+    declare context: GPUCanvasContext;
     canvas!: HTMLCanvasElement;
     /**clock */
     clock: Clock;
@@ -108,15 +108,18 @@ class Scene extends BaseScene {
     lights!: light[];
 
     /** todo  */
-    stages!: stages;
-    stagesOrders!: number[]
+    stages!: stagesCollection;
+    // stages!: BaseStage[];
+    stagesOrders!: coreConst.stagesOrderByRender// number[];
+    stageNameOfGroup!: coreConst.stageName;
+
 
     /**视场比例 */
     aspect!: number;
     // projectionMatrix!: Mat4;
 
-    cocolorAttachment!: GPUTextureView;
-    depthStencilAttachment!: GPUTextureView;
+    // colorAttachment!: GPUTextureView;
+    // depthStencilAttachment!: GPUTextureView;
 
     /** system uniform buffer 结构体，参加 interfance systemUniformBuffer */
     systemUniformBuffers!: systemUniformBuffer;
@@ -134,6 +137,12 @@ class Scene extends BaseScene {
 
     constructor(input: sceneInputJson) {
         super(input)
+        if (input.name) {
+            this.name = input.name;
+        }
+        else {
+            this.name = "Scene";
+        }
         this.systemUniformBuffers = {};
 
         this.clock = new Clock();
@@ -240,14 +249,39 @@ class Scene extends BaseScene {
      * depth buffer 在此初始化，todo
     */
     initStages() {
-        let worldStage: BaseStage = new BaseStage();
-        this.stages = {
-            "World": worldStage
-        };
+        // this.stageNameOfGroup = coreConst.stagesOfSystem;
+        // let worldOpeaue: BaseStage = new BaseStage({ name: "World" });
+        // let worldTransparent: BaseStage = new BaseStage({ name: "worldTransparent" });
+        // this.stages = {
+        //     "World": {
+        //         isGroup: true,
+        //         opaque: worldOpeaue,
+        //         transparent: worldTransparent
+        //     }
+        // };
+        this.stagesOrders = coreConst.defaultStageList;
+
     }
     add = this.addToStage;
-    addToStage(entity: BaseEntity, stage: coreConst.stageIndex = coreConst.defaultStageName) {
-        this.stages[stage].add(entity);
+    /**
+     *  将实体附加到stage
+     * @param entity    实体
+     * @param stage     默认=World
+     * @param transparent  默认=false
+     */
+    addToStage(entity: BaseEntity, stage: coreConst.stageIndex = coreConst.defaultStageName, transparent: boolean = false) {
+        if (entity.transparent === false || transparent === false) {
+            if (this.stages[stage].opaque)
+                this.stages[stage].opaque!.add(entity);
+            else
+                console.log(stage, "不透明，不存在");
+        }
+        else {
+            if (this.stages[stage].transparent)
+                this.stages[stage].transparent!.add(entity);
+            else
+                console.log(stage, "透明，不存在");
+        }
 
     }
     setDefaultCamera(camera: BaseCamera) {
@@ -297,14 +331,14 @@ class Scene extends BaseScene {
      */
     createRenderPassDescriptor() {
         // let scope = this;
-        this.cocolorAttachment = (this.context as GPUCanvasContext)
+        this.colorAttachment = (this.context as GPUCanvasContext)
             .getCurrentTexture()
             .createView();
         this.depthStencilAttachment = this.depthTexture.createView();
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
                 {
-                    view: this.cocolorAttachment, // Assigned later
+                    view: this.colorAttachment, // Assigned later
                     clearValue: this.renderPassSetting.color?.clearValue,// [0.5, 0.5, 0.5, 1.0],
                     loadOp: this.renderPassSetting.color!.loadOp!,// 'clear',
                     storeOp: this.renderPassSetting.color!.storeOp!,//"store"
@@ -424,28 +458,34 @@ class Scene extends BaseScene {
      *      B、创建view(一次)
      *      C、更新loadOp的参数到load(一次)
      *      D、执行command.update()
-     */
+   
+     * todo 
+     * stage 合并
+     * stage 深度测试
+     * stage 透明深度与合并
+     * sky、UI的合并与顺序
+     * */
     oneFrameRender() {
         this.command = [];
         (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
-            (<GPUCanvasContext>this.context).getCurrentTexture().createView();//ok
-        for (let i in coreConst.defaultStageList) {
-            const perList = coreConst.defaultStageList[i];//number，stagesOfSystem的数组角标
+            this.context.getCurrentTexture().createView();//ok,重新申明了this.context的类型
+        // (<GPUCanvasContext>this.context).getCurrentTexture().createView();//ok
+        for (let i in this.stagesOrders) {
+            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
             const name = coreConst.stagesOfSystem[perList];
-            if ("isGoup" in this.stages[name]) {//复合stage，包含透明和不透明两个stage 
-                const perStageCommandOfOpaque = (this.stages[name] as stageGroup).opaque.command;
-                for (let command_i of perStageCommandOfOpaque) {
-                    this.command.push(command_i);
+
+            {//复合stage，包含透明和不透明两个stage 
+                if (this.stages[name].opaque) {
+                    const perStageCommandOfOpaque = this.stages[name].opaque!.command;
+                    for (let command_i of perStageCommandOfOpaque) {
+                        this.command.push(command_i);
+                    }
                 }
-                const perStageCommandOfTransparent = (this.stages[name] as stageGroup).transparent.command;
-                for (let command_i of perStageCommandOfTransparent) {
-                    this.command.push(command_i);
-                }
-            }
-            else {
-                const perStageCommand = (this.stages[name] as stageOne).command;
-                for (let command_i of perStageCommand) {
-                    this.command.push(command_i);
+                if (this.stages[name].transparent) {
+                    const perStageCommandOfTransparent = this.stages[name].transparent!.command;
+                    for (let command_i of perStageCommandOfTransparent) {
+                        this.command.push(command_i);
+                    }
                 }
             }
         }
@@ -494,8 +534,20 @@ class Scene extends BaseScene {
      *          距离
      *          方向（BVH）
      *          视锥
+     *        输出是否本轮可见 
     */
     updateEntities(deltaTime: number,) {
+
+    }
+    /**
+     * 更新stage
+     * 包括：
+     *      colorTexture、depthTextur
+     *      视锥状态是否更新
+     *      视口是否变化
+     * @param deltaTime 
+     */
+    updateStagesCommand(deltaTime: number,) {
 
     }
 
@@ -519,7 +571,8 @@ class Scene extends BaseScene {
         // this.updateBVH(rays)
 
         this.updateAcotr(deltaTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
-        this.updateEntities(deltaTime);
+        this.updateEntities(deltaTime);//更新实体状态，比如水，树，草等动态的
+        this.updateStagesCommand(deltaTime);
     }
 
 
