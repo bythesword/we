@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOption,
+  drawOptionOfCommand,
   drawModeIndexed,
   drawMode,
   indexBuffer,
@@ -71,7 +71,7 @@ scene.device.queue.writeBuffer(
   uniformOneColor.byteLength
 );
 
-let options: drawOption = {
+let options: drawOptionOfCommand ={
   label: "a triangle",
   scene: scene,
   vertex: {

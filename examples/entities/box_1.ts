@@ -4,7 +4,7 @@ import { CamreaControl, optionCamreaControl } from "../../src/we/base/control/ca
 import { CameraActor, optionCameraActor } from "../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
-import { DrawCommand, drawOption } from "../../src/we/base/command/DrawCommand"
+import { DrawCommand, drawOptionOfCommand } from "../../src/we/base/command/DrawCommand"
 // import { stageOne } from "../../src/we/base/stage/baseStage"
 import { BoxGeometry } from "../../src/we/base/geometry/boxGeometry"
 import { SimpleMaterial } from "../../src/we/base/material/simple/simpleMaterial"
@@ -29,7 +29,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [0, 0, 5],
+  position: [0, 0, 3],
   lookAt: [0, 0, 0]
 }
 let camera = new PerspectiveCamera(cameraOption);

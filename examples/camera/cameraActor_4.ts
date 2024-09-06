@@ -36,8 +36,8 @@ import { CamreaControl, optionCamreaControl } from "../../src/we/base/control/ca
 import { CameraActor, optionCameraActor } from "../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
-import { DrawCommand, drawOption } from "../../src/we/base/command/DrawCommand"
-import { stageOne } from "../../src/we/base/stage/baseStage"
+import { DrawCommand,drawOptionOfCommand } from "../../src/we/base/command/DrawCommand"
+// import { stageOne } from "../../src/we/base/stage/baseStage"
 declare global {
   interface Window {
     scene: any
@@ -120,7 +120,7 @@ const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
 const uniformOneColor = new Float32Array([1, 0, 1, 1]);
 
 
-let options: drawOption = {
+let options: drawOptionOfCommand = {
   label: "a triangle",
   scene: scene,
   vertex: {
@@ -191,5 +191,10 @@ let options: drawOption = {
 
 let DC = new DrawCommand(options);
 window.DC = DC;
-scene.stages["World"].opaque!.command.push(DC)
+/**
+ * //20240905这里暂时不能用了，应用stage的update清空了command[],,这个参见red box吧
+ * 20240906,完善了stage的cache，可以正常工作了
+ */
+scene.stages["World"].opaque!.command.push(DC);
+scene.stages["World"].opaque!.cache=true;
 scene.run()

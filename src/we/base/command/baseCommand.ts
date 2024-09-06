@@ -183,7 +183,7 @@ export abstract class BaseCommand {
     label!: string;
 
     /**注销标志位 */
-    _isDestory!: boolean;
+    _isDestroy!: boolean;
 
     /**这个类的webGPU的 commandEncoder */
     input!: baseOptionOfCommand;
@@ -198,12 +198,12 @@ export abstract class BaseCommand {
     /**
      * 销毁本DrawCommand中的资源
      */
-    abstract destory(): any
-    set isDestory(visable: boolean) {
-        this._isDestory = visable;
+    abstract destroy(): any
+    set isDestroy(visable: boolean) {
+        this._isDestroy = visable;
     }
-    get isDestory() {
-        return this._isDestory;
+    get isDestroy() {
+        return this._isDestroy;
     }
 
     abstract submit(): any

@@ -157,7 +157,7 @@ export abstract class CamreaControl {
     /** scene ,必须,cavas or texture */
     scene: any;
     _camera: BaseCamera | undefined;
-    _isDestory!: boolean;
+    _isDestroy!: boolean;
     _option!: optionCamreaControl;
 
     inputHandler!: InputHandler;// = createInputHandler(window, canvas);
@@ -174,14 +174,14 @@ export abstract class CamreaControl {
         //     this._camera = undefined;
         // }
         // this.scene = option.parent;
-        this.isDestory = false;
+        this.isDestroy = false;
         this.inputHandler = createInputHandler(option.window, option.canvas)
         this.init();
     }
     abstract init(): any;
     abstract update(deltaTime: number): any
 
-    abstract destory(): any
+    abstract destroy(): any
 
     set camera(camera: BaseCamera) {
         this._camera = camera;
@@ -194,11 +194,11 @@ export abstract class CamreaControl {
             return false;
         }
     }
-    get isDestory() {
-        return this._isDestory;
+    get isDestroy() {
+        return this._isDestroy;
     }
-    set isDestory(destory: boolean) {
-        this._isDestory = destory;
+    set isDestroy(destroy: boolean) {
+        this._isDestroy = destroy;
     }
 
 }

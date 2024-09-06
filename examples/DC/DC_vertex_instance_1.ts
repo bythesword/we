@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOption,
+  drawOptionOfCommand,
   drawModeIndexed,
   drawMode,
   indexBuffer,
@@ -83,7 +83,7 @@ const rand = (min:number=0, max:number=1) => {
 };
 
 
-let options: drawOption = {
+let options: drawOptionOfCommand ={
   label: "a triangle",
   scene: scene,
   vertex: {

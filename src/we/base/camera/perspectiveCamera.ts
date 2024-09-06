@@ -52,7 +52,7 @@ export class PerspectiveCamera extends BaseCamera {
         else {
             this.back = direction;
         }
-        this.right = vec3.normalize(vec3.cross(this.upDirection, this.back));
+        this.right = vec3.normalize(vec3.cross(this.up, this.back));
         this.up = vec3.normalize(vec3.cross(this.back, this.right));
 
         // console.log("projectionMatrix=", this.projectionMatrix)

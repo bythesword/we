@@ -3,15 +3,23 @@ import { BaseMaterial } from "../../material/baseMaterial";
 import {
     BaseGeometry,
 } from "../../geometry/baseGeometry";
-import { DrawCommand, drawOption } from "../../command/DrawCommand";
+import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
 import { cameraRayValues } from "../../camera/baseCamera";
+import { commmandType } from "../../stage/baseStage";
+import { color3U, color4U } from "../../const/coreConst";
 
 
 
 /**mesh的顶点结构与材质，各有一个，一一对应 */
 export interface optionMeshEntity extends optionBaseEntity {
+    /**几何体 */
     geometry: BaseGeometry,
-    material: BaseMaterial | BaseMaterial[],
+    /**材质 */
+    material: BaseMaterial, //| BaseMaterial[],
+    /**线框，boolean */
+    wireFrame?: boolean,
+    /**线框颜色，默认黑色 */
+    wireFrameColor?: color3U
 }
 
 
@@ -24,97 +32,62 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
+    _geometry!: BaseGeometry;
+    _material!: BaseMaterial;
+    _wireframeColor!: color3U;
     init() {
-        throw new Error("Method not implemented.");
+        this._wireframeColor = { red: 0, green: 0, blue: 0 };
+        if ((this.input as optionMeshEntity).wireFrame === true) {
+            if ((this.input as optionMeshEntity).wireFrameColor) {
+                this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as color3U;
+            }
+        }
+        // throw new Error("Method not implemented.");
     }
     checkStatus(): boolean {
-        throw new Error("Method not implemented.");
+        // throw new Error("Method not implemented.");
+        return true;
     }
     updateUniformBuffer(scene: any, deltaTime: number) {
+        // throw new Error("Method not implemented.");
+    }
+    updateDCC(scene: any, deltaTime: number): commmandType[] {
+        // throw new Error("Method not implemented.");
+        return this._commmands;
+    }
+    destroy() {
         throw new Error("Method not implemented.");
     }
-    updateDCC(scene: any, deltaTime: number): DrawCommand[] {
-        throw new Error("Method not implemented.");
-    }
-    destory() {
-        throw new Error("Method not implemented.");
-    }
-
-
-
-
-
-
 
     constructor(input: optionMeshEntity) {
         super(input);
+        this._geometry = input.geometry;
+        this._material = input.material;
     }
     /**
      * 创建Draw Compute Commands
      */
     createDCC(scene: any): initStateEntity {
-        let shader = `
-        @group(1) @binding(0) var<uniform> u_c : vec4f;
-        @group(2) @binding(0) var<uniform> u_color : vec4f;
-  
-        struct OurVertexShaderOutput {
-          @builtin(position) position: vec4f,
-          @location(0) color: vec4f,
-        };
-  
-        @vertex fn vs(
-           @location(0) position : vec3f,
-           @location(1) color : vec4f
-        ) -> OurVertexShaderOutput {
-          var vsOutput: OurVertexShaderOutput;
-  
-          vsOutput.position = projectionMatrix *viewMatrix * modelMatrix *     vec4f(position,  1.0);
-          // vsOutput.position = U_MVP.model * U_MVP.view * U_MVP.projection * vec4f(position,  1.0);
-  
-          vsOutput.color = color;
-          return vsOutput;
+
+
+        /////////////////////box 
+        let shaderFS = this._material.getCodeFS();
+        let shaderVS = this._geometry.getCodeVS();
+        let shader = shaderVS + shaderFS;
+        let vsa = this._geometry.getAttribute();
+        let indexBuffer = this._geometry.getIndeices();
+        let counts = this._geometry.getDrawCount();
+
+        let values: drawModeIndexed = {
+            indexCount: counts
         }
-  
-        @fragment fn fs(@location(0) color: vec4f) -> @location(0) vec4f {
-         let abc=u_c;
-          return u_color;
-        }
-  `;
-        const oneTriangleVertexArray = [
-            0.0, 0.5, 1.1, 1, 0, 0, 1,
-            -0.5, -0.5, 0, 0, 1, 0, 1,
-            0.5, -0.5, 0, 0, 0, 1, 1
-        ];
-        const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
-
-        const uniformOneColor = new Float32Array([1, 0, 1, 1]);
-
-
-        let options: drawOption = {
+        let options: drawOptionOfCommand = {
             label: "a triangle",
             scene: scene,
             vertex: {
                 code: shader,
                 entryPoint: "vs",
-                buffers: [
-                    {
-                        vertexArray: oneTriangleVertexF32A,
-                        type: "Float32Array",
-                        arrayStride: 4 * 7,
-                        attributes: [
-                            {
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3',
-                            },
-                            {
-                                shaderLocation: 1,
-                                offset: 12,
-                                format: 'float32x4',
-                            },
-                        ]
-                    }
-                ]
+                buffers: vsa
             },
             fragment: {
                 code: shader,
@@ -127,39 +100,47 @@ export class Mesh extends BaseEntity {
             },
             // uniforms: [],
             uniforms: [
-                {
-                    layout: 1,
-                    entries: [
-                        {
-                            label: "test color",
-                            binding: 0,
-                            size: 4 * 4,
-                            get: () => { return uniformOneColor },
-                        }
-                    ]
-                },
-                {
-                    layout: 2,
-                    entries: [
-                        {
-                            label: "test color",
-                            binding: 0,
-                            size: 4 * 4,
-                            get: () => { return uniformOneColor },
-                        }
-                    ]
-                }
+                // {
+                //     layout: 1,
+                //     entries: [
+                //         {
+                //             label: "test color",
+                //             binding: 0,
+                //             size: 4 * 4,
+                //             get: () => { return uniformOneColor },
+                //         }
+                //     ]
+                // },
+                // {
+                //     layout: 2,
+                //     entries: [
+                //         {
+                //             label: "test color",
+                //             binding: 0,
+                //             size: 4 * 4,
+                //             get: () => { return uniformOneColor },
+                //         }
+                //     ]
+                // }
             ],
             // rawUniform: true,
             draw: {
-                mode: "draw",
-                values: {
-                    vertexCount: 3
-                }
+                mode: "index",
+                values: values
             },
+            indexBuffer: indexBuffer as indexBuffer,
         }
-
         let DC = new DrawCommand(options);
+        this._commmands.push(DC);
+
+        /////////////////////////////// wire frame
+
+        let wireFrameShaderCode = this._geometry.getWireFrameShdaerCode(this._wireframeColor);
+        let wireFrameVsa = this._geometry.getAttribute();
+        let wireFrameIndexBuffer = this._geometry.getIndeices();
+        
+
+        return initStateEntity.finished;
     }
 
 

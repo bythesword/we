@@ -270,12 +270,18 @@ export class ArcballCamera extends CameraBase implements Camera {
     } else {
       // Dampen any existing angular velocity
       this.angularVelocity *= Math.pow(1 - this.frictionCoefficient, deltaTime);
+      // console.log(this.angularVelocity)
     }
+    // console.log(deltaTime)
 
     // Calculate the movement vector
     const movement = vec3.create();
     vec3.addScaled(movement, this.right, input.analog.x, movement);
     vec3.addScaled(movement, this.up, -input.analog.y, movement);
+  //   if (movement[0] != 0 && movement[1] != 0 && movement[0] != 0) {
+  //     console.log(movement[0],movement[1],movement[2],input.analog.x,input.analog.y,this.up,this.right)
+  // }
+
 
     // Cross the movement vector with the view direction to calculate the rotation axis x magnitude
     const crossProduct = vec3.cross(movement, this.back);

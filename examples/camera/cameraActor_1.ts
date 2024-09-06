@@ -20,7 +20,7 @@
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOption,
+  drawOptionOfCommand,
 } from "../../src/we/base/command/DrawCommand"
 declare global {
   interface Window {
@@ -95,7 +95,7 @@ const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
 const uniformOneColor = new Float32Array([1, 0, 1, 1]);
 
 
-let options: drawOption = {
+let options: drawOptionOfCommand ={
   label: "a triangle",
   scene: scene,
   vertex: {

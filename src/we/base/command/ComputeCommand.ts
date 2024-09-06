@@ -68,13 +68,13 @@ export class ComputeCommand extends BaseCommand {
         // this.uniformSystem = this.scene.getuniformSystem();
         this.uniformGroups = this.createUniformGroups();//在pipeline 之后
 
-        this._isDestory = false;
+        this._isDestroy = false;
         this.init();
     }
     init() {
         // throw new Error('Method not implemented.');
     }
-    destory() {
+    destroy() {
         let unifromGroupSource = this.input.uniforms;
         for (let perGroup of unifromGroupSource) {
             for (let perOne of perGroup.entries) {
@@ -83,7 +83,7 @@ export class ComputeCommand extends BaseCommand {
                 }
             }
         }
-        this.isDestory = true;
+        this.isDestroy = true;
     }
 
     /**

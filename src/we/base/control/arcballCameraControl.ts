@@ -59,6 +59,7 @@ export class ArcballCameraControl extends CamreaControl {
             let input = this.inputHandler();
 
             let position = this.camera.position;
+            //计算当前距离，旋转距离不变
             this.distance = vec3.distance(this.camera.position, this.camera.lookAt);
             //阈值，for 旋转角 & 旋转轴
             const epsilon = 0.0000001;
@@ -70,13 +71,16 @@ export class ArcballCameraControl extends CamreaControl {
             } else {//衰减角速度
                 // Dampen any existing angular velocity
                 this.angularVelocity *= Math.pow(1 - this.frictionCoefficient, deltaTime);
+                // console.log(this.angularVelocity)
             }
 
             // Calculate the movement vector，计算移动方向
             const movement = vec3.create();
             vec3.addScaled(movement, this.camera.right, input.analog.x, movement);//X 方向的增量
             vec3.addScaled(movement, this.camera.up, -input.analog.y, movement);//Y 方向的增量
-
+            // if (movement[0] != 0 && movement[1] != 0 && movement[0] != 0) {
+            //     console.log(movement[0],movement[1],movement[2],input.analog.x,input.analog.y,this.camera.up,this.camera.right)
+            // }
             // Cross the movement vector with the view direction to calculate the rotation axis x magnitude
             // 叉乘出Z轴的增量
             const crossProduct = vec3.cross(movement, this.camera.back);
@@ -121,7 +125,7 @@ export class ArcballCameraControl extends CamreaControl {
             console.log("arcbalCameraControl's camere didn't defined !,error from update()");
         }
     }
-    destory() {
+    destroy() {
         // throw new Error('Method not implemented.');
     }
 

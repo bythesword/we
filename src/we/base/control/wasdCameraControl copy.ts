@@ -105,7 +105,7 @@ export class WASDCameraControl extends CamreaControl {
             console.log("arcbalCameraControl's camere didn't defined !,error from update()");
         }
     }
-    destory() {
+    destroy() {
         // throw new Error('Method not implemented.');
     }
 

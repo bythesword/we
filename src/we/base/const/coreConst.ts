@@ -35,3 +35,31 @@ export type stagesOrderByRender = number[];
 // }
 
 export var defaultStageList: stagesOrderByRender = [defaultStage];
+
+
+/**
+ * 
+ */
+export interface color4F {
+    red: number,
+    green: number,
+    blue: number,
+    alpha?: number
+}
+/**
+ * * RGBA四个数值的颜色interface，0--255
+ */
+export interface color4U {
+    red: number,
+    green: number,
+    blue: number,
+    alpha?: number
+}
+/**
+ * RGB三个数值的颜色interface，0--255
+ */
+export interface color3U {
+    red: number,
+    green: number,
+    blue: number,
+}

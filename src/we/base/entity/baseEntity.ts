@@ -115,7 +115,7 @@ export abstract class BaseEntity {
     _position!: Vec3;
     _scale!: Vec3;
     _rotation!: Vec3;
-    _destory: boolean;
+    _destroy: boolean;
     _init: initStateEntity;
     /**局部的，按需更新 */
     matrix!: Mat4;
@@ -147,7 +147,7 @@ export abstract class BaseEntity {
         this.input = input;
         this._dynamic = false;
         this._LOD = [];
-        this._destory = false;
+        this._destroy = false;
         this._commmands = [];
         this._vertexAndMaterialGroup = {};
         this.enable = true;
@@ -183,7 +183,7 @@ export abstract class BaseEntity {
     }
     abstract init(): any
 
-    async initDCC(scene:any) {
+    async initDCC(scene: any) {
         this._init = this.createDCC(scene);
         this.generateBox();
     }
@@ -199,7 +199,7 @@ export abstract class BaseEntity {
      * 创建this._vertexAndMaterialGroup对应的DrawCommand组
      * 
      */
-    abstract createDCC(scene:any): initStateEntity
+    abstract createDCC(scene: any): initStateEntity
 
 
 
@@ -284,7 +284,7 @@ export abstract class BaseEntity {
      * 1、完成初始化，进行DCC更新
      * 2、未完成初始化，返回空数组
      */
-    update(scene:any, deltaTime: number, updateForce: boolean = false) {
+    update(scene: any, deltaTime: number, updateForce: boolean = false): commmandType[] {
         //初始化DCC
         if (this._init === initStateEntity.unstart) {
             this.initDCC(scene);
@@ -297,7 +297,7 @@ export abstract class BaseEntity {
                     this.input.update(this);
                 }
                 this.updateUniformBuffer(scene, deltaTime);
-                this.updateDCC(scene, deltaTime);
+                this._commmands = this.updateDCC(scene, deltaTime);
                 return this._commmands;
             }
             //静态，直接返回commands
@@ -306,8 +306,8 @@ export abstract class BaseEntity {
             {
                 return this._commmands;
             }
-        } else
-            return [];
+        }
+        return [];
     }
     /**
      * 可见性(visible)、
@@ -330,7 +330,7 @@ export abstract class BaseEntity {
      * 
      * @param deltaTime 
      */
-    abstract updateUniformBuffer(scene:any, deltaTime: number): any
+    abstract updateUniformBuffer(scene: any, deltaTime: number): any
 
 
     /**
@@ -343,7 +343,7 @@ export abstract class BaseEntity {
      * 2、如果没有更新直接返回DCC的数组
      * 
      */
-    abstract updateDCC(scene:any, deltaTime: number): DrawCommand[];
+    abstract updateDCC(scene: any, deltaTime: number): commmandType[];
 
     /**
      * 循环注销children
@@ -355,9 +355,9 @@ export abstract class BaseEntity {
      * 清空内存数组this._vertexAndMaterialGroup
      * 归零变量
      */
-    abstract destory(): any
+    abstract destroy(): any
 
-    isDestory() {
-        return this._destory;
+    isDestroy() {
+        return this._destroy;
     }
 }

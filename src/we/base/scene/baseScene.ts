@@ -15,7 +15,11 @@ export declare interface sceneJson {
 declare interface cameras {
 
 }
-
+/**scene 的默认renderPassSetting 
+ * 有color和depth ，分别有2组
+ * 第一组是每一帧初始化时，clear的配置
+ * 第二组是load同一帧的之前内容，而不是采用clear的方式
+*/
 export interface renderPassSetting {
     color?: {
         clearValue?: GPUColor,

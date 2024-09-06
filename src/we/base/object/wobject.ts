@@ -3,10 +3,10 @@ class WObject {
     constructor() {
         
     }
-    destory() {
+    destroy() {
 
     }
-    isDestory() { }
+    isDestroy() { }
     update() { }
 }
 

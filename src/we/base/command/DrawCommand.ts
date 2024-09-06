@@ -224,14 +224,14 @@ export class DrawCommand extends BaseCommand {
         // this.uniformSystem = this.scene.getuniformSystem();
         this.uniformGroups = this.createUniformGroups();//在pipeline 之后
 
-        this._isDestory = false;
+        this._isDestroy = false;
         this.init();
     }
     /**
      * 销毁本DrawCommand中的资源
      * 
      */
-    destory() {
+    destroy() {
         for (let i of this.verticesBuffer) {
             i.destroy();
         }
@@ -243,13 +243,13 @@ export class DrawCommand extends BaseCommand {
                 }
             }
         }
-        this.isDestory = true;
+        this.isDestroy = true;
     }
-    set isDestory(visable: boolean) {
-        this._isDestory = visable;
+    set isDestroy(visable: boolean) {
+        this._isDestroy = visable;
     }
-    get isDestory() {
-        return this._isDestory;
+    get isDestroy() {
+        return this._isDestroy;
     }
     init() {
         if (this.input.draw.mode == "index") {

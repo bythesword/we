@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOption,
+  drawOptionOfCommand,
   drawModeIndexed,
   drawMode,
   indexBuffer,
@@ -80,7 +80,7 @@ const uniformOneColor = new Float32Array(
 //   uniformOneColor.byteLength
 // );
 
-let options: drawOption = {
+let options: drawOptionOfCommand ={
   label: "a triangle",
   scene: scene,
   vertex: {

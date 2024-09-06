@@ -32,7 +32,7 @@ import {
 
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
-import { BaseStage, commmandType,    stageGroup } from '../stage/baseStage';
+import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
 
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
@@ -132,7 +132,11 @@ class Scene extends BaseScene {
      */
     defaultActor!: BaseActor;
 
-    /**scene 的默认renderPassSetting */
+    /**scene 的默认renderPassSetting 
+     * 有color和depth ，分别有2组
+     * 第一组是每一帧初始化时，clear的配置
+     * 第二组是load同一帧的之前内容，而不是采用clear的方式
+    */
     renderPassSetting!: renderPassSetting;
 
     constructor(input: sceneInputJson) {
@@ -147,6 +151,7 @@ class Scene extends BaseScene {
 
         this.clock = new Clock();
         this.input = input;
+  
         this.renderPassSetting = {
             color: {
                 clearValue: [0, 0, 0, 0],
@@ -259,6 +264,13 @@ class Scene extends BaseScene {
         //         transparent: worldTransparent
         //     }
         // };
+        let worldStage = new BaseStage({ name: "World", scene:this });
+        let worldStageTransparent = new BaseStage({ name: "WorldTransparent", transparent: true , scene:this});
+        this.stages = {};
+        this.stages["World"] = {
+            opaque: worldStage,
+            transparent: worldStageTransparent,           
+        };
         this.stagesOrders = coreConst.defaultStageList;
 
     }
@@ -548,7 +560,19 @@ class Scene extends BaseScene {
      * @param deltaTime 
      */
     updateStagesCommand(deltaTime: number,) {
+        for (let i in this.stagesOrders) {
+            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
+            const name = coreConst.stagesOfSystem[perList];
 
+            {//复合stage，包含透明和不透明两个stage 
+                if (this.stages[name].opaque) {
+                    this.stages[name].opaque!.update(deltaTime);
+                }
+                if (this.stages[name].transparent) {
+                    this.stages[name].transparent!.update(deltaTime);
+                }
+            }
+        }
     }
 
     updateBVH(cameraValues: cameraRayValues) {
@@ -561,7 +585,8 @@ class Scene extends BaseScene {
      * 3、更新实体 entity
      */
     update(deltaTime: number) {
-        this.defaultActor.update(deltaTime);
+        if (this.defaultActor)
+            this.defaultActor.update(deltaTime);
         this.updateSystemUniformBuffer();
 
         // 四个中间点，稍稍延迟

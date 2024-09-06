@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOption,
+  drawOptionOfCommand,
   drawModeIndexed,
   drawMode,
   indexBuffer,
@@ -56,11 +56,11 @@ let shader = `
       }
 `;
 const oneTriangleVertexArray = [
-  0.0, 0.5, 0.1, 1, 0, 0, 1,
+  0.0, 0.5, 0.9, 1, 0, 0, 1,
   -0.5, -0.5, 0.1, 1, 0, 0, 1,
   0.5, -0.5, 0.1, 1, 0, 0, 1,
 
-  0.0, 0.7, 0.9, 0, 1, 0, 1,
+  0.0, 0.7, 0.1, 0, 1, 0, 1,
   -0.2, -0.7, 0.9, 0, 1, 0, 1,
   0.7, -0.7, 0.9, 0, 1, 0, 1
 ];
@@ -70,7 +70,7 @@ const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
 
 
 
-let options: drawOption = {
+let options: drawOptionOfCommand ={
   label: "a triangle",
   scene: scene,
   vertex: {

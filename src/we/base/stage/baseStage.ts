@@ -5,7 +5,7 @@ import { BaseScene, sceneJson, renderPassSetting } from "../scene/baseScene";
 
 export type commmandType = DrawCommand | ComputeCommand;
 
- 
+
 
 
 /**
@@ -20,7 +20,7 @@ export class stageGroup {
     opaque: BaseStage | undefined;
     transparent: BaseStage | undefined;
 }
- 
+
 
 
 /**stage input option */
@@ -30,6 +30,7 @@ export interface optionBaseStage extends sceneJson {
     visible?: boolean;
     depthTest?: boolean;
     transparent?: boolean;
+    scene?: BaseScene;
 }
 
 /**
@@ -47,6 +48,8 @@ export class BaseStage extends BaseScene {
     visible!: boolean;
     depthTest!: boolean;
     transparent!: boolean;
+    scene: BaseScene | undefined;
+    _cache: boolean;
 
     /**每个stage的command集合 
      * 一个实体可以由多个command，分布在不同的stage，比如透明，不透明
@@ -61,9 +64,15 @@ export class BaseStage extends BaseScene {
     /**stage 缓存，是否需要需要 todo */
     depthTextureCache!: GPUTexture;
 
-
+    /**
+     * 
+     * @param input optionBaseStage
+     */
     constructor(input: optionBaseStage) {
         super(input);
+        this.cache = false;
+        if (input.scene)
+            this.scene = input.scene;
         this.command = [];
         this.root = [];
         this.enable = true;
@@ -104,9 +113,29 @@ export class BaseStage extends BaseScene {
         throw new Error("Method not implemented.");
     }
     update(deltaTime: number) {
-        throw new Error("Method not implemented.");
+        let scene;
+        if (this.scene)
+            scene = this.scene;
+        else
+            scene = this;
+        //没有应用cache的情况
+        if (this.cache ===false) {
+            this.command = [];
+            for (let i of this.root) {
+                let dcc = i.update(scene, deltaTime);
+                for (let j of dcc)
+                    this.command.push(j);
+            }
+        }
+        
     }
     add(one: BaseEntity) {
         this.root.push(one);
+    }
+    get cache() {
+        return this._cache;
+    }
+    set cache(enable: boolean) {
+        this._cache = enable;
     }
 }

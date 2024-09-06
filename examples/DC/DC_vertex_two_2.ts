@@ -1,18 +1,15 @@
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOption,
+  drawOptionOfCommand,
   drawModeIndexed,
   drawMode,
   indexBuffer,
-  unifromGroup,
-  uniformEntries,
-  uniformBufferPart,
   fsPart,
   vsPart,
   vsAttributes
 } from "../../src/we/base/command/DrawCommand"
-import { stageOne } from "../../src/we/base/stage/baseStage"
+// import { stageOne } from "../../src/we/base/stage/baseStage"
 declare global {
   interface Window {
     scene: any
@@ -21,9 +18,9 @@ declare global {
 }
 let input: sceneInputJson = {
   canvas: "render",
-  renderPassSetting:{
-    color:{
-      clearValue:[0.5,0.5,0.5,1]
+  renderPassSetting: {
+    color: {
+      clearValue: [0.5, 0.5, 0.5, 1]
     }
   }
 }
@@ -90,7 +87,7 @@ const rand = (min: number = 0, max: number = 1) => {
 };
 
 
-let options: drawOption = {
+let options: drawOptionOfCommand = {
   label: "a triangle",
   scene: scene,
   vertex: {
@@ -135,7 +132,7 @@ let options: drawOption = {
           get: () => {
             const uniformOneColor =
               new Float32Array([
-                rand(), rand(), rand(), 1,
+                1, 0, 0, 1,
                 rand(-0.51, 0.51), rand(-0.51, 0.51), 0,
               ]);
             return uniformOneColor
@@ -159,9 +156,9 @@ let options: drawOption = {
 let DC = new DrawCommand(options);
 
 window.DC = DC;
-DC.submit()
 
-let options1: drawOption = {
+
+let options1: drawOptionOfCommand = {
   label: "a triangle",
   scene: scene,
   vertex: {
@@ -206,7 +203,7 @@ let options1: drawOption = {
           get: () => {
             const uniformOneColor =
               new Float32Array([
-                rand(), rand(), rand(), 1,
+                0, 0, 1, 1,
                 rand(-0.31, 0.31), rand(-0.51, 0.51), 0,
               ]);
             return uniformOneColor
@@ -227,10 +224,12 @@ let options1: drawOption = {
   // }
 }
 let DC1 = new DrawCommand(options1);
+(<GPURenderPassColorAttachment[]>scene.renderPassDescriptor.colorAttachments)[0].loadOp = "clear";
+DC.update();
+(<GPURenderPassColorAttachment[]>scene.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
+DC1.update()
 
-// DC1.submit()
-
-(<stageOne>scene.stages["World"]).command.push(DC);
-(<stageOne>scene.stages["World"]).command.push(DC1);
-scene.run()
+// scene.stages["World"].opaque!.command.push(DC);
+// scene.stages["World"].opaque!.command.push(DC1);
+// scene.run()
 

@@ -1,8 +1,14 @@
 // import { BaseMaterial } from "../material/baseMaterial";
 
+import { indexBuffer, vsAttributes } from "../command/DrawCommand";
+import { color3U } from "../const/coreConst";
+
 
 type geometryMaterialStep = number[];
 
+/**
+ * 片面的几何属性
+ */
 export interface geometryAttribute {
     position: number[],
     normal: number[],
@@ -10,8 +16,12 @@ export interface geometryAttribute {
     indeices: number[],
     materialStep: geometryMaterialStep[]
 }
-
-
+/**
+ * 线框的几何属性
+ */
+export interface geometryWireFrameAttribute {
+    indeices: number[],
+}
 
 export interface optionBaseGemetry { }
 /**
@@ -20,10 +30,11 @@ export interface optionBaseGemetry { }
 export abstract class BaseGeometry {
     input: optionBaseGemetry;
     buffer!: geometryAttribute;
-    _destory: boolean;
+    wireFrame!:geometryWireFrameAttribute
+    _destroy: boolean;
 
     constructor(input: optionBaseGemetry) {
-        this._destory = false;
+        this._destroy = false;
         this.buffer = {
             position: [],
             normal: [],
@@ -36,10 +47,26 @@ export abstract class BaseGeometry {
     }
 
     abstract init(input: optionBaseGemetry): any
-    abstract destory(): any
+    abstract destroy(): any
 
-    isDestory() {
-        return this._destory;
+
+    /**
+     * 输出 shader 的vs 部分code
+     */
+    abstract getCodeVS(): any
+
+    /**
+     * 输出顶点信息
+     */
+    abstract getAttribute(): vsAttributes[]
+    abstract getWireFrame(): vsAttributes[]
+    abstract getWireFrameShdaerCode(color: color3U): string;
+
+    abstract getIndeices(): indexBuffer | boolean
+    abstract getDrawCount(): number
+
+    isDestroy() {
+        return this._destroy;
     }
 
 }

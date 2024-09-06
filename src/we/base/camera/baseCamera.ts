@@ -44,10 +44,10 @@ export interface cameraRayValues {
 export abstract class BaseCamera {
   /** 初始化参数  */
   option!: projectionOptions;
-  /**
-   * 默认的上方向
-   */
-  _upDirection: Vec3 = new Float32Array([0, 1, 0]);
+  // /**
+  //  * 默认的上方向
+  //  */
+  // _upDirection: Vec3 = new Float32Array([0, 1, 0]);
 
   /**   * 单位阵   */
   matrix_ = new Float32Array([
@@ -91,15 +91,20 @@ export abstract class BaseCamera {
   // back!: Vec4;
   // // Alias to column vector 3 of the camera matrix.
   // position!: Vec4;
-  /**归一化的方向 */
+
+
+  /**归一化的方向 
+   * lookAt 的 vector
+  */
   direction!: Vec4;
 
   name!: string;
+
   constructor(option: projectionOptions) {
 
     this.option = option;
     if (option.upDirection) {
-      vec3.copy(option.upDirection, this._upDirection);
+      vec3.copy(option.upDirection, this.up);
     }
     if (typeof option.name != 'undefined') {
       this.name = option.name;
@@ -120,14 +125,14 @@ export abstract class BaseCamera {
 
 
   }
-  /** 获取up方向 */
-  get upDirection() {
-    return this._upDirection;
-  }
-  /** 设置up方向 */
-  set upDirection(up: Vec3) {
-    vec3.copy(up, this._upDirection);
-  }
+  // /** 获取up方向 */
+  // get upDirection() {
+  //   return this._upDirection;
+  // }
+  // /** 设置up方向 */
+  // set upDirection(up: Vec3) {
+  //   vec3.copy(up, this._upDirection);
+  // }
   /**
    * 更新入口 
    * Mat4[model,view,projection]
@@ -154,6 +159,9 @@ export abstract class BaseCamera {
     return this.projectionMatrix
   }
 
+  /**归一化的方向 
+ * lookAt 的 vector
+*/
   getDirection() {
     return this.direction;
   }

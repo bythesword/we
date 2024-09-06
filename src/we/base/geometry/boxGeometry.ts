@@ -1,8 +1,11 @@
 import { vec3 } from "wgpu-matrix";
 import {
     BaseGeometry,
+    geometryWireFrameAttribute,
     optionBaseGemetry,
 } from "./baseGeometry";
+import { indexBuffer, vsAttributes } from "../command/DrawCommand";
+import { color3U } from "../const/coreConst";
 
 interface parameters {
     width: number,
@@ -23,6 +26,140 @@ export interface optionBoxGemetry extends optionBaseGemetry {
 }
 
 export class BoxGeometry extends BaseGeometry {
+
+    getWireFrameShdaerCode(color: color3U): string {
+        let red = color.red / 255;
+        let green = color.green / 255;
+        let blue = color.bule / 255;
+        let code = `
+      @vertex fn vs(
+         @location(0) position : vec3f
+      ) -> @builtin(position) position: vec4f {
+        var position =projectionMatrix *viewMatrix * modelMatrix *  vec4f(position,  1.0);
+        return position;
+      }
+      @fragment fn fs( ) -> @location(0) vec4f {
+        return vec4f(${red},${green},${blue},1);
+      }
+      `;
+
+        return code;
+    }
+    createWrieFrame() {
+        let list: { [name: string]: number[] };
+        list = {};
+        for (let i = 0; i < this.buffer.indeices.length; i += 2) {
+            let A = this.buffer.indeices[i];
+            let B = this.buffer.indeices[i + 1];
+            let AB = [A, B].sort().toString();
+            list[AB] = [A, B];
+        }
+        let indeices: number[] = [];
+        for (let i in list) {
+            indeices.push(list[i][0],list[i][1]);
+        }
+        let output:geometryWireFrameAttribute={
+            indeices: indeices
+        };
+        this.wireFrame= output;
+    }
+    getWireFrameIndeices(): indexBuffer {
+        let indeices: indexBuffer = {
+            buffer: new Uint32Array(this.wireFrame.indeices),
+            indexForat: "uint32"
+        };
+        return indeices;
+    }
+    getWireFrame(): vsAttributes[] {
+        let position: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.position),
+            type: "Float32Array",
+            arrayStride: 4 * 3,
+            attributes: [
+                {
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: "float32x3"
+                }
+            ]
+        };
+        let vsa: vsAttributes[] = [position];
+        return vsa;
+    }
+    getDrawCount(): number {
+
+        return this.buffer.indeices.length;
+    }
+    getIndeices(): indexBuffer {
+        let indeices: indexBuffer = {
+            buffer: new Uint32Array(this.buffer.indeices),
+            indexForat: "uint32"
+        };
+        return indeices;
+    }
+    getCodeVS() {
+        let code = `
+      struct OurVertexShaderOutput {
+        @builtin(position) position: vec4f,
+        @location(0) uv: vec2f,
+        @location(1) normal: vec3f,        
+      };
+
+      @vertex fn vs(
+         @location(0) position : vec3f,
+         @location(1) uv : vec2f,
+         @location(2) normal : vec3f,
+         @builtin(vertex_index) vertexIndex : u32
+      ) -> OurVertexShaderOutput {
+        var vsOutput: OurVertexShaderOutput;
+        vsOutput.position =projectionMatrix *viewMatrix * modelMatrix *  vec4f(position,  1.0);
+        vsOutput.uv = uv;
+        vsOutput.normal = normal;
+        return vsOutput;
+      }`;
+        return code;
+    }
+    getAttribute(): vsAttributes[] {
+
+        let position: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.position),
+            type: "Float32Array",
+            arrayStride: 4 * 3,
+            attributes: [
+                {
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: "float32x3"
+                }
+            ]
+        };
+        let uv: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.uv),
+            type: "Float32Array",
+            arrayStride: 4 * 2,
+            attributes: [
+                {
+                    shaderLocation: 1,
+                    offset: 0,
+                    format: "float32x2"
+                }
+            ]
+        };
+        let normal: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.normal),
+            type: "Float32Array",
+            arrayStride: 4 * 3,
+            attributes: [
+                {
+                    shaderLocation: 2,
+                    offset: 0,
+                    format: "float32x3"
+                }
+            ]
+        }
+        let vsa: vsAttributes[] = [position, uv, normal];
+        return vsa;
+    }
 
     parameters!: parameters;
     numberOfVertices !: number;
@@ -79,8 +216,8 @@ export class BoxGeometry extends BaseGeometry {
         this.buildPlane(x, y, z, 1, - 1, width, height, depth, widthSegments, heightSegments, 4); // pz
         this.buildPlane(x, y, z, - 1, - 1, width, height, - depth!, widthSegments, heightSegments, 5); // nz
 
+        this.createWrieFrame();
     }
-
 
     /**copy from three.js */
     buildPlane(u: number, v: number, w: number,
@@ -200,8 +337,8 @@ export class BoxGeometry extends BaseGeometry {
         this.numberOfVertices += vertexCounter;
 
     }
-    destory() {
-        this._destory = false;
+    destroy() {
+        this._destroy = false;
         this.buffer = {
             position: [],
             normal: [],
