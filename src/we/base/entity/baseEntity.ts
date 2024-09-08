@@ -79,6 +79,7 @@ export interface entityUniform {
 }
 
 export enum initStateEntity {
+    constructing,
     unstart,
     initializing,
     finished
@@ -179,6 +180,7 @@ export abstract class BaseEntity {
             //     this.stageTransparent = [coreConst.defaultStageTransparent];
             // }
         }
+        this._init =initStateEntity.constructing;
         this.init()
     }
     abstract init(): any

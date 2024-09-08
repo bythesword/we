@@ -34,15 +34,16 @@ export interface optionMeshEntity extends optionBaseEntity {
 export class Mesh extends BaseEntity {
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
-    _wireframeColor!: color3U;
+    _wireframeColor: color3U= { red: 0, green: 0, blue: 0 };
     init() {
-        this._wireframeColor = { red: 0, green: 0, blue: 0 };
+        // this._wireframeColor = { red: 0, green: 0, blue: 0 };
         if ((this.input as optionMeshEntity).wireFrame === true) {
             if ((this.input as optionMeshEntity).wireFrameColor) {
                 this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as color3U;
             }
         }
         // throw new Error("Method not implemented.");
+       
     }
     checkStatus(): boolean {
         // throw new Error("Method not implemented.");
@@ -63,6 +64,7 @@ export class Mesh extends BaseEntity {
         super(input);
         this._geometry = input.geometry;
         this._material = input.material;
+        this._init =initStateEntity.unstart;
     }
     /**
      * 创建Draw Compute Commands
