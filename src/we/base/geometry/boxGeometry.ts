@@ -7,7 +7,7 @@ import {
 import { indexBuffer, vsAttributes } from "../command/DrawCommand";
 import { color3U } from "../const/coreConst";
 
-interface parameters {
+interface boxParameters {
     width: number,
     height: number,
     depth: number,
@@ -27,42 +27,72 @@ export interface optionBoxGemetry extends optionBaseGemetry {
 
 export class BoxGeometry extends BaseGeometry {
 
+    /**
+     * 获取线框shaderCode
+     * @param color 线框颜色
+     * @returns shader code
+     */
     getWireFrameShdaerCode(color: color3U): string {
         let red = color.red / 255;
         let green = color.green / 255;
-        let blue = color.bule / 255;
+        let blue = color.blue / 255;
         let code = `
       @vertex fn vs(
          @location(0) position : vec3f
-      ) -> @builtin(position) position: vec4f {
-        var position =projectionMatrix *viewMatrix * modelMatrix *  vec4f(position,  1.0);
-        return position;
+      ) -> @builtin(position)  vec4f {
+        var pos =projectionMatrix *viewMatrix * modelMatrix *  vec4f(position,  1.0);
+        return pos;
       }
-      @fragment fn fs( ) -> @location(0) vec4f {
-        return vec4f(${red},${green},${blue},1);
+    struct FragmentOutput {
+        @builtin(frag_depth) depth: f32,
+        @location(0) color: vec4f
+      }
+      @fragment fn fs(  
+    //   ) -> @location(0) vec4f {
+    //       return vec4f(${red},${green},${blue},1);
+    //   }
+     @builtin(position) pos:vec4f,
+     ) -> FragmentOutput   {    
+        var output:FragmentOutput;
+        output.color= vec4f(${red},${green},${blue},1);
+        output.depth=pos.z-0.0000002;
+        return output;
+     
       }
       `;
 
         return code;
     }
+    /**
+     * 创建线框数据结构
+     */
     createWrieFrame() {
         let list: { [name: string]: number[] };
         list = {};
-        for (let i = 0; i < this.buffer.indeices.length; i += 2) {
+        for (let i = 0; i < this.buffer.indeices.length; i += 3) {
             let A = this.buffer.indeices[i];
             let B = this.buffer.indeices[i + 1];
+            let C = this.buffer.indeices[i + 2];
             let AB = [A, B].sort().toString();
+            let BC = [B, C].sort().toString();
+            let CA = [C, A].sort().toString();
             list[AB] = [A, B];
+            list[BC] = [B, C];
+            list[CA] = [C, A];
         }
         let indeices: number[] = [];
         for (let i in list) {
-            indeices.push(list[i][0],list[i][1]);
+            indeices.push(list[i][0], list[i][1]);
         }
-        let output:geometryWireFrameAttribute={
+        let output: geometryWireFrameAttribute = {
             indeices: indeices
         };
-        this.wireFrame= output;
+        this.wireFrame = output;
     }
+    /**
+     * 返回线框索引
+     * @returns indexBuffer 结构
+     */
     getWireFrameIndeices(): indexBuffer {
         let indeices: indexBuffer = {
             buffer: new Uint32Array(this.wireFrame.indeices),
@@ -70,6 +100,16 @@ export class BoxGeometry extends BaseGeometry {
         };
         return indeices;
     }
+    /**
+     * 返回线框索引绘制的数量
+     * @returns number
+     */
+    getWireFrameDrawCount(): number {
+        return this.wireFrame.indeices.length;
+    }
+    /***
+     * 返回顶点属性，索引模式
+     */
     getWireFrame(): vsAttributes[] {
         let position: vsAttributes = {
             vertexArray: new Float32Array(this.buffer.position),
@@ -86,10 +126,20 @@ export class BoxGeometry extends BaseGeometry {
         let vsa: vsAttributes[] = [position];
         return vsa;
     }
+
+    /**
+     * 返回片面的索引模式的绘制数量
+     * @returns number
+     */
     getDrawCount(): number {
 
         return this.buffer.indeices.length;
     }
+
+    /**
+     * 返回片面的索引数据跟上
+     * @returns indeBuffer 格式
+     */
     getIndeices(): indexBuffer {
         let indeices: indexBuffer = {
             buffer: new Uint32Array(this.buffer.indeices),
@@ -97,6 +147,10 @@ export class BoxGeometry extends BaseGeometry {
         };
         return indeices;
     }
+    /**
+     * 返回shader的VS部分的code
+     * @returns string
+     */
     getCodeVS() {
         let code = `
       struct OurVertexShaderOutput {
@@ -119,6 +173,10 @@ export class BoxGeometry extends BaseGeometry {
       }`;
         return code;
     }
+    /**
+     * 输出顶点信息
+     * @returns sAttributes[]
+     */
     getAttribute(): vsAttributes[] {
 
         let position: vsAttributes = {
@@ -161,8 +219,11 @@ export class BoxGeometry extends BaseGeometry {
         return vsa;
     }
 
-    parameters!: parameters;
+    /**box的参数 */
+    parameters!: boxParameters;
+    /** 计算过程中使用，应该改为私有模式，todo*/
     numberOfVertices !: number;
+    /** 计算过程中使用，应该改为私有模式，todo*/
     groupStart !: number;
 
     constructor(input?: optionBoxGemetry) {
@@ -177,6 +238,7 @@ export class BoxGeometry extends BaseGeometry {
             }
         }
         super(input);
+        this.init(input)
     }
 
     init(input: optionBaseGemetry) {

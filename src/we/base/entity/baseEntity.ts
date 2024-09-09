@@ -143,6 +143,7 @@ export abstract class BaseEntity {
 
 
     constructor(input?: optionBaseEntity) {
+        this._init =initStateEntity.constructing;
         this._output = true;
         this.transparent = false;
         this.input = input;
@@ -151,8 +152,7 @@ export abstract class BaseEntity {
         this._destroy = false;
         this._commmands = [];
         this._vertexAndMaterialGroup = {};
-        this.enable = true;
-        this._init = initStateEntity.unstart;
+        this.enable = true; 
         this._position = vec3.create();
         this._scale = vec3.create(1, 1, 1);
         this._rotation = vec3.create();
@@ -180,9 +180,9 @@ export abstract class BaseEntity {
             //     this.stageTransparent = [coreConst.defaultStageTransparent];
             // }
         }
-        this._init =initStateEntity.constructing;
-        this.init()
+       
     }
+    /** */
     abstract init(): any
 
     async initDCC(scene: any) {

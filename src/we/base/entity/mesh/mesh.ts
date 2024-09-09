@@ -16,7 +16,7 @@ export interface optionMeshEntity extends optionBaseEntity {
     geometry: BaseGeometry,
     /**材质 */
     material: BaseMaterial, //| BaseMaterial[],
-    /**线框，boolean */
+    /**线框，boolean,默认使用 */
     wireFrame?: boolean,
     /**线框颜色，默认黑色 */
     wireFrameColor?: color3U
@@ -34,16 +34,25 @@ export interface optionMeshEntity extends optionBaseEntity {
 export class Mesh extends BaseEntity {
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
-    _wireframeColor: color3U= { red: 0, green: 0, blue: 0 };
+    _wireframeColor!: color3U;
+    _wireframeEnable!: boolean;
     init() {
-        // this._wireframeColor = { red: 0, green: 0, blue: 0 };
-        if ((this.input as optionMeshEntity).wireFrame === true) {
-            if ((this.input as optionMeshEntity).wireFrameColor) {
-                this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as color3U;
-            }
+
+        this._wireframeColor = { red: 0, green: 0, blue: 0 };
+        if ((this.input as optionMeshEntity).wireFrame === false) {
+            this._wireframeEnable = false;
         }
+        else {
+            this._wireframeEnable = true;
+        }
+
+        if ((this.input as optionMeshEntity).wireFrameColor) {
+            this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as color3U;
+            let abc=1;
+        }
+
         // throw new Error("Method not implemented.");
-       
+
     }
     checkStatus(): boolean {
         // throw new Error("Method not implemented.");
@@ -64,6 +73,8 @@ export class Mesh extends BaseEntity {
         super(input);
         this._geometry = input.geometry;
         this._material = input.material;
+        this._init = initStateEntity.unstart;
+        this.init()
         this._init =initStateEntity.unstart;
     }
     /**
@@ -139,9 +150,43 @@ export class Mesh extends BaseEntity {
 
         let wireFrameShaderCode = this._geometry.getWireFrameShdaerCode(this._wireframeColor);
         let wireFrameVsa = this._geometry.getAttribute();
-        let wireFrameIndexBuffer = this._geometry.getIndeices();
-        
+        let wireFrameIndexBuffer = this._geometry.getWireFrameIndeices();
+        let wireFrameCounts = this._geometry.getWireFrameDrawCount();
 
+        if (this._wireframeEnable === false) { }
+        else {
+            let wireFrameValues: drawModeIndexed = {
+                indexCount: wireFrameCounts
+            }
+            let wireFrameOptions: drawOptionOfCommand = {
+                label: "a triangle",
+                scene: scene,
+                vertex: {
+                    code: wireFrameShaderCode,
+                    entryPoint: "vs",
+                    buffers: wireFrameVsa
+                },
+                fragment: {
+                    code: wireFrameShaderCode,
+                    entryPoint: "fs",
+                    targets: [{ format: scene.presentationFormat }]
+                },
+                primitive: {
+                    topology: "line-list",
+                    cullMode: 'none',
+                },
+                uniforms: [],
+                // rawUniform: true,
+                draw: {
+                    mode: "index",
+                    values: wireFrameValues
+                },
+                indexBuffer: wireFrameIndexBuffer as indexBuffer,
+
+            }
+            let wireFrameDC = new DrawCommand(wireFrameOptions);
+            this._commmands.push(wireFrameDC);
+        }
         return initStateEntity.finished;
     }
 

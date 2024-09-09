@@ -30,8 +30,11 @@ export interface optionBaseGemetry { }
 export abstract class BaseGeometry {
     input: optionBaseGemetry;
     buffer!: geometryAttribute;
-    wireFrame!:geometryWireFrameAttribute
+    wireFrame!: geometryWireFrameAttribute
     _destroy: boolean;
+    
+    _wireframeColor!: color3U;
+    _wireframeEnable!: boolean;
 
     constructor(input: optionBaseGemetry) {
         this._destroy = false;
@@ -43,13 +46,21 @@ export abstract class BaseGeometry {
             materialStep: []
         }
         this.input = input;
-        this.init(input)
+        // this.init(input)
     }
 
     abstract init(input: optionBaseGemetry): any
     abstract destroy(): any
 
 
+    //线框
+    abstract getWireFrame(): vsAttributes[]
+    abstract getWireFrameDrawCount(): number;
+    abstract getWireFrameIndeices(): indexBuffer | boolean
+    abstract getWireFrameShdaerCode(color: color3U): string;
+
+
+    //片面
     /**
      * 输出 shader 的vs 部分code
      */
@@ -59,9 +70,6 @@ export abstract class BaseGeometry {
      * 输出顶点信息
      */
     abstract getAttribute(): vsAttributes[]
-    abstract getWireFrame(): vsAttributes[]
-    abstract getWireFrameShdaerCode(color: color3U): string;
-
     abstract getIndeices(): indexBuffer | boolean
     abstract getDrawCount(): number
 
