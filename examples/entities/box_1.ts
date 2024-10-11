@@ -15,7 +15,16 @@ declare global {
     DC: any
   }
 }
-let input: sceneInputJson = { canvas: "render" }
+let input: sceneInputJson = {
+  canvas: "render",
+  // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
+  color: {
+    red: 0.1,
+    green: 0.1,
+    blue: 0.1,
+    alpha: 1
+  }
+}
 let scene = new Scene(input);
 await scene.init();
 
@@ -60,13 +69,13 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new BoxGeometry();
 //极简测试材质，red
-let redMaterial = new SimpleMaterial();
+let redMaterial = new SimpleMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
 //box实体
 let boxEntity = new Mesh(
   {
     geometry: boxGeometry,
     material: redMaterial,
-    wireFrameColor: { red: 255, green: 255, blue: 255 }
+    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
   }
 );
 //增加实体到scene

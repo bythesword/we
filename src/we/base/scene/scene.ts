@@ -34,15 +34,19 @@ import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
-
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
 // import { optionCamreaControl } from "../control/cameracCntrol"
 // import { ArcballCameraControl } from "../control/arcballCameraControl"
 
+/**
+ *  canvas: string, canvas id;
+ *  color?:color4F,JSON {red:1.0,green:1,blue:1,alpha:1}
+ */
 declare interface sceneInputJson extends sceneJson {
     /**canvas id */
     canvas: string,
     // renderPassSetting?: renderPassSetting,
+    color?: coreConst.color4F
 }
 
 
@@ -151,10 +155,15 @@ class Scene extends BaseScene {
 
         this.clock = new Clock();
         this.input = input;
-  
+
+        let backgroudColor = [0, 0, 0, 0];
+        if (input.color) {
+            backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
+        }
+
         this.renderPassSetting = {
             color: {
-                clearValue: [0, 0, 0, 0],
+                clearValue: backgroudColor,
                 loadOp: "clear",
                 storeOp: "store",
             },
@@ -264,12 +273,12 @@ class Scene extends BaseScene {
         //         transparent: worldTransparent
         //     }
         // };
-        let worldStage = new BaseStage({ name: "World", scene:this });
-        let worldStageTransparent = new BaseStage({ name: "WorldTransparent", transparent: true , scene:this});
+        let worldStage = new BaseStage({ name: "World", scene: this });
+        let worldStageTransparent = new BaseStage({ name: "WorldTransparent", transparent: true, scene: this });
         this.stages = {};
         this.stages["World"] = {
             opaque: worldStage,
-            transparent: worldStageTransparent,           
+            transparent: worldStageTransparent,
         };
         this.stagesOrders = coreConst.defaultStageList;
 

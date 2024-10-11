@@ -217,8 +217,8 @@ export class DrawCommand extends BaseCommand {
                 this.depthStencil = this.scene.depthStencil;//scene extend baseScene
         }
         //todo indexBuffer
-        if (options.indexBuffer != undefined) {
-
+        if (options.indexBuffer != undefined && this.input.draw.mode == "index") {
+            this.indexBuffer = this.createIndexBuffer("index buffer");
         }
         this.pipeline = this.createPipeline();
         // this.uniformSystem = this.scene.getuniformSystem();
@@ -234,6 +234,9 @@ export class DrawCommand extends BaseCommand {
     destroy() {
         for (let i of this.verticesBuffer) {
             i.destroy();
+        }
+        if(this.indexBuffer){
+            this.indexBuffer.destroy();
         }
         let unifromGroupSource = this.input.uniforms;
         for (let perGroup of unifromGroupSource) {
@@ -252,9 +255,6 @@ export class DrawCommand extends BaseCommand {
         return this._isDestroy;
     }
     init() {
-        if (this.input.draw.mode == "index") {
-            this.indexBuffer = this.createIndexBuffer("index buffer");
-        }
     }
     /**
      * 创建顶点GPUBuffer

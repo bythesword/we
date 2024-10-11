@@ -1,5 +1,6 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
+import { ShadowMaterial } from "../material/shadow/shadowMaterial";
 import * as coreConst from "../const/coreConst"
 import {
     unifromGroup,
@@ -60,6 +61,7 @@ export interface entityContentGroup {
 }
 
 /**
+ * todo
  * LOD定义
  * 默认 ：0
  */
@@ -85,6 +87,15 @@ export enum initStateEntity {
     finished
 }
 /**
+ * 阴影选项
+ * 是否接受与是否产生阴影
+ * 默认时：全部都是true
+ */
+export interface optionShadowEntity {
+    accept?: boolean,
+    generate?: boolean,
+}
+/**
  * input参数
  * 
  */
@@ -95,7 +106,8 @@ export interface optionBaseEntity {
         Transparent: number[] //coreConst.defaultStageTransparent,
         Opaque: number[]
     },
-    update?: (scope: any) => {};
+    update?: (scope: any) => {},
+    shadow?: optionShadowEntity,
 }
 
 export abstract class BaseEntity {
@@ -106,11 +118,19 @@ export abstract class BaseEntity {
      * 实体是否为动态，boolean
      * 默认=false
      */
-    _dynamic: boolean;
+    _dynamicPostion: boolean;
     /**
+     * 是否未动态形变物体
+     * 默认=false
+     */
+    _dynamicMesh: boolean;
+    /**
+     * todo
      * LOD array
      */
-    _LOD!: LOD[];
+    _LOD!: LOD[];//todo
+    _shadow!: optionShadowEntity;
+    _shadowMaterail!: ShadowMaterial;
     _commmands: commmandType[];
     _vertexAndMaterialGroup!: entityContentGroup;
     _position!: Vec3;
@@ -142,17 +162,18 @@ export abstract class BaseEntity {
     _output: boolean;
 
 
-    constructor(input?: optionBaseEntity) {
-        this._init =initStateEntity.constructing;
+    constructor(input: optionBaseEntity) {
+        this._init = initStateEntity.constructing;
         this._output = true;
         this.transparent = false;
         this.input = input;
-        this._dynamic = false;
+        this._dynamicPostion = false;
+        this._dynamicMesh = false;
         this._LOD = [];
         this._destroy = false;
         this._commmands = [];
         this._vertexAndMaterialGroup = {};
-        this.enable = true; 
+        this.enable = true;
         this._position = vec3.create();
         this._scale = vec3.create(1, 1, 1);
         this._rotation = vec3.create();
@@ -163,24 +184,23 @@ export abstract class BaseEntity {
         this.name = ''
         this.id = new Date().getTime();
 
-        if (input) {
-            if (input.name) this.name = input.name;
-            if (input.vertexAndMaterialGroup) this._vertexAndMaterialGroup = input.vertexAndMaterialGroup;
 
-            //作废，原因，stage与entity更改为一对一关系
-            // if (input.stage) {
-            //     if (input.stage.Opaque) this.stage = input.stage.Opaque;
-            //     else this.stage = [coreConst.defaultStage];
-            //     if (input.stage.Transparent) this.stage = input.stage.Transparent;
-            //     else this.stageTransparent = [coreConst.defaultStageTransparent];
-
-            // }
-            // else {
-            //     this.stage = [coreConst.defaultStage];
-            //     this.stageTransparent = [coreConst.defaultStageTransparent];
-            // }
+        if (input.name) this.name = input.name;
+        if (input.vertexAndMaterialGroup) this._vertexAndMaterialGroup = input.vertexAndMaterialGroup;
+        this._shadow = {
+            accept: true,
+            generate: true,
+        };
+        if (input.shadow) {
+            if (input.shadow.accept === false) this._shadow.accept = false;
+            if (input.shadow.generate === false) {
+                this._shadow.generate = false;
+            }
         }
-       
+        if (this._shadow.generate === true) {
+            this._shadowMaterail = new ShadowMaterial();
+        }
+
     }
     /** */
     abstract init(): any

@@ -1,3 +1,4 @@
+import * as coreConst from "../const/coreConst"
 export var sideOfMaterial = {
     "front": "back",
     "back": "front",
@@ -5,7 +6,7 @@ export var sideOfMaterial = {
 }
 
 export interface optionBaseMaterial {
-    color?: number[],
+    color?: coreConst.color4F//number[],
     wireFrame?: boolean,
     side?: "front" | "back" | "all",
 
@@ -21,13 +22,28 @@ export interface optionBaseMaterial {
 }
 
 export abstract class BaseMaterial {
+    red!: number;
+    green!: number;
+    blue!: number;
+    alpha!: number;
     input!: optionBaseMaterial;
     _destroy: boolean;
-    
+
     constructor(input?: optionBaseMaterial) {
         this._destroy = false;
-        if (input)
+        this.red = 1.0;
+        this.green = 1.0;
+        this.blue = 1.0;
+        this.alpha = 1.0;
+        if (input) {
             this.input = input;
+            if (input.color) {
+                this.red = input.color.red;
+                this.green = input.color.green;
+                this.blue = input.color.blue;
+                this.alpha = input.color.alpha;
+            }
+        }
         else
             this.input = {};
     }

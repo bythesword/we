@@ -1,7 +1,8 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
-
+import colorOnlyFS from "../../shader/material/color.fs.wgsl?raw"
 
 export class SimpleMaterial extends BaseMaterial {
+
 
 
     constructor(input?: optionBaseMaterial) {
@@ -9,12 +10,12 @@ export class SimpleMaterial extends BaseMaterial {
     }
 
     getCodeFS() {
-        const fs = `
-        @fragment fn fs( ) -> @location(0) vec4f {
-        return vec4f(1,0,0,1);
-      }
-      `;
-        return fs;
+        let code = colorOnlyFS
+        code = code.replace("$red", this.red.toString());
+        code = code.replace("$blue", this.blue.toString());
+        code = code.replace("$green", this.green.toString());
+        code = code.replace("$alpha", this.alpha.toString());
+        return code;
     }
 
     destroy() {

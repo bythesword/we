@@ -49,7 +49,7 @@ export class BaseStage extends BaseScene {
     depthTest!: boolean;
     transparent!: boolean;
     scene: BaseScene | undefined;
-    _cache: boolean;
+    _cache: boolean | undefined;
 
     /**每个stage的command集合 
      * 一个实体可以由多个command，分布在不同的stage，比如透明，不透明

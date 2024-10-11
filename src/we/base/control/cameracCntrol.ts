@@ -109,14 +109,15 @@ export function createInputHandler(
     canvas.addEventListener(
         'wheel',
         (e) => {
-            mouseDown = (e.buttons & 1) !== 0;
-            if (mouseDown) {
+            // mouseDown = (e.buttons & 1) !== 0;
+            // if (mouseDown) {
                 // The scroll value varies substantially between user agents / browsers.
                 // Just use the sign.
                 analog.zoom += Math.sign(e.deltaY);
+                // console.log(analog.zoom)
                 e.preventDefault();
                 e.stopPropagation();
-            }
+            // }
         },
         { passive: false }
     );

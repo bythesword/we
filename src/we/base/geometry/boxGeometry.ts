@@ -5,7 +5,10 @@ import {
     optionBaseGemetry,
 } from "./baseGeometry";
 import { indexBuffer, vsAttributes } from "../command/DrawCommand";
-import { color3U } from "../const/coreConst";
+import * as coreConst from "../const/coreConst";
+import triangleVS from "../shader/geometry/baseGeometry.vs.wgsl?raw"
+import framelineVS from "../shader/geometry/baseGeometryFrameline.vs.wgsl?raw"
+
 
 interface boxParameters {
     width: number,
@@ -32,35 +35,19 @@ export class BoxGeometry extends BaseGeometry {
      * @param color 线框颜色
      * @returns shader code
      */
-    getWireFrameShdaerCode(color: color3U): string {
-        let red = color.red / 255;
-        let green = color.green / 255;
-        let blue = color.blue / 255;
-        let code = `
-      @vertex fn vs(
-         @location(0) position : vec3f
-      ) -> @builtin(position)  vec4f {
-        var pos =projectionMatrix *viewMatrix * modelMatrix *  vec4f(position,  1.0);
-        return pos;
-      }
-    struct FragmentOutput {
-        @builtin(frag_depth) depth: f32,
-        @location(0) color: vec4f
-      }
-      @fragment fn fs(  
-    //   ) -> @location(0) vec4f {
-    //       return vec4f(${red},${green},${blue},1);
-    //   }
-     @builtin(position) pos:vec4f,
-     ) -> FragmentOutput   {    
-        var output:FragmentOutput;
-        output.color= vec4f(${red},${green},${blue},1);
-        output.depth=pos.z-0.0000002;
-        return output;
-     
-      }
-      `;
-
+    getWireFrameShdaerCode(color: coreConst.color4F): string {
+        let red = color.red;
+        let green = color.green ;
+        let blue = color.blue ;
+        let alpha=1.0;
+        if("alpha" in color){
+            color.alpha;
+        }
+        let code = framelineVS;
+        code = code.replace("$red", red.toString());
+        code = code.replace("$blue", blue.toString());
+        code = code.replace("$green", green.toString());
+        code = code.replace("$alpha", alpha.toString());
         return code;
     }
     /**
@@ -152,26 +139,7 @@ export class BoxGeometry extends BaseGeometry {
      * @returns string
      */
     getCodeVS() {
-        let code = `
-      struct OurVertexShaderOutput {
-        @builtin(position) position: vec4f,
-        @location(0) uv: vec2f,
-        @location(1) normal: vec3f,        
-      };
-
-      @vertex fn vs(
-         @location(0) position : vec3f,
-         @location(1) uv : vec2f,
-         @location(2) normal : vec3f,
-         @builtin(vertex_index) vertexIndex : u32
-      ) -> OurVertexShaderOutput {
-        var vsOutput: OurVertexShaderOutput;
-        vsOutput.position =projectionMatrix *viewMatrix * modelMatrix *  vec4f(position,  1.0);
-        vsOutput.uv = uv;
-        vsOutput.normal = normal;
-        return vsOutput;
-      }`;
-        return code;
+        return triangleVS;
     }
     /**
      * 输出顶点信息

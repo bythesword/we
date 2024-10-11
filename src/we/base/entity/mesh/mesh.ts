@@ -1,3 +1,4 @@
+import * as coreConst from "../../const/coreConst";
 import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import {
@@ -19,7 +20,7 @@ export interface optionMeshEntity extends optionBaseEntity {
     /**线框，boolean,默认使用 */
     wireFrame?: boolean,
     /**线框颜色，默认黑色 */
-    wireFrameColor?: color3U
+    wireFrameColor?: coreConst.color4F
 }
 
 
@@ -34,12 +35,12 @@ export interface optionMeshEntity extends optionBaseEntity {
 export class Mesh extends BaseEntity {
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
-    _wireframeColor!: color3U;
+    _wireframeColor!: coreConst.color4F;
     _wireframeEnable!: boolean;
     init() {
 
         this._wireframeColor = { red: 0, green: 0, blue: 0 };
-        if ((this.input as optionMeshEntity).wireFrame === false) {
+        if ((this.input as optionMeshEntity).wireFrame === false) {//默认有线框
             this._wireframeEnable = false;
         }
         else {
@@ -47,8 +48,8 @@ export class Mesh extends BaseEntity {
         }
 
         if ((this.input as optionMeshEntity).wireFrameColor) {
-            this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as color3U;
-            let abc=1;
+            this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as coreConst.color4F;
+            let abc = 1;
         }
 
         // throw new Error("Method not implemented.");
@@ -66,7 +67,10 @@ export class Mesh extends BaseEntity {
         return this._commmands;
     }
     destroy() {
-        throw new Error("Method not implemented.");
+        // throw new Error("Method not implemented.");
+        for(let i of this._commmands){
+            i.destroy();
+        }
     }
 
     constructor(input: optionMeshEntity) {
@@ -75,10 +79,12 @@ export class Mesh extends BaseEntity {
         this._material = input.material;
         this._init = initStateEntity.unstart;
         this.init()
-        this._init =initStateEntity.unstart;
+        this._init = initStateEntity.unstart;
     }
     /**
      * 创建Draw Compute Commands
+     * @param scene 
+     * @returns 完成标志位：initStateEntity.finished
      */
     createDCC(scene: any): initStateEntity {
 
@@ -147,14 +153,11 @@ export class Mesh extends BaseEntity {
         this._commmands.push(DC);
 
         /////////////////////////////// wire frame
-
-        let wireFrameShaderCode = this._geometry.getWireFrameShdaerCode(this._wireframeColor);
-        let wireFrameVsa = this._geometry.getAttribute();
-        let wireFrameIndexBuffer = this._geometry.getWireFrameIndeices();
-        let wireFrameCounts = this._geometry.getWireFrameDrawCount();
-
-        if (this._wireframeEnable === false) { }
-        else {
+        if (this._wireframeEnable === true) {
+            let wireFrameShaderCode = this._geometry.getWireFrameShdaerCode(this._wireframeColor);//获取线框的shader code ，传入线框颜色
+            let wireFrameVsa = this._geometry.getAttribute();
+            let wireFrameIndexBuffer = this._geometry.getWireFrameIndeices();
+            let wireFrameCounts = this._geometry.getWireFrameDrawCount();
             let wireFrameValues: drawModeIndexed = {
                 indexCount: wireFrameCounts
             }

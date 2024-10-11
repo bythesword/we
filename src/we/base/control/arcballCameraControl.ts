@@ -61,6 +61,7 @@ export class ArcballCameraControl extends CamreaControl {
             let position = this.camera.position;
             //计算当前距离，旋转距离不变
             this.distance = vec3.distance(this.camera.position, this.camera.lookAt);
+            let oldDistance = this.distance;
             //阈值，for 旋转角 & 旋转轴
             const epsilon = 0.0000001;
 
@@ -116,9 +117,13 @@ export class ArcballCameraControl extends CamreaControl {
                 this.distance *= 1 + input.analog.zoom * this.zoomSpeed;
 
             }
-            if (dir) {
+            if (dir) {//方向变化，距离有可能变化
                 position = vec3.scale(dir, this.distance);//重新计算位置
                 this.camera.update(position, dir, true);
+            }
+            else if (oldDistance != this.distance) { //方向未变，距离变化了
+                position = vec3.scale(this.camera.back, this.distance);//重新计算位置
+                this.camera.update(position, this.camera.back, true);
             }
         }
         else {
