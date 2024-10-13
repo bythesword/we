@@ -5,7 +5,7 @@ import { CameraActor, optionCameraActor } from "../../src/we/base/actor/cameraAc
 
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../src/we/base/geometry/boxGeometry"
-import { SimpleMaterial } from "../../src/we/base/material/simple/simpleMaterial"
+import { ColorMaterial } from "../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../src/we/base/entity/mesh/mesh"
 
 
@@ -69,7 +69,7 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new BoxGeometry();
 //极简测试材质，red
-let redMaterial = new SimpleMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
+let redMaterial = new ColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
 //box实体
 let boxEntity = new Mesh(
   {
