@@ -71,3 +71,5 @@ export interface color3U {
     green: number,
     blue: number,
 }
+
+export var shadowMapSize=1024;

@@ -2,10 +2,19 @@ import { DrawCommand } from "../command/DrawCommand"
 import { ComputeCommand } from '../command/ComputeCommand';
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseScene, sceneJson, renderPassSetting } from "../scene/baseScene";
+import { BaseLight } from "../light/baseLight";
 
 export type commmandType = DrawCommand | ComputeCommand;
 
 
+declare type lights = BaseLight[];
+declare interface lightUniform { }
+declare interface BVH { }
+/**system  uniform 时间结构体 */
+declare interface timeUniform {
+    deltaTime: number,
+    time: number,
+}
 
 
 /**

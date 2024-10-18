@@ -34,6 +34,7 @@ import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
+import { BaseLight } from "../light/baseLight";
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
 // import { optionCamreaControl } from "../control/cameracCntrol"
 // import { ArcballCameraControl } from "../control/arcballCameraControl"
@@ -50,14 +51,6 @@ declare interface sceneInputJson extends sceneJson {
 }
 
 
-declare interface light { }
-declare interface lightUniform { }
-declare interface BVH { }
-/**system  uniform 时间结构体 */
-declare interface timeUniform {
-    deltaTime: number,
-    time: number,
-}
 
 
 
@@ -109,7 +102,7 @@ class Scene extends BaseScene {
     defaultCamera: BaseCamera | undefined;
 
     /** lights array */
-    lights!: light[];
+    lights!: lights[];
 
     /** todo  */
     stages!: stagesCollection;
@@ -384,7 +377,8 @@ class Scene extends BaseScene {
      */
 
     updateSystemUniformBuffer() {
-        this.systemUniformBuffers["MVP"] = this.getMVP();
+        if (this.defaultCamera)
+            this.systemUniformBuffers["MVP"] = this.getMVP();
     }
     /**
      * uniform of system  bindGroup to  group  0 for pershader
