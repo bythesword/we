@@ -218,7 +218,10 @@ export type localUniformGroups = {
     [n in number]: GPUBindGroup
 }
 
-
+//20241021 ，增加并注释掉
+// export interface KVsystemUniformGroup {
+//     [name: string]: number
+// }
 //////////////////////////////////////////////////////////////////
 // class 
 
@@ -246,7 +249,11 @@ export abstract class BaseCommand {
     uniformGroups!: localUniformGroups;
 
     unifromBuffer!: uniformBufferAll;
-
+    //20241021 ，增加并注释掉
+    // KVofuniformGroup0!: KVsystemUniformGroup;
+    // KVofuniformGroup1!: KVsystemUniformGroup;
+    // KVofuniformGroup2!: KVsystemUniformGroup;
+    // KVofuniformGroup3!: KVsystemUniformGroup;
 
     //bindingGroup 计数器
     bindingIdOfGroup0: number;
@@ -387,28 +394,104 @@ export abstract class BaseCommand {
         let pipeline = this.pipeline;
         let bindGroup: localUniformGroups = [];
 
-        let unifromGroupSource = this.input.uniforms as unifromGroup[];
-        for (let perGroup of unifromGroupSource) {
-            let entries: GPUBindGroupEntry[] = [];
-            for (let perOne of perGroup.entries) {
-                if ("size" in perOne) {
-                    const perOneBuffer = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
-                    entries.push(perOneBuffer);
+        // if (this.rawUniform)//20241021 ，增加并注释掉
+        {//20241020，RAW模式的bindGroup 最多4个，由shader和DC的option决定
+            let unifromGroupSource = this.input.uniforms as unifromGroup[];
+            for (let perGroup of unifromGroupSource) {
+                let entries: GPUBindGroupEntry[] = [];
+                for (let perOne of perGroup.entries) {
+                    if ("size" in perOne) {
+                        const perOneBuffer = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
+                        entries.push(perOneBuffer);
+                    }
+                    else {
+                        entries.push(perOne as GPUBindGroupEntry);
+                    }
+                };
+                const bindLayout = pipeline.getBindGroupLayout(perGroup.layout);
+                let groupDesc: GPUBindGroupDescriptor = {
+                    label: "bind to " + perGroup.layout,
+                    layout: bindLayout,
+                    entries: entries,
                 }
-                else {
-                    entries.push(perOne as GPUBindGroupEntry);
-                }
-            };
-            const bindLayout = pipeline.getBindGroupLayout(perGroup.layout);
-            let groupDesc: GPUBindGroupDescriptor = {
-                label: "bind to " + perGroup.layout,
-                layout: bindLayout,
-                entries: entries,
+                const uniformBindGroup = device.createBindGroup(groupDesc);
+                bindGroup[perGroup.layout] = uniformBindGroup;
             }
-            const uniformBindGroup = device.createBindGroup(groupDesc);
-            bindGroup[perGroup.layout] = uniformBindGroup;
         }
+        //20241021 ，增加并注释掉
+        // else {//system uniform，20241020，system模式的uniform，目前只是设计了两个Group，0和1，其他的没有设计
+        //     let unifromGroupSource = this.input.uniforms as uniformEntriesWithSystem[];
+        //     let bindGroupLayout0 = 0;
+        //     let entries0: GPUBindGroupEntry[] = [];
+        //     let bindGroupLayout1 = 1;
+        //     let entries1: GPUBindGroupEntry[] = [];
 
+        //     //为每个DCC匹配systemuniform for group0
+        //     let systemEntries = this.scene.getSystemUnifromGroupForPerShader();
+        //     this.bindingIdOfGroup0 = systemEntries.length;
+        //     for (let perSysteUniform of systemEntries) {
+        //         entries0.push(perSysteUniform);
+        //     }
+        //     //todo ，just like shadow map
+        //     //for group1 
+
+        //     for (let perUniformPart of unifromGroupSource) {//
+        //         if ("size" in perUniformPart) {//bindGroup 0
+        //             this.KVofuniformGroup0[perUniformPart.name] = this.bindingIdOfGroup0;
+        //             let perOne: uniformBufferPart = {
+        //                 binding: this.bindingIdOfGroup0++,
+        //                 size: perUniformPart.size,
+        //                 get: perUniformPart.get,
+        //             };
+        //             if (perUniformPart.type) {
+        //                 perOne.type = perUniformPart.type;
+        //             }
+        //             if (perUniformPart.usage) {
+        //                 perOne.usage = perUniformPart.usage;
+        //             }
+        //             if (typeof perUniformPart.update != "undefined") {
+        //                 perOne.update = perUniformPart.update;
+        //             }
+        //             if (perUniformPart.label) {
+        //                 perOne.label = perUniformPart.label;
+        //             }
+        //             const perOneBuffer = this.createUniformBufferBindGroupDescriptor(bindGroupLayout0, perOne as uniformBufferPart);
+
+        //             entries0.push(perOneBuffer);
+        //         }
+        //         else if ("resource" in perUniformPart) {//bindGroup 1
+        //             this.KVofuniformGroup1[perUniformPart.name] = this.bindingIdOfGroup1;
+        //             let perOne: GPUBindGroupEntry = {
+        //                 binding: this.bindingIdOfGroup1++,
+        //                 resource: perUniformPart.resource
+        //             }
+        //             entries1.push(perOne);
+        //         }
+        //         else {//nothing ,以后扩展使用，看看storage 是否需要单独的group
+
+        //         }
+        //     }
+        //     if (entries0.length > 0) {
+        //         const bindLayout = pipeline.getBindGroupLayout(bindGroupLayout0);
+        //         let groupDesc: GPUBindGroupDescriptor = {
+        //             label: "bind to " + bindGroupLayout0,
+        //             layout: bindLayout,
+        //             entries: entries0,
+        //         }
+        //         const uniformBindGroup = device.createBindGroup(groupDesc);
+        //         bindGroup[bindGroupLayout0] = uniformBindGroup;
+        //     }
+        //     if (entries1.length > 0) {
+        //         const bindLayout = pipeline.getBindGroupLayout(bindGroupLayout1);
+        //         let groupDesc: GPUBindGroupDescriptor = {
+        //             label: "bind to " + bindGroupLayout1,
+        //             layout: bindLayout,
+        //             entries: entries1,
+        //         }
+        //         const uniformBindGroup = device.createBindGroup(groupDesc);
+        //         bindGroup[bindGroupLayout1] = uniformBindGroup;
+        //     }
+        // }
         return bindGroup;
     }
 
@@ -436,20 +519,56 @@ export abstract class BaseCommand {
 
         }
     }
-
+    //20241021 ，增加并注释掉
+    // /**
+    //  * update 非RAW模式的uniform
+    //  * @param layout =0，20241021设计所有的uniform都在Group0
+    //  * @param binding ,由createUniformGroups()过程生成的this.KVofuniformGroup0数据的KV提供，key=name，value=binding
+    //  * @param perOne ,原始的uniform结构体
+    //  * @returns 
+    //  */
+    // updataOneUniformBufferForSystem(layout: number, binding: number, perOne: uniformBufferPartWithSystem) {
+    //     if ("update" in perOne && perOne.update == false) {
+    //         return;
+    //     }
+    //     else {
+    //         let device = this.device;
+    //         const uniformBuffer = this.unifromBuffer[layout][binding];
+    //         const buffer = perOne.get();//定义的uniform数据块中的get()的箭头函数，返回TypedArray
+    //         device.queue.writeBuffer(
+    //             uniformBuffer,
+    //             0,
+    //             buffer.buffer,
+    //             0,//buffer.byteOffset,
+    //             buffer.byteLength
+    //         );
+    //     }
+    // }
     /**
      * 更新1--3+的 unifrom group的buffer，系统的（0）单独更新，通过scene中的updateSystemUnifrombuffer()进行更调用
      */
     updateUniformBuffer() {
-        let unifromGroupSource = this.input.uniforms;
-        for (let perGroup of unifromGroupSource) {
-            for (let perOne of (perGroup as unifromGroup).entries) {
-                if ("size" in perOne) {
-                    this.updataOneUniformBuffer((perGroup as unifromGroup).layout, perOne as uniformBufferPart);
+        // if (this.rawUniform)//20241021 ，增加并注释掉
+         {
+            let unifromGroupSource = this.input.uniforms;
+            for (let perGroup of unifromGroupSource) {
+                for (let perOne of (perGroup as unifromGroup).entries) {
+                    if ("size" in perOne) {
+                        this.updataOneUniformBuffer((perGroup as unifromGroup).layout, perOne as uniformBufferPart);
+                    }
                 }
             }
         }
+        // else {
+        //     let unifromGroupSource = this.input.uniforms;
+        //     for (let perGroup of unifromGroupSource as uniformEntriesWithSystem[]) {
 
+        //         if ("size" in perGroup) {
+        //             this.updataOneUniformBufferForSystem(0, this.KVofuniformGroup0[perGroup.name], perGroup);
+        //         }
+
+        //     }
+        // }
     }
 
     /**

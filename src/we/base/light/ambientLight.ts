@@ -36,4 +36,5 @@ export class AmbientLight extends BaseLight {
     getStructBuffer(): structBaselight {
         return this.structBuffer;
     }
+
 }

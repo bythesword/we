@@ -26,7 +26,7 @@ struct SpotLight{
 }
 
 struct Light{
-    type:i32,//0=direction ,1=point,2=spot
+    kind:i32,//0=direction ,1=point,2=spot
     position : vec3f,
     color : vec3f,
     intensity : f32,

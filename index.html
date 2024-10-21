@@ -21,12 +21,15 @@
     <li>============================================webGPU limite
       测试=======================================================
     </li>
-    <li> <a href="./examples/webGPU//maxUniformBuffersPerShaderStage.html">V   maxUniformBuffersPerShaderStage 12</a> </li>
+    <li> <a href="./examples/webGPU//maxUniformBuffersPerShaderStage.html">V maxUniformBuffersPerShaderStage 12</a>
+    </li>
     <li> <a href="./examples/webGPU/uniformAndTexture.html">V uniform and texture 12buffer(连续的)和纹理 ，都在group0</a> </li>
     <li> <a href="./examples/webGPU/uniformAndTexture1.html">V uniform and texture 12buffer(不连续的)和纹理，都在group0</a> </li>
     <li> <a href="./examples/webGPU/uniformAndTexture2.html">V uniform and texture 12buffer(连续的) group0 和纹理 group1</a>
     </li>
-    <li> <a href="./examples/webGPU/uniformarray.html">uniform 数组</a> </li>
+    <li> <a href="./examples/webGPU/uniformAndStruct.html">X uniform and  Struct ；有最大12个的限制，struct=稀疏结构（map）</a>
+    </li>
+    <li> <a href="./examples/webGPU/uniformarray.html">V uniform 数组</a> </li>
 
 
     <li>===========================================DEV:scene========================================================
@@ -45,6 +48,7 @@
 
     <li>============================================DEV: Draw command=============================================
     </li>
+    <li>------ Raw uniform+WGSL DC ---------</li>
     <li><a href="./examples/DC/DC_const_1.html">V Draw shader const 数值测试 1 ,只能替换数值！！！</a></li>
 
 
@@ -55,7 +59,7 @@
     <li><a href="./examples/DC/DC_vertex_two_2.html">V 两个 两次 绘制 depth +buffer + uniform ;
         两次的没有深度测试的情况</a>
     </li>
-    <li><a href="./examples/DC/DC_vertex_two_3.html">X 两个 两次 绘制 depth +buffer + uniform ;
+    <li><a href="./examples/DC/DC_vertex_two_3.html">V 两个 两次 绘制 depth +buffer + uniform ;
         两次需要进行单独的深度测试的情况</a>
     </li>
     <li><a href="./examples/DC/DC_vertex_depth_1.html">XX 两个 depth +buffer + uniform （depth texture）；延迟，这个需要有depth
@@ -78,6 +82,8 @@
     </li>
     <li><a href="./examples/DC/DC_datatexture_1.html">X Draw command 数据纹理</a></li>
     </li>
+    <li>------ 升级uniform DC ---------</li>
+    <li><a href="./examples/DC/DC_uniformbuffer_update_1.html">X Draw command 数据纹理</a></li>
 
     <li>============================================DEV:Compute command==============================================
     </li>
@@ -93,6 +99,7 @@
     <li>============================================DEV:entities==============================================
     </li>
     <li><a href="./examples/entities/box_1.html">red box</a></li>
+    <li><a href="./examples/entities/box_phong_1.html">red box phong</a></li>
   </ul>
 </body>
 

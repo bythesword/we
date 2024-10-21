@@ -2,15 +2,7 @@ import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import {
   DrawCommand,
   drawOptionOfCommand,
-  drawModeIndexed,
-  drawMode,
-  indexBuffer,
-  unifromGroup,
-  uniformEntries,
-  uniformBufferPart,
-  fsPart,
-  vsPart,
-  vsAttributes
+ 
 } from "../../src/we/base/command/DrawCommand"
 declare global {
   interface Window {

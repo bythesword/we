@@ -28,6 +28,7 @@ window.scene = scene;
 //这里color输出乘以了0.16,为了区别表现
 let shader = `
       @group(0) @binding(0) var<uniform> u_color :array< vec4f,3>;
+      @group(0) @binding(1) var<uniform> u_color1 :array< vec4f,3>;
 
       struct OurVertexShaderOutput {
         @builtin(position) position: vec4f,
@@ -40,7 +41,7 @@ let shader = `
       ) -> OurVertexShaderOutput {
 
   let color0:vec4f= u_color[2];
-
+        let abc=u_color1;
         var vsOutput: OurVertexShaderOutput;
         vsOutput.position = vec4f(position,  1.0);
         vsOutput.color = color0;
@@ -63,7 +64,7 @@ const uniformOneColor = new Float32Array([1, 0, 0, 1,
   0, 0, 1, 1,]);
 
 const uniformBuffer = scene.device.createBuffer({
-  size: 4 * 4*3,
+  size: 4 * 4 * 3,
   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 });
 scene.device.queue.writeBuffer(
@@ -116,7 +117,12 @@ let options: drawOptionOfCommand = {
           size: 4 * 4 * 3,
           get: () => { return uniformOneColor },
         },
-
+        {
+          label: "test color",
+          binding: 1,
+          size: 4 * 4 * 3,
+          get: () => { return uniformOneColor },
+        },
 
       ]
     },

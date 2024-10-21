@@ -29,9 +29,8 @@ export interface vsAttributes {
     type: "Float32Array" | "Uint8Array" | "Uint32Array" | "Float64Array" | "Uint16Array" | "GPUBuffer",
     /** 单个数据宽度 */
     arrayStride: number,
-    /**
-     *  GPUVertexAttribute[] 
-     * 示例exp:
+    /** GPUVertexAttribute[] 
+     * exp:
      * 
      * [
           {
@@ -182,8 +181,14 @@ export class DrawCommand extends BaseCommand {
 
     constructor(options: drawOptionOfCommand) {
         super(options)
+        // this.input = options;
+        // this.scene = options.scene;
+        // this.device = options.scene.device;
         this.verticesBuffer = [];
         this.unifromBuffer = [];
+        //作废，camera和DC没有关系，20240825
+        // if (options.camera) this.camera = options.camera;
+        // else this.camera = this.scene.cameraDefault;
         if (options.primitive) {
             this.primitive = options.primitive;
         }
@@ -235,15 +240,21 @@ export class DrawCommand extends BaseCommand {
         if (this.indexBuffer) {
             this.indexBuffer.destroy();
         }
-        let unifromGroupSource = this.input.uniforms;
-        for (let perGroup of unifromGroupSource) {
-            for (let perOne of (perGroup as unifromGroup).entries) {
-                if ("size" in perOne) {
-                    this.unifromBuffer[(perGroup as unifromGroup).layout][perOne.binding].destroy();
+        // if (this.rawUniform)
+        {
+            let unifromGroupSource = this.input.uniforms;
+            for (let perGroup of unifromGroupSource) {
+                for (let perOne of (perGroup as unifromGroup).entries) {
+                    if ("size" in perOne) {
+                        this.unifromBuffer[(perGroup as unifromGroup).layout][perOne.binding].destroy();
+                    }
                 }
             }
         }
+        // //todo 20241020 ,system 模式下的资源释放
+        // else {            
 
+        // }
         this.isDestroy = true;
     }
     set isDestroy(visable: boolean) {
@@ -380,10 +391,11 @@ export class DrawCommand extends BaseCommand {
 
             };
         }
-        else { 
+        else {
+            // let groupString ='';// this.getRedefineBindGroupWithSystem();
             let wgslOfSystem = this.scene.getWGSLOfSystemShader();
-            let codeVS = getReplaceVertexConstants(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
-            let codeFS = getReplaceVertexConstants(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
+            let codeVS = getReplaceVertexConstants(this.input.vertex.code, this.input.vertex.entryPoint,  wgslOfSystem);
+            let codeFS = getReplaceVertexConstants(this.input.fragment.code, this.input.fragment.entryPoint,  wgslOfSystem);
             descriptor = {
                 label: label,
                 layout: this.pipelineLayout,
@@ -415,7 +427,43 @@ export class DrawCommand extends BaseCommand {
         const pipeline = device.createRenderPipeline(descriptor);
         return pipeline;
     }
-    
+//20241021 ，增加并注释掉
+    // getRedefineBindGroupWithSystem() {
+    //     let groupArray = [];
+    //     // @group(0) @binding(0) var<uniform> U_MVP:  SystemMVP;
+    //     // @group(0) @binding(0) var<uniform> u_color : vec4f;
+    //     // @group(0) @binding(1) var ourSampler: sampler;
+    //     // @group(0) @binding(2) var ourTexture: texture_2d<f32>;
+    //     // @group(0) @binding(0) var<storage, read> s_color : vec4f; 
+    //     // @group(0) @binding(0) var<storage, read_write> s_color : array<vec4f>;
+
+
+
+    //     let unifromGroupSource = this.input.uniforms as uniformEntriesWithSystem[];
+    //     for (let perUniformPart of unifromGroupSource) {//
+    //         let name = perUniformPart.name;
+    //         let wgslType = perUniformPart.wgslType;
+    //         let record: string = '';
+    //         if ("size" in perUniformPart) {//bindGroup 0
+    //             if ("type" in perUniformPart && perUniformPart.type == "storage") {//storage
+    //                 if ("wgslStorageReadWrite" in perUniformPart) {//不能在VS中使用，read_write
+    //                     record = " @group(0) @binding(" + this.KVofuniformGroup0[name] + ") var<storage, read_write> " + name + " : " + wgslType + " ;";
+    //                 }
+    //                 else {
+    //                     record = " @group(0) @binding(" + this.KVofuniformGroup0[name] + ") var<storage,read> " + name + " : " + wgslType + " ;";
+    //                 }
+    //             }
+    //             else {//uniform 
+    //                 record = " @group(0) @binding(" + this.KVofuniformGroup0[name] + ") var<uniform> " + name + " : " + wgslType + " ;";
+    //             }
+    //         }
+    //         else if ("resource" in perUniformPart) {//bindGroup 1
+    //             record = " @group(1) @binding(" + this.KVofuniformGroup0[name] + ") var  " + name + " : " + wgslType + " ;";
+    //         }
+    //         groupArray.push(record);
+    //     }
+    //     return groupArray.join(" \n ");
+    // }
     /**
      * 目前使用scene的colorAttachments,
      * todo ，增加texture
@@ -431,7 +479,11 @@ export class DrawCommand extends BaseCommand {
             if (this.uniformGroups[0] == undefined) {
                 this.uniformGroups[0] = this.scene.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
             }
-          
+            //更新buffer,scene中update更新
+            // else //if (this.uniformGroups[0] != undefined) 
+            // {
+            //     this.scene.updateSystemUnifromBuffer();//更新ystem的uniform ，MVP，camera，lights等
+            // }
         }
         this.updateUniformBuffer();
 

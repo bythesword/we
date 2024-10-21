@@ -42,6 +42,7 @@ export interface optionBaseLight {
 
     shadow?: optionLightShadow,
     size?: number,
+    visible?: boolean
     /**
      * 光源与stage的关系
      * 默认（undefined）：照亮所有stage
@@ -68,6 +69,8 @@ export abstract class BaseLight {
         if (this.parameters.color == undefined) this.parameters.color = { red: 1, green: 1, blue: 1 };
         if (this.parameters.distance == undefined) this.parameters.distance = 0.0;
         if (this.parameters.decay == undefined) this.parameters.decay = 1;
+        if (this.parameters.visible == undefined) this.parameters.visible = true;
+        if (this.parameters.intensity == undefined) this.parameters.intensity = 1.0;
 
 
         if (this.parameters.shadow != undefined)

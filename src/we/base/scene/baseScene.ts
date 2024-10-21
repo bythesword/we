@@ -3,6 +3,8 @@ import {
     // mat4,
     // vec3
 } from 'wgpu-matrix';
+import { AmbientLight, optionAmbientLight } from '../light/ambientLight';
+import { BaseLight } from '../light/baseLight';
 // import { Clock } from '../scene/clock';
 
 export declare interface sceneJson {
@@ -11,6 +13,7 @@ export declare interface sceneJson {
     renderTo?: HTMLCanvasElement | GPUTexture,
     depthStencil?: GPUDepthStencilState,
     renderPassSetting?: renderPassSetting,
+    ambientLight?: optionAmbientLight
 }
 declare interface cameras {
 
@@ -103,6 +106,13 @@ export abstract class BaseScene {
     // };
     renderPassDescriptor!: GPURenderPassDescriptor
 
+
+    /** lights array */
+    lights!: BaseLight[];
+    ambientLight!: AmbientLight;
+    lightsIndex!: [];
+    // ambientLightIndex!: number;
+
     constructor(input: sceneJson) {
         this.input = input;
         if ("depthStencil" in input) {
@@ -115,7 +125,10 @@ export abstract class BaseScene {
                 format: 'depth24plus',
             };
         }
+        this.lights = [];
+        this.ambientLight = [];
     }
+    //异步执行，需要单独调用
     abstract init(): any
 
     /**
@@ -148,4 +161,28 @@ export abstract class BaseScene {
         throw Error(msg);
     }
     abstract update(deltaTime: number): any
+
+    abstract getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[]
+    abstract getWGSLOfSystemShader(): string
+
+    /**
+     * 
+     * @param values : optionAmbientLight,默认强度=0，即不存在环境光
+     */
+    setAmbientLight(values: optionAmbientLight = {
+        color: {
+            red: 1,
+            green: 1,
+            blue: 1
+        }, intensity: 0
+    }) {
+        // if (this.ambientLight.length == 0) {
+        //     this.ambientLightIndex = 0;
+        // }
+        let light = new AmbientLight(values)
+        // light.id = this.ambientLight.length;
+        this.ambientLight = light;
+    }
+
+
 }

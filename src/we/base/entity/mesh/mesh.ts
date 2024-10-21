@@ -39,7 +39,7 @@ export class Mesh extends BaseEntity {
     _wireframeEnable!: boolean;
     init() {
 
-        this._wireframeColor = { red: 0, green: 0, blue: 0 };
+        this._wireframeColor = { red: 0, green: 0, blue: 0, alpha: 1 };
         if ((this.input as optionMeshEntity).wireFrame === false) {//默认有线框
             this._wireframeEnable = false;
         }
@@ -68,7 +68,7 @@ export class Mesh extends BaseEntity {
     }
     destroy() {
         // throw new Error("Method not implemented.");
-        for(let i of this._commmands){
+        for (let i of this._commmands) {
             i.destroy();
         }
     }

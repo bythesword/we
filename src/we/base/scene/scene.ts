@@ -1,3 +1,4 @@
+import wgsl_main from "../shader/system.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import {
     Mat4,
@@ -34,7 +35,8 @@ import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
-import { BaseLight } from "../light/baseLight";
+import { BaseLight, structBaselight } from "../light/baseLight";
+import { AmbientLight, optionAmbientLight } from "../light/ambientLight";
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
 // import { optionCamreaControl } from "../control/cameracCntrol"
 // import { ArcballCameraControl } from "../control/arcballCameraControl"
@@ -47,7 +49,8 @@ declare interface sceneInputJson extends sceneJson {
     /**canvas id */
     canvas: string,
     // renderPassSetting?: renderPassSetting,
-    color?: coreConst.color4F
+    color?: coreConst.color4F,
+
 }
 
 
@@ -101,8 +104,7 @@ class Scene extends BaseScene {
     /**cameras 默认摄像机 */
     defaultCamera: BaseCamera | undefined;
 
-    /** lights array */
-    lights!: lights[];
+
 
     /** todo  */
     stages!: stagesCollection;
@@ -188,17 +190,21 @@ class Scene extends BaseScene {
                 if (input.renderPassSetting.depth.depthStoreOp) this.renderPassSetting.depth!.depthStoreOp = input.renderPassSetting.depth.depthStoreOp;
             }
         }
-        // this.projectionMatrix = mat4.create();
-        // this.modelViewProjectionMatrix = mat4.create();
-        // this.root = [];
-        // this.command = [];
-        // this.uniform = [];
-        // this.cameras = [];
-        // this.lights = [];
-
+        if (input.ambientLight) {
+            this.setAmbientLight(input.ambientLight);
+        }
+        else {
+            this.setAmbientLight();
+        }
 
         return this;
     }
+    /**
+     * start：20241020  limits: must requsted
+     *  todo：最大值的设定，并同步到全局的setting中；只是设定，不做限制，
+     *  todo：最大限制的TS到WGSL的write部分的同步功能
+     * end
+     */
     async init() {
         if (!("gpu" in navigator)) this.fatal("WebGPU not supported.");
 
@@ -237,11 +243,26 @@ class Scene extends BaseScene {
             format: 'depth24plus',
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        //
+
         this.renderPassDescriptor = this.createRenderPassDescriptor();
         this.updateSystemUniformBuffer();
         this.initStages();
         this.initActors();
+    }
+
+
+    observer() {
+        // new ResizeObserver(entries => {
+        //     for (const entry of entries) {
+        //         const canvas = entry.target;
+        //         const width = entry.contentBoxSize[0].inlineSize;
+        //         const height = entry.contentBoxSize[0].blockSize;
+        //         canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
+        //         canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
+        //         // re-render
+        //         render();
+        //     }
+        // });
     }
 
     /**初始化 Actor 环境 
@@ -372,15 +393,15 @@ class Scene extends BaseScene {
         return this.renderPassDescriptor;
     }
     /**
-     * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
-     * 这个需要确保每帧只更新一次
-     */
-
-    updateSystemUniformBuffer() {
-        if (this.defaultCamera)
-            this.systemUniformBuffers["MVP"] = this.getMVP();
-    }
-    /**
+     * start ：20241020
+     *      todo ：最大的uniform buffer的限制=12，需要将所有的uniform buffer放到 bindGroup 0 中，
+     *      todo: DCC中的uniform bind与slot需要统一改变，
+     *      todo：DCC的4个bindGroup的规划需要改变，0=uniform，不需要编号（需要TS进行WGSL的语法合成，自动增加编号）
+     *      todo：texture的bindGroup=1，pershaderStage最大16个，都在这里
+     *      todo：storage的bindGroup=2，初设，这个需要测试，看看是否需要与uniform合并到0，还是可以单独（从目前来看应该是共用1000，在连续的内存中，
+     *              如果是稀疏的map，应该是10个）
+     *      todo：raw保持目前，DCC产生两个不同的版本分支，一个是集成，一个是raw的
+     * end
      * uniform of system  bindGroup to  group  0 for pershader
      */
     createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline): GPUBindGroup {
@@ -401,7 +422,108 @@ class Scene extends BaseScene {
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
+    getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[] {
+        let entries: GPUBindGroupEntry[] =
+            [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: this.systemUniformBuffers["MVP"]!,
+                    },
+                },
+                // {
+                //     binding: 1,
+                //     resource: {
+                //         buffer: this.systemUniformBuffers["lights"]!,
+                //     }
+                // }
+            ];
+        return entries;
 
+    }
+    getLightNumbers() {
+        return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
+    }
+    getWGSLOfSystemShader(): string {
+        let lightNumber = this.getLightNumbers();
+        let lightsArray = `lights: array<Light, ${lightNumber}>,`
+        if (lightNumber == 0) {
+            lightsArray = '';
+        }
+        let lights = `struct lights {
+            lightNumber: u32,
+            Ambient:  AmbientLight ,
+            ${lightsArray}
+          }`;
+
+        let code = wgsl_main.toString();
+
+
+        code = code.replace("$lights", lights);
+        return code;
+    }
+
+
+
+
+
+    /**
+     * 循环入口
+     */
+    run() {
+        let scope = this;
+        this.clock.update();
+        function run() {
+            // let deltaTime = scope.clock.deltaTime;
+            scope.clock.update();
+            const deltaTime = scope.clock.deltaTime;
+            scope.update(deltaTime);
+            scope.oneFrameRender();
+            scope.pickup();
+            scope.postProcess();
+            scope.updateUserDefine();
+            requestAnimationFrame(run)
+        }
+        requestAnimationFrame(run)
+    }
+    /**每帧更新入口
+     * 1、更新system uniform
+     * 2、更新Acter
+     * 3、更新实体 entity
+     */
+    update(deltaTime: number) {
+        if (this.defaultActor)
+            this.defaultActor.update(deltaTime);
+        this.updateSystemUniformBuffer();
+
+        //todo
+        // 四个中间点，稍稍延迟
+        // let rays = this.defaultCamera!.getCameraRays();
+        // 四个中间点，稍稍延迟
+        // this.updateBVH(rays)
+
+        this.updateAcotr(deltaTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
+        this.updateEntities(deltaTime);//更新实体状态，比如水，树，草等动态的
+        this.updateStagesCommand(deltaTime);
+    }
+    /**
+    * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
+    * 这个需要确保每帧只更新一次
+    */
+
+    updateSystemUniformBuffer() {
+        if (this.defaultCamera)
+            this.systemUniformBuffers["MVP"] = this.getMVP();
+        // this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
+    }
+
+    getUniformOfSystemLights(): GPUBuffer {
+        let lightNumber = this.getLightNumbers();
+        lightNumber += 1;
+        // let AmbientLight = new Float32Array(16);
+        // let perLight= new Float32Array(16*4);
+
+    }
     getUnitMVP(mvp: Mat4[] | boolean = false): GPUBuffer {
         const uniformBufferSize = 4 * 4 * 4 * 3;//MVP 
         let MVP: GPUBuffer;
@@ -450,13 +572,64 @@ class Scene extends BaseScene {
             return this.getUnitMVP();
     }
 
-    // addUserUpdate(fun: any) { }
-    /**
-     * 用户自定义的更新
-     * 比如：
-     *  订阅，触发、MQ、WW等
+    updateBVH(cameraValues: cameraRayValues) {
+
+    }
+    /**更新Actor
+     * 循环所有actor ，并执行update
+     * todo：
+     * 1、有效性与可见性判断（对应每个摄像机）
+     *          距离
+     *          方向（BVH）
+     *          视锥
+     * 2、是否为动态Actor
+     * 3、生命周期
      */
-    updateUserDefine() { }
+    updateAcotr(deltaTime: number) {
+        if (this.actors)
+            for (let i in this.actors) {
+                if (this.defaultActor && this.actors[i] != this.defaultActor)
+                    this.actors[i].update(deltaTime);
+            }
+    }
+    /**实体更新 
+     * 1、执行所有entity
+     *      A、判断stage，是否有效与可见性，是否可见
+     *      B、判断实体的可见性与有效性
+     *      C、判断摄像机（每个）的可见性
+     *          距离
+     *          方向（BVH）
+     *          视锥
+     *        输出是否本轮可见 
+    */
+    updateEntities(deltaTime: number,) {
+
+    }
+
+
+    /**
+     * 更新stage
+     * 包括：
+     *      colorTexture、depthTextur
+     *      视锥状态是否更新
+     *      视口是否变化
+     * @param deltaTime 
+     */
+    updateStagesCommand(deltaTime: number,) {
+        for (let i in this.stagesOrders) {
+            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
+            const name = coreConst.stagesOfSystem[perList];
+
+            {//每个stageGroup进行update，包含透明和不透明两个stage 
+                if (this.stages[name].opaque) {
+                    this.stages[name].opaque!.update(deltaTime);
+                }
+                if (this.stages[name].transparent) {
+                    this.stages[name].transparent!.update(deltaTime);
+                }
+            }
+        }
+    }
 
 
     /**
@@ -473,14 +646,15 @@ class Scene extends BaseScene {
      *      B、创建view(一次)
      *      C、更新loadOp的参数到load(一次)
      *      D、执行command.update()
-   
-     * todo 
-     * stage 合并
-     * stage 深度测试
-     * stage 透明深度与合并
-     * sky、UI的合并与顺序
-     * */
+     
+    * todo 
+    * stage 合并
+    * stage 深度测试
+    * stage 透明深度与合并
+    * sky、UI的合并与顺序
+    * */
     oneFrameRender() {
+        //清空command
         this.command = [];
         (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
             this.context.getCurrentTexture().createView();//ok,重新申明了this.context的类型
@@ -489,7 +663,7 @@ class Scene extends BaseScene {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
             const name = coreConst.stagesOfSystem[perList];
 
-            {//复合stage，包含透明和不透明两个stage 
+            {//聚合stage的command，包含透明和不透明两个stage ,
                 if (this.stages[name].opaque) {
                     const perStageCommandOfOpaque = this.stages[name].opaque!.command;
                     for (let command_i of perStageCommandOfOpaque) {
@@ -524,121 +698,17 @@ class Scene extends BaseScene {
             }
         }
     }
-    /**更新Actor
-     * 循环所有actor ，并执行update
-     * todo：
-     * 1、有效性与可见性判断（对应每个摄像机）
-     *          距离
-     *          方向（BVH）
-     *          视锥
-     * 2、是否为动态Actor
-     * 3、生命周期
-     */
-    updateAcotr(deltaTime: number) {
-        if (this.actors)
-            for (let i in this.actors) {
-                if (this.defaultActor && this.actors[i] != this.defaultActor)
-                    this.actors[i].update(deltaTime);
-            }
-    }
-    /**实体更新 
-     * 1、执行所有entity
-     *      A、判断stage，是否有效与可见性，是否可见
-     *      B、判断实体的可见性与有效性
-     *      C、判断摄像机（每个）的可见性
-     *          距离
-     *          方向（BVH）
-     *          视锥
-     *        输出是否本轮可见 
-    */
-    updateEntities(deltaTime: number,) {
 
-    }
-    /**
-     * 更新stage
-     * 包括：
-     *      colorTexture、depthTextur
-     *      视锥状态是否更新
-     *      视口是否变化
-     * @param deltaTime 
-     */
-    updateStagesCommand(deltaTime: number,) {
-        for (let i in this.stagesOrders) {
-            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = coreConst.stagesOfSystem[perList];
-
-            {//复合stage，包含透明和不透明两个stage 
-                if (this.stages[name].opaque) {
-                    this.stages[name].opaque!.update(deltaTime);
-                }
-                if (this.stages[name].transparent) {
-                    this.stages[name].transparent!.update(deltaTime);
-                }
-            }
-        }
-    }
-
-    updateBVH(cameraValues: cameraRayValues) {
-
-    }
-
-    /**每帧更新入口
-     * 1、更新system uniform
-     * 2、更新Acter
-     * 3、更新实体 entity
-     */
-    update(deltaTime: number) {
-        if (this.defaultActor)
-            this.defaultActor.update(deltaTime);
-        this.updateSystemUniformBuffer();
-
-        // 四个中间点，稍稍延迟
-        // let rays = this.defaultCamera!.getCameraRays();
-
-        /// 四个中间点，稍稍延迟
-        // this.updateBVH(rays)
-
-        this.updateAcotr(deltaTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
-        this.updateEntities(deltaTime);//更新实体状态，比如水，树，草等动态的
-        this.updateStagesCommand(deltaTime);
-    }
-
-
-
-    /**
-     * 循环入口
-     */
-    run() {
-        let scope = this;
-        this.clock.update();
-        function run() {
-            // let deltaTime = scope.clock.deltaTime;
-            scope.clock.update();
-            const deltaTime = scope.clock.deltaTime;
-            scope.update(deltaTime);
-            scope.oneFrameRender();
-            scope.pickup();
-            scope.postProcess();
-            scope.updateUserDefine();
-            requestAnimationFrame(run)
-        }
-        requestAnimationFrame(run)
-    }
-    observer() {
-        // new ResizeObserver(entries => {
-        //     for (const entry of entries) {
-        //         const canvas = entry.target;
-        //         const width = entry.contentBoxSize[0].inlineSize;
-        //         const height = entry.contentBoxSize[0].blockSize;
-        //         canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
-        //         canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
-        //         // re-render
-        //         render();
-        //     }
-        // });
-    }
     pickup() { }
     postProcess() { }
+    // addUserUpdate(fun: any) { }
+    /**
+     * 用户自定义的更新
+     * 比如：
+     *  订阅，触发、MQ、WW等
+     */
+    updateUserDefine() { }
+
 }
 
 export { Scene };

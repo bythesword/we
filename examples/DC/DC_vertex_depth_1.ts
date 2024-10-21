@@ -154,6 +154,7 @@ let options: drawOptionOfCommand ={
       instanceCount: 2
     }
   },
+  rawUniform: true,
   // }
 }
 

@@ -23,33 +23,36 @@ let scene = new Scene(input);
 await scene.init();
 
 window.scene = scene;
- 
+
+// scene.requestAnimationFrame();
+//这里color输出乘以了0.16,为了区别表现
 let shader = `
-      // @group(0) @binding(0) var<storage, read_write> s_color : array<vec4f>; //不能在VS中
-      @group(0) @binding(0) var<storage, read> s_color : vec4f; 
-      
+      @group(0) @binding(0) var<uniform> u_color : vec4f;
+      @group(0) @binding(1) var<uniform> u_uv : vec4f;//定义了,就必须用，不用报错
+
       struct OurVertexShaderOutput {
         @builtin(position) position: vec4f,
         @location(0) color: vec4f,
       };
-
+      var<private > a:vec4f;
+      fn test(){
+             a=u_uv;//定义了,就必须用，不用报错
+      }
       @vertex fn vs(
          @location(0) position : vec3f,
-         @location(1) color : vec4f,
-        @builtin(vertex_index) vertexIndex : u32,
-        @builtin(instance_index) instanceIndex: u32
+         @location(1) color : vec4f
       ) -> OurVertexShaderOutput {
-
-        let oneColor=s_color;
+        test();//这个也可以
 
         var vsOutput: OurVertexShaderOutput;
         vsOutput.position = vec4f(position,  1.0);
-        vsOutput.color = s_color;
+        vsOutput.color = color;
         return vsOutput;
       }
 
       @fragment fn fs(@location(0) color: vec4f) -> @location(0) vec4f {
-        return color;
+      // let uv=u_uv;//定义了,就必须用，不用报错
+        return u_color;
       }
 `;
 const oneTriangleVertexArray = [
@@ -59,12 +62,8 @@ const oneTriangleVertexArray = [
 ];
 const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
 
-const uniformOneColor = new Float32Array(
-  [
-    1, 0, 0, 1,
-    // 0, 1, 0, 1,
-    // 0, 0, 1, 1
-  ]);
+const uniformOneColor = new Float32Array([1, 0, 0, 1]);
+const uniformOneUV = new Float32Array([1, 0, 0, 1]);
 
 // const uniformBuffer = scene.device.createBuffer({
 //   size: 4 * 4,
@@ -115,13 +114,16 @@ let options: drawOptionOfCommand ={
       layout: 0,
       entries: [
         {
-          label: "storage color",
+          label: "test color",
           binding: 0,
           size: 4 * 4,
-          type: "storage",
-          usage: GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_DST|GPUBufferUsage.COPY_SRC,
-          update: false,
           get: () => { return uniformOneColor },
+        },
+        {
+          label: "test UV",
+          binding: 1,
+          size: 4 * 4,
+          get: () => { return uniformOneUV },
         }
       ]
     }
@@ -132,16 +134,10 @@ let options: drawOptionOfCommand ={
       vertexCount: 3
     }
   },
-  afterUpdate: async (_scope) => {
-    console.log("========================");
-  },
   rawUniform: true,
 }
 
 let DC = new DrawCommand(options);
 // await DC.init();
 window.DC = DC;
-// DC.update()   //不等待异步
-await DC.update() // 等待异步
-console.log("***************")
-// DC.submit()
+DC.submit()

@@ -3,6 +3,8 @@ import { ComputeCommand } from '../command/ComputeCommand';
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseScene, sceneJson, renderPassSetting } from "../scene/baseScene";
 import { BaseLight } from "../light/baseLight";
+import { BaseCamera } from "../camera/baseCamera";
+import { AmbientLight } from "../light/ambientLight";
 
 export type commmandType = DrawCommand | ComputeCommand;
 
@@ -50,15 +52,30 @@ export interface optionBaseStage extends sceneJson {
  * 分开处理不透明和透明，并分别处理depth信息，再合并texture，混合透明（颜色+深度）
  */
 export class BaseStage extends BaseScene {
+    getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[] {
+        throw new Error("Method not implemented.");
+    }
+    getWGSLOfSystemShader(): string {
+        throw new Error("Method not implemented.");
+    }
 
 
     root: BaseEntity[];
+
+
+    // start todo ,20241020,不同的stage可能存在不同light的可见情况，不同的环境光，比如：室外，室内，
+    // light ,camera 的数组为空，或为undefined，则使用全局（Scene）的。
+    /**cameras 默认摄像机 */
+    defaultCamera: BaseCamera | undefined;
+
+    //end todo
+
     enable!: boolean;
     visible!: boolean;
     depthTest!: boolean;
     transparent!: boolean;
     scene: BaseScene | undefined;
-    _cache: boolean | undefined;
+    _cache: boolean;
 
     /**每个stage的command集合 
      * 一个实体可以由多个command，分布在不同的stage，比如透明，不透明
@@ -79,7 +96,7 @@ export class BaseStage extends BaseScene {
      */
     constructor(input: optionBaseStage) {
         super(input);
-        this.cache = false;
+        this._cache = false;
         if (input.scene)
             this.scene = input.scene;
         this.command = [];
@@ -121,6 +138,8 @@ export class BaseStage extends BaseScene {
     getMVP(): GPUBuffer {
         throw new Error("Method not implemented.");
     }
+
+    //todo 20241020，未进行距离、方向、可见性、视锥、BVH等的剔除
     update(deltaTime: number) {
         let scene;
         if (this.scene)
@@ -128,7 +147,7 @@ export class BaseStage extends BaseScene {
         else
             scene = this;
         //没有应用cache的情况
-        if (this.cache ===false) {
+        if (this.cache === false) {
             this.command = [];
             for (let i of this.root) {
                 let dcc = i.update(scene, deltaTime);
@@ -136,7 +155,7 @@ export class BaseStage extends BaseScene {
                     this.command.push(j);
             }
         }
-        
+
     }
     add(one: BaseEntity) {
         this.root.push(one);
