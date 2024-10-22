@@ -22,7 +22,15 @@ let input: sceneInputJson = {
     red: 0.1,
     green: 0.1,
     blue: 0.1,
-    alpha: 1
+    alpha: 0.5
+  },
+  ambientLight:{
+    color:{
+      red: 1,
+      green: 1,
+      blue: 1
+    },
+    intensity:0.5
   }
 }
 let scene = new Scene(input);

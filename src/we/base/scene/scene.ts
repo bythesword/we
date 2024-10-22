@@ -450,16 +450,18 @@ class Scene extends BaseScene {
         if (lightNumber == 0) {
             lightsArray = '';
         }
-        let lights = `struct lights {
-            lightNumber: u32,
-            Ambient:  AmbientLight ,
-            ${lightsArray}
-          }`;
+        // let lights = `struct lights {
+        //     lightNumber: u32,
+        //     Ambient:  AmbientLight ,
+        //     ${lightsArray}
+        
+        //   }`;
 
         let code = wgsl_main.toString();
 
 
-        code = code.replace("$lights", lights);
+        code = code.replace("$lightNumber", lightNumber.toString());
+        code = code.replace("$lightsArray", lightsArray.toString());
         return code;
     }
 
