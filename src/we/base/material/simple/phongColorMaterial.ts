@@ -1,5 +1,5 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
-import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
+import colorOnlyFS from "../../shader/material/simple/phongcolor.fs.wgsl?raw"
 
 export class PhongColorMaterial extends BaseMaterial {
 

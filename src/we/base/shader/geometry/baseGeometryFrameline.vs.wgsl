@@ -8,11 +8,7 @@ struct FragmentOutput {
     @builtin(frag_depth) depth : f32,
     @location(0) color : vec4f
 }
-@fragment fn fs(
-    //) -> @location(0) vec4f {
-    //return vec4f(${red},${green},${blue},1);
-    //}
-@builtin(position) pos : vec4f,
+@fragment fn fs(@builtin(position) pos : vec4f,
 ) -> FragmentOutput {
     var output : FragmentOutput;
     output.color = vec4f($red, $green, $blue, 1);

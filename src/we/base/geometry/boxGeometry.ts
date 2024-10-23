@@ -30,162 +30,6 @@ export interface optionBoxGemetry extends optionBaseGemetry {
 
 export class BoxGeometry extends BaseGeometry {
 
-    /**
-     * 获取线框shaderCode
-     * @param color 线框颜色
-     * @returns shader code
-     */
-    getWireFrameShdaerCode(color: coreConst.color4F): string {
-        let red = color.red;
-        let green = color.green ;
-        let blue = color.blue ;
-        let alpha=1.0;
-        if("alpha" in color){
-            color.alpha;
-        }
-        let code = framelineVS;
-        code = code.replace("$red", red.toString());
-        code = code.replace("$blue", blue.toString());
-        code = code.replace("$green", green.toString());
-        code = code.replace("$alpha", alpha.toString());
-        return code;
-    }
-    /**
-     * 创建线框数据结构
-     */
-    createWrieFrame() {
-        let list: { [name: string]: number[] };
-        list = {};
-        for (let i = 0; i < this.buffer.indeices.length; i += 3) {
-            let A = this.buffer.indeices[i];
-            let B = this.buffer.indeices[i + 1];
-            let C = this.buffer.indeices[i + 2];
-            let AB = [A, B].sort().toString();
-            let BC = [B, C].sort().toString();
-            let CA = [C, A].sort().toString();
-            list[AB] = [A, B];
-            list[BC] = [B, C];
-            list[CA] = [C, A];
-        }
-        let indeices: number[] = [];
-        for (let i in list) {
-            indeices.push(list[i][0], list[i][1]);
-        }
-        let output: geometryWireFrameAttribute = {
-            indeices: indeices
-        };
-        this.wireFrame = output;
-    }
-    /**
-     * 返回线框索引
-     * @returns indexBuffer 结构
-     */
-    getWireFrameIndeices(): indexBuffer {
-        let indeices: indexBuffer = {
-            buffer: new Uint32Array(this.wireFrame.indeices),
-            indexForat: "uint32"
-        };
-        return indeices;
-    }
-    /**
-     * 返回线框索引绘制的数量
-     * @returns number
-     */
-    getWireFrameDrawCount(): number {
-        return this.wireFrame.indeices.length;
-    }
-    /***
-     * 返回顶点属性，索引模式
-     */
-    getWireFrame(): vsAttributes[] {
-        let position: vsAttributes = {
-            vertexArray: new Float32Array(this.buffer.position),
-            type: "Float32Array",
-            arrayStride: 4 * 3,
-            attributes: [
-                {
-                    shaderLocation: 0,
-                    offset: 0,
-                    format: "float32x3"
-                }
-            ]
-        };
-        let vsa: vsAttributes[] = [position];
-        return vsa;
-    }
-
-    /**
-     * 返回片面的索引模式的绘制数量
-     * @returns number
-     */
-    getDrawCount(): number {
-
-        return this.buffer.indeices.length;
-    }
-
-    /**
-     * 返回片面的索引数据跟上
-     * @returns indeBuffer 格式
-     */
-    getIndeices(): indexBuffer {
-        let indeices: indexBuffer = {
-            buffer: new Uint32Array(this.buffer.indeices),
-            indexForat: "uint32"
-        };
-        return indeices;
-    }
-    /**
-     * 返回shader的VS部分的code
-     * @returns string
-     */
-    getCodeVS() {
-        return triangleVS;
-    }
-    /**
-     * 输出顶点信息
-     * @returns sAttributes[]
-     */
-    getAttribute(): vsAttributes[] {
-
-        let position: vsAttributes = {
-            vertexArray: new Float32Array(this.buffer.position),
-            type: "Float32Array",
-            arrayStride: 4 * 3,
-            attributes: [
-                {
-                    shaderLocation: 0,
-                    offset: 0,
-                    format: "float32x3"
-                }
-            ]
-        };
-        let uv: vsAttributes = {
-            vertexArray: new Float32Array(this.buffer.uv),
-            type: "Float32Array",
-            arrayStride: 4 * 2,
-            attributes: [
-                {
-                    shaderLocation: 1,
-                    offset: 0,
-                    format: "float32x2"
-                }
-            ]
-        };
-        let normal: vsAttributes = {
-            vertexArray: new Float32Array(this.buffer.normal),
-            type: "Float32Array",
-            arrayStride: 4 * 3,
-            attributes: [
-                {
-                    shaderLocation: 2,
-                    offset: 0,
-                    format: "float32x3"
-                }
-            ]
-        }
-        let vsa: vsAttributes[] = [position, uv, normal];
-        return vsa;
-    }
 
     /**box的参数 */
     parameters!: boxParameters;
@@ -206,6 +50,7 @@ export class BoxGeometry extends BaseGeometry {
             }
         }
         super(input);
+        this.type = "box";
         this.init(input)
     }
 
@@ -376,6 +221,163 @@ export class BoxGeometry extends BaseGeometry {
             indeices: [],
             materialStep: []
         }
+    }
+
+    /**
+     * 获取线框shaderCode
+     * @param color 线框颜色
+     * @returns shader code
+     */
+    getWireFrameShdaerCode(color: coreConst.color4F): string {
+        let red = color.red;
+        let green = color.green;
+        let blue = color.blue;
+        let alpha = 1.0;
+        if ("alpha" in color) {
+            color.alpha;
+        }
+        let code = framelineVS;
+        code = code.replace("$red", red.toString());
+        code = code.replace("$blue", blue.toString());
+        code = code.replace("$green", green.toString());
+        code = code.replace("$alpha", alpha.toString());
+        return code;
+    }
+    /**
+     * 创建线框数据结构
+     */
+    createWrieFrame() {
+        let list: { [name: string]: number[] };
+        list = {};
+        for (let i = 0; i < this.buffer.indeices.length; i += 3) {
+            let A = this.buffer.indeices[i];
+            let B = this.buffer.indeices[i + 1];
+            let C = this.buffer.indeices[i + 2];
+            let AB = [A, B].sort().toString();
+            let BC = [B, C].sort().toString();
+            let CA = [C, A].sort().toString();
+            list[AB] = [A, B];
+            list[BC] = [B, C];
+            list[CA] = [C, A];
+        }
+        let indeices: number[] = [];
+        for (let i in list) {
+            indeices.push(list[i][0], list[i][1]);
+        }
+        let output: geometryWireFrameAttribute = {
+            indeices: indeices
+        };
+        this.wireFrame = output;
+    }
+    /**
+     * 返回线框索引
+     * @returns indexBuffer 结构
+     */
+    getWireFrameIndeices(): indexBuffer {
+        let indeices: indexBuffer = {
+            buffer: new Uint32Array(this.wireFrame.indeices),
+            indexForat: "uint32"
+        };
+        return indeices;
+    }
+    /**
+     * 返回线框索引绘制的数量
+     * @returns number
+     */
+    getWireFrameDrawCount(): number {
+        return this.wireFrame.indeices.length;
+    }
+    /***
+     * 返回顶点属性，索引模式
+     */
+    getWireFrame(): vsAttributes[] {
+        let position: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.position),
+            type: "Float32Array",
+            arrayStride: 4 * 3,
+            attributes: [
+                {
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: "float32x3"
+                }
+            ]
+        };
+        let vsa: vsAttributes[] = [position];
+        return vsa;
+    }
+
+    /**
+     * 返回片面的索引模式的绘制数量
+     * @returns number
+     */
+    getDrawCount(): number {
+
+        return this.buffer.indeices.length;
+    }
+
+    /**
+     * 返回片面的索引数据跟上
+     * @returns indeBuffer 格式
+     */
+    getIndeices(): indexBuffer {
+        let indeices: indexBuffer = {
+            buffer: new Uint32Array(this.buffer.indeices),
+            indexForat: "uint32"
+        };
+        return indeices;
+    }
+    /**
+     * 返回shader的VS部分的code
+     * @returns string
+     */
+    getCodeVS() {
+        return triangleVS;
+    }
+    /**
+     * 输出顶点信息
+     * @returns sAttributes[]
+     */
+    getAttribute(): vsAttributes[] {
+
+        let position: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.position),
+            type: "Float32Array",
+            arrayStride: 4 * 3,
+            attributes: [
+                {
+                    shaderLocation: 0,
+                    offset: 0,
+                    format: "float32x3"
+                }
+            ]
+        };
+        let uv: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.uv),
+            type: "Float32Array",
+            arrayStride: 4 * 2,
+            attributes: [
+                {
+                    shaderLocation: 1,
+                    offset: 0,
+                    format: "float32x2"
+                }
+            ]
+        };
+        let normal: vsAttributes = {
+            vertexArray: new Float32Array(this.buffer.normal),
+            type: "Float32Array",
+            arrayStride: 4 * 3,
+            attributes: [
+                {
+                    shaderLocation: 2,
+                    offset: 0,
+                    format: "float32x3"
+                }
+            ]
+        }
+        let vsa: vsAttributes[] = [position, uv, normal];
+        return vsa;
     }
 
 }

@@ -28,6 +28,7 @@ export interface optionBaseGemetry { }
  * 设计目标提供静态的基础几何体
  */
 export abstract class BaseGeometry {
+    type!:string;
     input: optionBaseGemetry;
     buffer!: geometryAttribute;
     wireFrame!: geometryWireFrameAttribute
@@ -46,7 +47,7 @@ export abstract class BaseGeometry {
             materialStep: []
         }
         this.input = input;
-        // this.init(input)
+     
     }
 
     abstract init(input: optionBaseGemetry): any

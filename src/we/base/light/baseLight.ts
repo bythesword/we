@@ -25,7 +25,7 @@ export enum lightType {
 }
 export interface optionBaseLight {
     position?: Vec3,
-    color?: coreConst.color3U,
+    color?: coreConst.color3F,
     /**光的强度 
      * 默认=1.0
     */

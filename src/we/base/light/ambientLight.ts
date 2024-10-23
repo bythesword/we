@@ -1,5 +1,5 @@
-import { Vec3 } from "wgpu-matrix";
-import { BaseLight, optionBaseLight,  structBaselight } from "./baseLight";
+import { vec3, Vec3 } from "wgpu-matrix";
+import { BaseLight, optionBaseLight, structBaselight } from "./baseLight";
 import * as coreConst from "../const/coreConst";
 
 export interface optionAmbientLight extends optionBaseLight {
@@ -23,7 +23,7 @@ export class AmbientLight extends BaseLight {
         this._color = [0, 0, 0];
         this._intensity = 0;
         if (input.color)
-            this._color = this.color3UTo3F(input.color);
+            this._color = vec3.fromValues(input.color.red, input.color.green, input.color.blue);
         if (input.intensity)
             this._intensity = input.intensity
         this.structBuffer = { buffer: new Float32Array(4 * 4) };

@@ -8,6 +8,7 @@ import { BoxGeometry } from "../../src/we/base/geometry/boxGeometry"
 import { ColorMaterial } from "../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../src/we/base/entity/mesh/mesh"
 
+import { PhongColorMaterial } from "../../src/we/base/material/simple/phongColorMaterial"
 
 declare global {
   interface Window {
@@ -19,10 +20,10 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.1,
-    green: 0.1,
-    blue: 0.1,
-    alpha: 0.5
+    red: 0.5,
+    green: 0.5,
+    blue: 0.5,
+    alpha: 1
   },
   ambientLight:{
     color:{
@@ -30,7 +31,7 @@ let input: sceneInputJson = {
       green: 1,
       blue: 1
     },
-    intensity:0.5
+    intensity:0.03
   }
 }
 let scene = new Scene(input);
@@ -77,7 +78,7 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new BoxGeometry();
 //极简测试材质，red
-let redMaterial = new ColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
+let redMaterial = new PhongColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
 //box实体
 let boxEntity = new Mesh(
   {

@@ -417,11 +417,18 @@ class Scene extends BaseScene {
                             buffer: this.systemUniformBuffers["MVP"]!,
                         },
                     },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: this.systemUniformBuffers["lights"]!,
+                        }
+                    }
                 ],
         }
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
+    //作废，20241022，由于洗漱map和结构的问题，不在进行全局的uniform排列，而采用原来的layout bindGroup0 ，产生12个巨大的buffer
     getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[] {
         let entries: GPUBindGroupEntry[] =
             [
@@ -431,12 +438,12 @@ class Scene extends BaseScene {
                         buffer: this.systemUniformBuffers["MVP"]!,
                     },
                 },
-                // {
-                //     binding: 1,
-                //     resource: {
-                //         buffer: this.systemUniformBuffers["lights"]!,
-                //     }
-                // }
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: this.systemUniformBuffers["lights"]!,
+                    }
+                }
             ];
         return entries;
 
@@ -450,16 +457,7 @@ class Scene extends BaseScene {
         if (lightNumber == 0) {
             lightsArray = '';
         }
-        // let lights = `struct lights {
-        //     lightNumber: u32,
-        //     Ambient:  AmbientLight ,
-        //     ${lightsArray}
-        
-        //   }`;
-
         let code = wgsl_main.toString();
-
-
         code = code.replace("$lightNumber", lightNumber.toString());
         code = code.replace("$lightsArray", lightsArray.toString());
         return code;
@@ -516,23 +514,68 @@ class Scene extends BaseScene {
     updateSystemUniformBuffer() {
         if (this.defaultCamera)
             this.systemUniformBuffers["MVP"] = this.getMVP();
-        // this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
+        this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
     }
 
     getUniformOfSystemLights(): GPUBuffer {
         let lightNumber = this.getLightNumbers();
-        lightNumber += 1;
-        // let AmbientLight = new Float32Array(16);
-        // let perLight= new Float32Array(16*4);
 
+        let buffer = new ArrayBuffer(16 + 16 + lightNumber * 96);
+        let ST_lightNumber = new Uint32Array(buffer, 0, 1);
+        ST_lightNumber[0] = lightNumber;
+        let ST_AmbientLightViews = {
+            color: new Float32Array(buffer, 16, 3),
+            intensity: new Float32Array(buffer, 16 + 12, 1),
+        };
+        ST_AmbientLightViews.color[0] = this.ambientLight._color[0];
+        ST_AmbientLightViews.color[1] = this.ambientLight._color[1];
+        ST_AmbientLightViews.color[2] = this.ambientLight._color[2];
+        ST_AmbientLightViews.intensity[0] = this.ambientLight._intensity;
+
+        for (let i = 0; i < lightNumber; i++) {
+            // const ST_LightValues = new ArrayBuffer(96);
+            // const ST_LightViews = {
+            //     kind: new Int32Array(ST_LightValues, 0, 1),
+            //     position: new Float32Array(ST_LightValues, 16, 3),
+            //     color: new Float32Array(ST_LightValues, 32, 3),
+            //     intensity: new Float32Array(ST_LightValues, 44, 1),
+            //     distance: new Float32Array(ST_LightValues, 48, 1),
+            //     direction: new Float32Array(ST_LightValues, 64, 3),
+            //     decay: new Float32Array(ST_LightValues, 76, 1),
+            //     angle: new Float32Array(ST_LightValues, 80, 1),
+            //     shadow: new Int32Array(ST_LightValues, 84, 1),
+            //     visible: new Int32Array(ST_LightValues, 88, 1),
+            // };
+        }
+        let lightsGPUBuffer: GPUBuffer;
+        if (this.systemUniformBuffers["lights"]) {
+            lightsGPUBuffer = this.systemUniformBuffers["lights"];
+        }
+        else {
+            lightsGPUBuffer = this.device.createBuffer({
+                label: 'lightsGPUBuffer',
+                size: 16 + 16 + lightNumber * 96,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+        }
+        let bufferFloat32Array = new Float32Array(buffer);
+        this.device.queue.writeBuffer(
+            lightsGPUBuffer,
+            0,
+            bufferFloat32Array.buffer,
+            bufferFloat32Array.byteOffset,
+            bufferFloat32Array.byteLength
+        );
+        return lightsGPUBuffer;
     }
     getUnitMVP(mvp: Mat4[] | boolean = false): GPUBuffer {
-        const uniformBufferSize = 4 * 4 * 4 * 3;//MVP 
+        const uniformBufferSize = 4 * 4 * 4 * 4;//MVP 
         let MVP: GPUBuffer;
         let MVP_buffer = new Float32Array([
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
         ]);
         if (this.systemUniformBuffers["MVP"]) {
             MVP = this.systemUniformBuffers["MVP"];
@@ -554,7 +597,12 @@ class Scene extends BaseScene {
             let projection = new Float32Array(MVP_buffer.buffer, 4 * 4 * 4 * 2, 16);
             mat4.copy((<Mat4[]>mvp)[2], projection);
 
-            let a = 1;
+        }
+        if (this.defaultCamera) {
+            let cameraPosition = new Float32Array(MVP_buffer.buffer, 4 * 4 * 4 * 3, 3);
+            cameraPosition[0] = this.defaultCamera.position[0];
+            cameraPosition[1] = this.defaultCamera.position[1];
+            cameraPosition[2] = this.defaultCamera.position[2];
         }
         this.device.queue.writeBuffer(
             MVP,
@@ -570,7 +618,7 @@ class Scene extends BaseScene {
             let mvpArray = this.defaultCamera.getMVP();
             return this.getUnitMVP(mvpArray);
         }
-        else
+        else//返回单位矩阵数组和000的摄像机位置
             return this.getUnitMVP();
     }
 

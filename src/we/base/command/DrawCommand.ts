@@ -13,7 +13,7 @@ import {
 // import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
 // import * as baseDefine from "../scene/base"
-import { getReplaceVertexConstants } from './shaderFormat';
+import { getReplaceVertexConstantsVS,getReplaceVertexConstantsFS } from './shaderFormat';
 
 
 /** VS的buffer的typearray的结构 
@@ -382,8 +382,8 @@ export class DrawCommand extends BaseCommand {
         }
         else { 
             let wgslOfSystem = this.scene.getWGSLOfSystemShader();
-            let codeVS = getReplaceVertexConstants(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
-            let codeFS = getReplaceVertexConstants(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
+            let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
+            let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
             descriptor = {
                 label: label,
                 layout: this.pipelineLayout,

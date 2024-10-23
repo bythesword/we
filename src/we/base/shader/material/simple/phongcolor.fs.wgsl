@@ -1,27 +1,35 @@
-@fragment fn fs( ) -> @location(0) vec4f {
-  let materialColor= vec4f($red,$green,$blue,$alpha);
-  
+@fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
+  var materialColor = vec4f($red, $green, $blue, $alpha);
+
+  let lightIntensity = 20.0;
+  let lightPosition = vec3f(0.0,  0.0,8.0);
+  let lightColor=vec3f(1.0,0.5,.0);
+
+  let color = phong(materialColor.rgb, fsInput.worldPosition, fsInput.normal, lightPosition,lightColor, lightIntensity,defaultCameraPosition);
+  return vec4f(color, materialColor.a);
 }
 
 
-vec3 blinnPhong() {
-  vec3 color = texture2D(uSampler, vTextureCoord).rgb;
-  color = pow(color, vec3(2.2));
+fn phong(color : vec3f, position : vec3f, vNormal : vec3f, lightPosition : vec3f,lightColor:vec3f, lightIntensity : f32,viewerPosition:vec3f) -> vec3f
+{
+  let lightDir = normalize(lightPosition - position);
+  let normal = normalize(vNormal);
+  let light_atten_coff = lightIntensity / length(lightPosition - position);
 
-  vec3 ambient = 0.05 * color;
+  let ambientColor : vec3f = color.xyz * AmbientLight.intensity + AmbientLight.color * AmbientLight.intensity;
 
-  vec3 lightDir = normalize(uLightPos);
-  vec3 normal = normalize(vNormal);
-  float diff = max(dot(lightDir, normal), 0.0);
-  vec3 light_atten_coff = uLightIntensity / pow(length(uLightPos - vFragPos), 2.0);
-  vec3 diffuse = diff * light_atten_coff * color;
 
-  vec3 viewDir = normalize(uCameraPos - vFragPos);
-  vec3 halfDir = normalize((lightDir + viewDir));
-  float spec = pow(max(dot(halfDir, normal), 0.0), 32.0);
-  vec3 specular = uKs * light_atten_coff * spec;
+  let diff = max(dot(lightDir, normal), 0.0);
+  let diffColor = diff * light_atten_coff * color;
 
-  vec3 radiance = (ambient + diffuse + specular);
-  vec3 phongColor = pow(radiance, vec3(1.0 / 2.2));
-  return phongColor;
+
+  var spec = 0.0;
+  let viewDir = normalize(viewerPosition - position);
+  let reflectDir = reflect(-lightDir, normal);
+  spec = pow (max(dot(viewDir, reflectDir), 0.0), 35.0);
+  var spceularColor : vec3f = lightColor * light_atten_coff * spec;
+
+  let reColor = ambientColor + diffColor + spceularColor;
+
+  return reColor;
 }
