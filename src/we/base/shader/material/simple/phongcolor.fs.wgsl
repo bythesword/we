@@ -3,7 +3,7 @@
 
   let lightIntensity = 20.0;
   let lightPosition = vec3f(0.0,  0.0,8.0);
-  let lightColor=vec3f(1.0,0.5,.0);
+  let lightColor=vec3f(1.0,1.,1.0);
 
   let color = phong(materialColor.rgb, fsInput.worldPosition, fsInput.normal, lightPosition,lightColor, lightIntensity,defaultCameraPosition);
   return vec4f(color, materialColor.a);

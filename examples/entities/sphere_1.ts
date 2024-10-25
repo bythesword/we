@@ -5,11 +5,10 @@ import { CameraActor, optionCameraActor } from "../../src/we/base/actor/cameraAc
 
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../src/we/base/geometry/boxGeometry"
+import { SphereGeometry } from "../../src/we/base/geometry/sphereGeometry"
 import { ColorMaterial } from "../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../src/we/base/entity/mesh/mesh"
 
-import { PhongColorMaterial } from "../../src/we/base/material/simple/phongColorMaterial"
-import { vec3 } from "wgpu-matrix"
 
 declare global {
   interface Window {
@@ -21,18 +20,10 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.5,
-    green: 0.5,
-    blue: 0.5,
+    red: 0.1,
+    green: 0.1,
+    blue: 0.1,
     alpha: 1
-  },
-  ambientLight:{
-    color:{
-      red: 1,
-      green: 1,
-      blue: 1
-    },
-    intensity:0.03
   }
 }
 let scene = new Scene(input);
@@ -77,17 +68,19 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let boxGeometry = new BoxGeometry();
+let boxGeometry = new SphereGeometry({
+  radius:1,
+  widthSegments:32,
+  heightSegments:32
+});
 //极简测试材质，red
-let redMaterial = new PhongColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
+let redMaterial = new ColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
 //box实体
 let boxEntity = new Mesh(
   {
     geometry: boxGeometry,
     material: redMaterial,
-    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
-    // position:vec3.create(1,0,0),
-    scale:[2,0,0]
+    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
   }
 );
 //增加实体到scene

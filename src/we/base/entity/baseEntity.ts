@@ -108,6 +108,13 @@ export interface optionBaseEntity {
     },
     update?: (scope: any) => {},
     shadow?: optionShadowEntity,
+    matrix?: Mat4,
+    scale?: Vec3,
+    position?: Vec3,
+    rotate?: {
+        axis: Vec3,
+        angleInRadians: number,
+    }
 }
 
 export abstract class BaseEntity {
@@ -177,8 +184,8 @@ export abstract class BaseEntity {
         this._position = vec3.create();
         this._scale = vec3.create(1, 1, 1);
         this._rotation = vec3.create();
-        this.matrix = mat4.create();
-        this.matrixWorld = mat4.create();
+        this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         this.visible = true;
         this.children = [];
         this.name = ''
@@ -200,10 +207,12 @@ export abstract class BaseEntity {
         if (this._shadow.generate === true) {
             this._shadowMaterail = new ShadowMaterial();
         }
+        this.updateMatrix();
 
     }
     /** */
     abstract init(): any
+
 
     async initDCC(scene: any) {
         this._init = this.createDCC(scene);
@@ -276,7 +285,7 @@ export abstract class BaseEntity {
     }
 
     rotate(axis: Vec3, angle: number) {
-        mat4.axisRotate(this.matrix, axis, angle, this.matrix);
+        this.matrix=  mat4.axisRotate(this.matrix, axis, angle, this.matrix);
     }
     rotateX(angle: number) {
         this.rotate([1, 0, 0], angle);
@@ -287,7 +296,14 @@ export abstract class BaseEntity {
     rotateZ(angle: number) {
         this.rotate([0, 0, 1], angle);
     }
-    translateOnAxisOfWorld(axis: Vec3, pos: Vec3,) { }
+
+
+    translate(pos: Vec3,) {
+        this.matrix= mat4.translate(this.matrix, pos);
+    }
+    scale(vec: Vec3) {
+        this.matrix=mat4.scale(this.matrix, vec);
+    }
 
     get Positon() {
         return this._position
@@ -296,10 +312,33 @@ export abstract class BaseEntity {
         this._position = pos;
     }
 
+    updateMatrix(): any {
+        if (this.input?.matrix)
+            mat4.copy(this.input.matrix, this.matrix);
+        if (this.input?.scale)
+            this.scale(this.input.scale);
+        if (this.input?.rotate)
+            this.rotate(this.input.rotate.axis, this.input.rotate.angleInRadians);
+        if (this.input?.position)
+            this.translate(this.input.position);
+
+        this.matrixWorld = this.updateMatrixWorld();
+    }
+    // }
     /**todo */
-    updateMatrix() { }
-    /**todo */
-    updateMatrixWorld() { }
+    updateMatrixWorld(m4: Mat4 | boolean = false): Mat4 {
+        if (m4 === false)
+            m4 = mat4.copy(this.matrix);
+        else {
+            m4 = mat4.multiply(this.matrix, m4 as Mat4);
+        }
+        if (this.parent) {
+            return this.parent.updateMatrixWorld(m4);
+        }
+        else {
+            return m4;
+        }
+    }
 
 
     /**每帧更新入口
@@ -314,7 +353,7 @@ export abstract class BaseEntity {
         //初始化是完成状态，同时checkStatus=true
         else if (this._init === initStateEntity.finished && this.checkStatus()) {
             //动态物体 或 强制更新
-            if (this._dynamic === true || updateForce === true) {
+            if (this._dynamicMesh === true || this._dynamicPostion === true || updateForce === true) {
                 if (this.input && this.input.update) {
                     this.input.update(this);
                 }

@@ -37,6 +37,14 @@ export class Mesh extends BaseEntity {
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
     _wireframeEnable!: boolean;
+    constructor(input: optionMeshEntity) {
+        super(input);
+        this._geometry = input.geometry;
+        this._material = input.material;
+        this._init = initStateEntity.unstart;
+        this.init()
+        this._init = initStateEntity.unstart;
+    }
     init() {
 
         this._wireframeColor = { red: 0, green: 0, blue: 0, alpha: 1 };
@@ -73,14 +81,7 @@ export class Mesh extends BaseEntity {
         }
     }
 
-    constructor(input: optionMeshEntity) {
-        super(input);
-        this._geometry = input.geometry;
-        this._material = input.material;
-        this._init = initStateEntity.unstart;
-        this.init()
-        this._init = initStateEntity.unstart;
-    }
+
     /**
      * 创建Draw Compute Commands
      * @param scene 
