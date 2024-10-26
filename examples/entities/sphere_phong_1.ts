@@ -10,6 +10,7 @@ import { ColorMaterial } from "../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../src/we/base/entity/mesh/mesh"
 
 import { PhongColorMaterial } from "../../src/we/base/material/simple/phongColorMaterial"
+import { vec3 } from "wgpu-matrix"
 
 declare global {
   interface Window {
@@ -77,20 +78,26 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let boxGeometry = new SphereGeometry({
+let Geometry = new SphereGeometry({
   radius: 1,
   widthSegments: 128,
   heightSegments: 128
 });
 //极简测试材质，red
-let redMaterial = new PhongColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
+let redMaterial = new PhongColorMaterial({ color: { red: 0, green: 0.9, blue: 1, alpha: 1 },Shininess:64});
 //box实体
 let boxEntity = new Mesh(
   {
-    geometry: boxGeometry,
+    geometry: Geometry,
     material: redMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
-    wireFrame:false
+    wireFrame:false,
+    // position:vec3.create(1,0,0),
+    // scale:[2,2,1],
+    // rotate:{
+    //   axis:[1,0,0],
+    //   angleInRadians:0.15*Math.PI
+    // },
   }
 );
 //增加实体到scene

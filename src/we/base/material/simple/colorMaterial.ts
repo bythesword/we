@@ -1,5 +1,6 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
+import { unifromGroup } from "../../command/baseCommand";
 
 export class ColorMaterial extends BaseMaterial {
 
@@ -21,4 +22,10 @@ export class ColorMaterial extends BaseMaterial {
     destroy() {
         this._destroy = true;
     }
+
+    getUniform(): false {
+        // throw new Error("Method not implemented.");
+        return false;
+    }
+
 }

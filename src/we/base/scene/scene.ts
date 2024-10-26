@@ -106,7 +106,7 @@ class Scene extends BaseScene {
 
 
 
-    /** todo  */
+    /** stage 收集器  */
     stages!: stagesCollection;
     // stages!: BaseStage[];
     stagesOrders!: coreConst.stagesOrderByRender// number[];

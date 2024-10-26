@@ -1,17 +1,26 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
 import { ShadowMaterial } from "../material/shadow/shadowMaterial";
-import * as coreConst from "../const/coreConst"
-import {
-    unifromGroup,
-    uniformEntries,
-    uniformBufferPart,
-    uniformBuffer,
-    storageBufferPart
-} from "../command/baseCommand";
-import { DrawCommand } from "../command/DrawCommand";
 import { commmandType } from "../stage/baseStage";
-import { cameraRayValues } from "../camera/baseCamera";
+import * as coreConst from "../const/coreConst"
+
+
+// import {
+//     unifromGroup,
+//     uniformEntries,
+//     uniformBufferPart,
+//     uniformBuffer,
+//     storageBufferPart
+// } from "../command/baseCommand";
+// import { DrawCommand } from "../command/DrawCommand";
+
+// import { cameraRayValues } from "../camera/baseCamera";
+
+//待定，未使用
+// export interface entityUniform {
+//     uniforms: unifromGroup[]
+// }
+
 export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
 export interface geometryBufferOfEntity {
     /**索引buffer
@@ -76,10 +85,10 @@ export interface LOD {
     distance: number,
 }
 
-export interface entityUniform {
-    uniforms: unifromGroup[]
-}
 
+/**
+ * enum，实体的状态
+ */
 export enum initStateEntity {
     constructing,
     unstart,
@@ -92,7 +101,9 @@ export enum initStateEntity {
  * 默认时：全部都是true
  */
 export interface optionShadowEntity {
+    /**是否接收阴影 */
     accept?: boolean,
+    /**是否产生阴影     */
     generate?: boolean,
 }
 /**
@@ -101,20 +112,33 @@ export interface optionShadowEntity {
  */
 export interface optionBaseEntity {
     name?: string,
+    //todo
+    /** 顶点和材质组一对一 */
     vertexAndMaterialGroup?: entityContentGroup,
+    /**默认=World */
     stage?: {
         Transparent: number[] //coreConst.defaultStageTransparent,
         Opaque: number[]
     },
+    /**自定义更新functon() */
     update?: (scope: any) => {},
+    /**阴影选项 */
     shadow?: optionShadowEntity,
+    /**初始化的参数matrix     */
     matrix?: Mat4,
+    /**初始化的参数scale     */
     scale?: Vec3,
+    /**初始化的参数position     */
     position?: Vec3,
+    /**初始化的参数rotatae     */
     rotate?: {
         axis: Vec3,
         angleInRadians: number,
-    }
+    },
+    /**是否每帧更新Matrix，默认=false */
+    updateMatrixPerFrame?: boolean,
+    /** side,显示的面，默认:front */
+    side?: "front" | "back" | "all",
 }
 
 export abstract class BaseEntity {
@@ -149,6 +173,7 @@ export abstract class BaseEntity {
     matrix!: Mat4;
     /**层级的到root，可以动态更新 */
     matrixWorld !: Mat4;
+    updateMatrixPerFrame: boolean;
     visible!: boolean;
     enable!: boolean;
     children!: BaseEntity[];
@@ -164,6 +189,7 @@ export abstract class BaseEntity {
     //20240825
     _transparent!: boolean;
     /**
+     * todo
      * 本次是否更新，BVH的可见性,默认=true
      */
     _output: boolean;
@@ -190,7 +216,7 @@ export abstract class BaseEntity {
         this.children = [];
         this.name = ''
         this.id = new Date().getTime();
-
+        this.updateMatrixPerFrame = false;
 
         if (input.name) this.name = input.name;
         if (input.vertexAndMaterialGroup) this._vertexAndMaterialGroup = input.vertexAndMaterialGroup;
@@ -285,7 +311,7 @@ export abstract class BaseEntity {
     }
 
     rotate(axis: Vec3, angle: number) {
-        this.matrix=  mat4.axisRotate(this.matrix, axis, angle, this.matrix);
+        this.matrix = mat4.axisRotate(this.matrix, axis, angle, this.matrix);
     }
     rotateX(angle: number) {
         this.rotate([1, 0, 0], angle);
@@ -299,10 +325,10 @@ export abstract class BaseEntity {
 
 
     translate(pos: Vec3,) {
-        this.matrix= mat4.translate(this.matrix, pos);
+        this.matrix = mat4.translate(this.matrix, pos);
     }
     scale(vec: Vec3) {
-        this.matrix=mat4.scale(this.matrix, vec);
+        this.matrix = mat4.scale(this.matrix, vec);
     }
 
     get Positon() {
@@ -339,8 +365,9 @@ export abstract class BaseEntity {
             return m4;
         }
     }
-
-
+    getUniformOfMatrix() {
+        return new Float32Array(this.matrixWorld);
+    }
     /**每帧更新入口
      * 1、完成初始化，进行DCC更新
      * 2、未完成初始化，返回空数组
@@ -353,6 +380,9 @@ export abstract class BaseEntity {
         //初始化是完成状态，同时checkStatus=true
         else if (this._init === initStateEntity.finished && this.checkStatus()) {
             //动态物体 或 强制更新
+            if (this._dynamicPostion === true || updateForce === true) {
+                this.matrixWorld = this.updateMatrixWorld();
+            }
             if (this._dynamicMesh === true || this._dynamicPostion === true || updateForce === true) {
                 if (this.input && this.input.update) {
                     this.input.update(this);

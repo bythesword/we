@@ -1,13 +1,12 @@
 import * as coreConst from "../../const/coreConst";
 import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
-import {
-    BaseGeometry,
-} from "../../geometry/baseGeometry";
+import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
-import { cameraRayValues } from "../../camera/baseCamera";
+// import { cameraRayValues } from "../../camera/baseCamera";
 import { commmandType } from "../../stage/baseStage";
-import { color3U, color4U } from "../../const/coreConst";
+// import { color3U, color4U } from "../../const/coreConst";
+import { unifromGroup } from "../../command/baseCommand";
 
 
 
@@ -26,9 +25,12 @@ export interface optionMeshEntity extends optionBaseEntity {
 
 /**
  * Mesh 输出三角形和网格线
+ * 
  * 可以有两种方式输出网格线
+ * 
  * 1、三角形+一个像素的lines
- * 2、三角形（shader网格线，线宽可定义）
+ * 
+ * 2(todo)、三角形（shader网格线，线宽可定义）
  * 
  * 
  */
@@ -67,10 +69,10 @@ export class Mesh extends BaseEntity {
         // throw new Error("Method not implemented.");
         return true;
     }
-    updateUniformBuffer(scene: any, deltaTime: number) {
+    updateUniformBuffer(_scene: any, _deltaTime: number) {
         // throw new Error("Method not implemented.");
     }
-    updateDCC(scene: any, deltaTime: number): commmandType[] {
+    updateDCC(_scene: any, _deltaTime: number): commmandType[] {
         // throw new Error("Method not implemented.");
         return this._commmands;
     }
@@ -89,7 +91,7 @@ export class Mesh extends BaseEntity {
      */
     createDCC(scene: any): initStateEntity {
 
-
+        let scope = this;
         /////////////////////box 
         let shaderFS = this._material.getCodeFS();
         let shaderVS = this._geometry.getCodeVS();
@@ -100,6 +102,24 @@ export class Mesh extends BaseEntity {
 
         let values: drawModeIndexed = {
             indexCount: counts
+        };
+        // let options: drawOptionOfCommand;
+        let uniformFS = this._material.getUniform();
+        let uniforms: unifromGroup[] = [
+            {
+                layout: 1,
+                entries: [
+                    {
+                        label: "Mesh matrixWorld",
+                        binding: 0,
+                        size: 4 * 16,
+                        get: () => { return scope.getUniformOfMatrix() },
+                    }
+                ]
+            },
+        ];
+        if (uniformFS !== false) {
+            uniforms[0].entries.push(uniformFS);
         }
         let options: drawOptionOfCommand = {
             label: "a triangle",
@@ -119,37 +139,15 @@ export class Mesh extends BaseEntity {
                 cullMode: 'none',
             },
             // uniforms: [],
-            uniforms: [
-                // {
-                //     layout: 1,
-                //     entries: [
-                //         {
-                //             label: "test color",
-                //             binding: 0,
-                //             size: 4 * 4,
-                //             get: () => { return uniformOneColor },
-                //         }
-                //     ]
-                // },
-                // {
-                //     layout: 2,
-                //     entries: [
-                //         {
-                //             label: "test color",
-                //             binding: 0,
-                //             size: 4 * 4,
-                //             get: () => { return uniformOneColor },
-                //         }
-                //     ]
-                // }
-            ],
+            uniforms: uniforms,
             // rawUniform: true,
             draw: {
                 mode: "index",
                 values: values
             },
             indexBuffer: indexBuffer as indexBuffer,
-        }
+        };
+
         let DC = new DrawCommand(options);
         this._commmands.push(DC);
 
@@ -179,7 +177,19 @@ export class Mesh extends BaseEntity {
                     topology: "line-list",
                     cullMode: 'none',
                 },
-                uniforms: [],
+                uniforms: [
+                    {
+                        layout: 1,
+                        entries: [
+                            {
+                                label: "Mesh matrixWorld",
+                                binding: 0,
+                                size: 4 * 16,
+                                get: () => { return scope.getUniformOfMatrix() },
+                            }
+                        ]
+                    },
+                ],
                 // rawUniform: true,
                 draw: {
                     mode: "index",

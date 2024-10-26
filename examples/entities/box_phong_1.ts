@@ -32,7 +32,7 @@ let input: sceneInputJson = {
       green: 1,
       blue: 1
     },
-    intensity:0.03
+    intensity:0.13
   }
 }
 let scene = new Scene(input);
@@ -87,7 +87,11 @@ let boxEntity = new Mesh(
     material: redMaterial,
     wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
     // position:vec3.create(1,0,0),
-    scale:[2,0,0]
+    // scale:[1,1,1],
+    // rotate:{
+    //   axis:[1,0,0],
+    //   angleInRadians:-0.15*Math.PI
+    // }
   }
 );
 //增加实体到scene

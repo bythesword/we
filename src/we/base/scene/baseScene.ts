@@ -15,9 +15,7 @@ export declare interface sceneJson {
     renderPassSetting?: renderPassSetting,
     ambientLight?: optionAmbientLight
 }
-declare interface cameras {
-
-}
+ 
 /**scene 的默认renderPassSetting 
  * 有color和depth ，分别有2组
  * 第一组是每一帧初始化时，clear的配置
@@ -125,8 +123,7 @@ export abstract class BaseScene {
                 format: 'depth24plus',
             };
         }
-        this.lights = [];
-        this.ambientLight = [];
+        this.lights = []; 
     }
     //异步执行，需要单独调用
     abstract init(): any

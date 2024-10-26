@@ -1,7 +1,10 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/phone.fs.wgsl?raw"
+import { uniformBufferPart } from "../../command/baseCommand";
+import { PhongColorMaterial } from "./phongColorMaterial";
 
-export class PhongMaterial extends BaseMaterial {
+export class PhongMaterial extends PhongColorMaterial {
+
 
 
 
@@ -20,5 +23,9 @@ export class PhongMaterial extends BaseMaterial {
 
     destroy() {
         this._destroy = true;
+    }
+
+    getUniform(): false | uniformBufferPart {
+        throw new Error("Method not implemented.");
     }
 }

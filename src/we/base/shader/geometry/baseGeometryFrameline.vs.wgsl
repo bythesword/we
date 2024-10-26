@@ -1,7 +1,8 @@
+@group(1) @binding(0) var<uniform> entityMatrixWorld : mat4x4f;
 @vertex fn vs(
 @location(0) position : vec3f
 ) -> @builtin(position) vec4f {
-    var pos = projectionMatrix * viewMatrix * modelMatrix * vec4f(position, 1.0);
+    var pos = projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld * vec4f(position, 1.0);
     return pos;
 }
 struct FragmentOutput {
