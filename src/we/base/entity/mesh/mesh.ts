@@ -6,7 +6,7 @@ import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "
 // import { cameraRayValues } from "../../camera/baseCamera";
 import { commmandType } from "../../stage/baseStage";
 // import { color3U, color4U } from "../../const/coreConst";
-import { unifromGroup } from "../../command/baseCommand";
+import { uniformBufferPart, unifromGroup } from "../../command/baseCommand";
 
 
 
@@ -119,7 +119,8 @@ export class Mesh extends BaseEntity {
             },
         ];
         if (uniformFS !== false) {
-            uniforms[0].entries.push(uniformFS);
+            for (let i of uniformFS as uniformBufferPart[])
+                uniforms[0].entries.push(i);
         }
         let options: drawOptionOfCommand = {
             label: "a triangle",

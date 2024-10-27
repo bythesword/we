@@ -26,7 +26,7 @@ let input: sceneInputJson = {
     green: 0.1,
     blue: 0.1,
     alpha: 1
-  }, 
+  },
   ambientLight: {
     color: {
       red: 1,
@@ -84,14 +84,19 @@ let Geometry = new SphereGeometry({
   heightSegments: 128
 });
 //极简测试材质，red
-let redMaterial = new PhongColorMaterial({ color: { red: 0, green: 0.9, blue: 1, alpha: 1 },Shininess:64});
+let redMaterial = new PhongColorMaterial(
+  {
+    color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
+    Shininess: 8,
+    Ks:1
+  });
 //box实体
 let boxEntity = new Mesh(
   {
     geometry: Geometry,
     material: redMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
-    wireFrame:false,
+    wireFrame: false,
     // position:vec3.create(1,0,0),
     // scale:[2,2,1],
     // rotate:{

@@ -1,4 +1,5 @@
 @group(1) @binding(1) var<uniform> u_Shininess : f32;
+@group(1) @binding(2) var<uniform> u_Ks : f32;
 
 @fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
   var materialColor = vec4f($red, $green, $blue, $alpha);
@@ -13,7 +14,7 @@
   return vec4f((colorOfAmbient + colorOfPhongDS) * materialColor.rgb, materialColor.a);
 }
 
-fn PhongAmbientColor()->vec3f
+fn PhongAmbientColor() -> vec3f
 {
   return AmbientLight.color * AmbientLight.intensity;
 }
@@ -34,7 +35,7 @@ fn phongColorDS(position : vec3f, vNormal : vec3f, lightPosition : vec3f, lightC
   let viewDir = normalize(viewerPosition - position);
   let reflectDir = reflect(-lightDir, normal);
   spec = pow (max(dot(viewDir, reflectDir), 0.0), u_Shininess);
-  let spceularColor : vec3f = lightColor * light_atten_coff * spec;
+  let spceularColor : vec3f = light_atten_coff * u_Ks * spec * lightColor;
 
   return diffColor + spceularColor;
 

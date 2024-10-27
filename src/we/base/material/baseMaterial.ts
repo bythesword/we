@@ -43,7 +43,7 @@ export abstract class BaseMaterial {
     }
     abstract getCodeFS(): string;
     abstract destroy(): any
-    abstract getUniform():uniformBufferPart|false
+    abstract getUniform():uniformBufferPart[]|false
 
     isDestroy() {
         return this._destroy;

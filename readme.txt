@@ -1,9 +1,10 @@
-webGPU 三维引擎(webGPU engine  3D)
+WE 3D引擎(webGPU engine 3D)
 1、typescript +webGPU的三维渲染引擎,只支持webGPU；
 2、从底层建构引擎逻辑，参考了UE、cesiumjs、threejs等；
 3、材质部分以PBR为主，材质部分参考了filament，并极大的借鉴了其设计理论；
 4、geometry部分拷贝了threejs的geometry部分的生成几何体的代码；
 5、感谢我的家人以及所有帮助过我的人；
+   感谢胡事民老师的计算机图形学公开课程；
    感谢闫令琪老师的Games101和Games202的课程；
    感谢LearnOpenGL中文化工程 https://learnopengl-cn.github.io/ ；
    感谢LearnOpengl的原书作者 JoeyDeVries https://learnopengl.com ；
