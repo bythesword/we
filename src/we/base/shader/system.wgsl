@@ -9,7 +9,7 @@ struct ST_AmbientLight {
   intensity : f32,
 };
 struct ST_Light {
-  //0=direction ,1=point,2=spot
+  //1=direction ,2=point,3=spot
   kind : i32,
   position : vec3f,
 
@@ -24,7 +24,7 @@ struct ST_Light {
   //spot is angle ,other default =0,
   angle : f32,
   shadow : i32,
-  visible : i32,
+  enable : i32,
 }
 
 struct ST_Lights {

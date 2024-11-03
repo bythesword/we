@@ -1,3 +1,11 @@
+declare global {
+    interface Window {
+        scene: any
+        DC: any
+        weGPUdevice: GPUDevice
+        weGPUadapter: GPUAdapter
+    }
+}
 import wgsl_main from "../shader/system.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import {
@@ -35,7 +43,7 @@ import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
-import { BaseLight, structBaselight } from "../light/baseLight";
+import { BaseLight, lightStructSize, structBaselight } from "../light/baseLight";
 import { AmbientLight, optionAmbientLight } from "../light/ambientLight";
 // import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
 // import { optionCamreaControl } from "../control/cameracCntrol"
@@ -197,24 +205,29 @@ class Scene extends BaseScene {
             this.setAmbientLight();
         }
 
+        // this._init();
         return this;
     }
+    _init() { }
     /**
      * start：20241020  limits: must requsted
      *  todo：最大值的设定，并同步到全局的setting中；只是设定，不做限制，
      *  todo：最大限制的TS到WGSL的write部分的同步功能
      * end
      */
+
     async init() {
         if (!("gpu" in navigator)) this.fatal("WebGPU not supported.");
 
         const adapter = await navigator.gpu.requestAdapter();
         if (!adapter) throw new Error("Couldn't request WebGPU adapter.");
         this.adapter = adapter;
+        window.weGPUadapter = adapter;
 
         const device = await adapter.requestDevice();
         if (!device) throw new Error("Couldn't request WebGPU device.");
         this.device = device;
+        window.weGPUdevice = device;
 
         const canvas = document.getElementById(this.input.canvas) as HTMLCanvasElement;
         this.canvas = canvas;
@@ -451,6 +464,13 @@ class Scene extends BaseScene {
     getLightNumbers() {
         return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
     }
+
+    /**
+     * DrawCommand 的  createPipeline() 调用
+     * 
+     * 为每个DrawCommand，生成systemWGSL string，raw模式除外
+     * @returns 
+     */
     getWGSLOfSystemShader(): string {
         let lightNumber = this.getLightNumbers();
         let lightsArray = `lights: array<Light, ${lightNumber}>,`
@@ -458,7 +478,7 @@ class Scene extends BaseScene {
             lightsArray = '';
         }
         let code = wgsl_main.toString();
-        code = code.replace("$lightNumber", lightNumber.toString());
+        // code = code.replace("$lightNumber", lightNumber.toString());//作废 num写入了结构体的buffer中，通过uniform传递
         code = code.replace("$lightsArray", lightsArray.toString());
         return code;
     }
@@ -473,11 +493,11 @@ class Scene extends BaseScene {
     run() {
         let scope = this;
         this.clock.update();
-        function run() {
+        async function run() {
             // let deltaTime = scope.clock.deltaTime;
             scope.clock.update();
             const deltaTime = scope.clock.deltaTime;
-            scope.update(deltaTime);
+            await scope.update(deltaTime);
             scope.oneFrameRender();
             scope.pickup();
             scope.postProcess();
@@ -486,12 +506,13 @@ class Scene extends BaseScene {
         }
         requestAnimationFrame(run)
     }
+    //todo async/await for everthing ,20241103
     /**每帧更新入口
      * 1、更新system uniform
      * 2、更新Acter
      * 3、更新实体 entity
      */
-    update(deltaTime: number) {
+    async update(deltaTime: number) {
         if (this.defaultActor)
             this.defaultActor.update(deltaTime);
         this.updateSystemUniformBuffer();
@@ -501,11 +522,17 @@ class Scene extends BaseScene {
         // let rays = this.defaultCamera!.getCameraRays();
         // 四个中间点，稍稍延迟
         // this.updateBVH(rays)
-
+        await this.updateLights(deltaTime);
         this.updateAcotr(deltaTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
         this.updateEntities(deltaTime);//更新实体状态，比如水，树，草等动态的
         this.updateStagesCommand(deltaTime);
     }
+    async updateLights(deltaTime: number) {
+        for (let i of this.lights) {
+            await i.update(deltaTime);
+        }
+    }
+
     /**
     * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
     * 这个需要确保每帧只更新一次
@@ -517,12 +544,31 @@ class Scene extends BaseScene {
         this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
     }
 
+    /**
+     * 在WGSL是一个struct ，参见“system.wgsl”中的 ST_Lights结构
+  
+    * struct ST_Lights {
+
+            lightNumber : u32,
+            Ambient : ST_AmbientLight,
+            $lightsArray
+            };
+   
+            * @returns 光源的GPUBuffer,大小=16 + 16 + lightNumber * 96,
+     */
     getUniformOfSystemLights(): GPUBuffer {
         let lightNumber = this.getLightNumbers();
 
-        let buffer = new ArrayBuffer(16 + 16 + lightNumber * 96);
+        let size = lightStructSize;
+
+        //总arraybuffer
+        let buffer = new ArrayBuffer(16 + 16 + lightNumber * size);
+
+        //第一个16，是光源舒亮
         let ST_lightNumber = new Uint32Array(buffer, 0, 1);
         ST_lightNumber[0] = lightNumber;
+
+        //第二个16，是当前的环境光参数（每个stage的环境光可能不同，室内外）
         let ST_AmbientLightViews = {
             color: new Float32Array(buffer, 16, 3),
             intensity: new Float32Array(buffer, 16 + 12, 1),
@@ -532,21 +578,25 @@ class Scene extends BaseScene {
         ST_AmbientLightViews.color[2] = this.ambientLight._color[2];
         ST_AmbientLightViews.intensity[0] = this.ambientLight._intensity;
 
+        //第三部分，lightNumber * size
+        //映射到每个viewer上，并写入新的数据（无论是否有变化）
         for (let i = 0; i < lightNumber; i++) {
-            // const ST_LightValues = new ArrayBuffer(96);
-            // const ST_LightViews = {
-            //     kind: new Int32Array(ST_LightValues, 0, 1),
-            //     position: new Float32Array(ST_LightValues, 16, 3),
-            //     color: new Float32Array(ST_LightValues, 32, 3),
-            //     intensity: new Float32Array(ST_LightValues, 44, 1),
-            //     distance: new Float32Array(ST_LightValues, 48, 1),
-            //     direction: new Float32Array(ST_LightValues, 64, 3),
-            //     decay: new Float32Array(ST_LightValues, 76, 1),
-            //     angle: new Float32Array(ST_LightValues, 80, 1),
-            //     shadow: new Int32Array(ST_LightValues, 84, 1),
-            //     visible: new Int32Array(ST_LightValues, 88, 1),
-            // };
+            // const ST_LightValues = new ArrayBuffer(size);
+            const ST_LightViews = {
+                kind: new Int32Array(buffer, 0 + size * i, 1),
+                position: new Float32Array(buffer, 16 + size * i, 3),
+                color: new Float32Array(buffer, 32 + size * i, 3),
+                intensity: new Float32Array(buffer, 44 + size * i, 1),
+                distance: new Float32Array(buffer, 48 + size * i, 1),
+                direction: new Float32Array(buffer, 64 + size * i, 3),
+                decay: new Float32Array(buffer, 76 + size * i, 1),
+                angle: new Float32Array(buffer, 80 + size * i, 1),
+                shadow: new Int32Array(buffer, 84 + size * i, 1),
+                enable: new Int32Array(buffer, 88 + size * i, 1),
+            };
         }
+
+        //generate GPUBuffer
         let lightsGPUBuffer: GPUBuffer;
         if (this.systemUniformBuffers["lights"]) {
             lightsGPUBuffer = this.systemUniformBuffers["lights"];
@@ -554,11 +604,14 @@ class Scene extends BaseScene {
         else {
             lightsGPUBuffer = this.device.createBuffer({
                 label: 'lightsGPUBuffer',
-                size: 16 + 16 + lightNumber * 96,
+                size: 16 + 16 + lightNumber * size,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             });
         }
+
+        //生成浮点数据队列
         let bufferFloat32Array = new Float32Array(buffer);
+        //将新生成的浮点数据写入到GPUBuffer中，
         this.device.queue.writeBuffer(
             lightsGPUBuffer,
             0,
@@ -575,7 +628,7 @@ class Scene extends BaseScene {
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]);
         if (this.systemUniformBuffers["MVP"]) {
             MVP = this.systemUniformBuffers["MVP"];

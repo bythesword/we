@@ -1,9 +1,10 @@
-import { uniformBufferPart, unifromGroup } from "../command/baseCommand";
+import { uniformBufferPart, uniformEntries, unifromGroup } from "../command/baseCommand";
 import * as coreConst from "../const/coreConst"
- 
+
 
 export interface optionBaseMaterial {
     color?: coreConst.color4F//number[],
+    vertexColor?: boolean,
     /**此材质时启用深度测试。默认为 true */
     depthTest?: boolean,
     /**此材质是否对深度缓冲区有任何影响。默认为true */
@@ -22,6 +23,7 @@ export abstract class BaseMaterial {
     alpha!: number;
     input!: optionBaseMaterial;
     _destroy: boolean;
+    _already:boolean;
 
     constructor(input?: optionBaseMaterial) {
         this._destroy = false;
@@ -40,10 +42,12 @@ export abstract class BaseMaterial {
         }
         else
             this.input = {};
+        this._already=false;
     }
+    abstract init(): any;
     abstract getCodeFS(): string;
     abstract destroy(): any
-    abstract getUniform():uniformBufferPart[]|false
+    abstract getUniform(): uniformEntries[] | false
 
     isDestroy() {
         return this._destroy;

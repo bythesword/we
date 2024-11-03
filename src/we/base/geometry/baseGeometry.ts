@@ -40,8 +40,11 @@ export abstract class BaseGeometry {
     _wireframeColor!: color3U;
     _wireframeEnable!: boolean;
 
+    _already: boolean;
+
     constructor(input: optionBaseGemetry) {
         this._destroy = false;
+        this._already = false;
         this.buffer = {
             position: [],
             normal: [],
@@ -234,7 +237,7 @@ export abstract class BaseGeometry {
             ]
         }
         if (this.buffer.color.length == 0) {
-            this.buffer.color = this.generateColorArray(this.buffer.position.length/3);
+            this.buffer.color = this.generateColorArray(this.buffer.position.length / 3);
         }
         let color: vsAttributes = {
             vertexArray: new Float32Array(this.buffer.color),

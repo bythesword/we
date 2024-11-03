@@ -6,7 +6,7 @@ import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "
 // import { cameraRayValues } from "../../camera/baseCamera";
 import { commmandType } from "../../stage/baseStage";
 // import { color3U, color4U } from "../../const/coreConst";
-import { uniformBufferPart, unifromGroup } from "../../command/baseCommand";
+import { uniformBufferPart, uniformEntries, unifromGroup } from "../../command/baseCommand";
 
 
 
@@ -65,10 +65,7 @@ export class Mesh extends BaseEntity {
         // throw new Error("Method not implemented.");
 
     }
-    checkStatus(): boolean {
-        // throw new Error("Method not implemented.");
-        return true;
-    }
+
     updateUniformBuffer(_scene: any, _deltaTime: number) {
         // throw new Error("Method not implemented.");
     }
@@ -82,8 +79,17 @@ export class Mesh extends BaseEntity {
             i.destroy();
         }
     }
+    checkStatus(): boolean {
+        return this._material._already && this._geometry._already;
 
-
+    }
+    initDCC(scene: any) {
+        let already = this.checkStatus();
+        if (already) {
+            this._init = this.createDCC(scene);
+            this.generateBox();
+        }
+    }
     /**
      * 创建Draw Compute Commands
      * @param scene 
@@ -119,7 +125,7 @@ export class Mesh extends BaseEntity {
             },
         ];
         if (uniformFS !== false) {
-            for (let i of uniformFS as uniformBufferPart[])
+            for (let i of uniformFS as uniformEntries[])
                 uniforms[0].entries.push(i);
         }
         let options: drawOptionOfCommand = {

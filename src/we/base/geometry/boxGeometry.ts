@@ -92,6 +92,7 @@ export class BoxGeometry extends BaseGeometry {
         this.buildPlane(x, y, z, - 1, - 1, width, height, - depth!, widthSegments, heightSegments, 5); // nz
 
         this.createWrieFrame();
+        this._already = true;
     }
 
     /**copy from three.js */

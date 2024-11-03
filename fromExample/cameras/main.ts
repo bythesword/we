@@ -135,7 +135,7 @@ let cubeTexture: GPUTexture;
 {
   const response = await fetch('../image/webgpu.png');
   const imageBitmap = await createImageBitmap(await response.blob());
-
+  console.log(typeof(imageBitmap));
   cubeTexture = device.createTexture({
     size: [imageBitmap.width, imageBitmap.height, 1],
     format: 'rgba8unorm',
@@ -144,6 +144,7 @@ let cubeTexture: GPUTexture;
       GPUTextureUsage.COPY_DST |
       GPUTextureUsage.RENDER_ATTACHMENT,
   });
+  console.log(typeof(cubeTexture),"usage" in cubeTexture);
   device.queue.copyExternalImageToTexture(
     { source: imageBitmap },
     { texture: cubeTexture },

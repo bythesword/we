@@ -1,15 +1,20 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/phongcolor.fs.wgsl?raw"
-import { uniformBufferPart, unifromGroup } from "../../command/baseCommand";
+import { uniformBufferPart, uniformEntries, unifromGroup } from "../../command/baseCommand";
+
 
 /**
  * 这个phong模型是PBR的，结果只是近似
  */
-export interface optionPhongMaterial extends optionBaseMaterial {
+export interface optionPhongColorMaterial extends optionBaseMaterial {
     /**反射指数(高光区域集中程度)：默认：32 */
     Shininess?: number,
     /** 高光反射系数(金属度)，0.0（非金属）--1.0（金属），默认：0.5 */
-    Ks?: number
+    metalness?: number,
+    /**
+     * 粗糙程度。0.0表示平滑的镜面反射，1.0表示完全漫反射。默认值为1.0
+     */
+    roughness?: number,
 
 }
 
@@ -17,19 +22,28 @@ export interface optionPhongMaterial extends optionBaseMaterial {
  * phong 模型的颜色版本，无texture
  */
 export class PhongColorMaterial extends BaseMaterial {
+    init() {
 
 
-    declare input: optionPhongMaterial;
+        // throw new Error("Method not implemented.");
+    }
 
 
-    constructor(input?: optionPhongMaterial) {
+    declare input: optionPhongColorMaterial;
+
+
+    constructor(input?: optionPhongColorMaterial) {
         super(input);
         if (this.input.Shininess == undefined) {
             this.input.Shininess = 32;
         }
-        if (this.input.Ks == undefined) {
-            this.input.Ks = 0.5;
+        if (this.input.metalness == undefined) {
+            this.input.metalness = 0.5;
         }
+        if (this.input.roughness == undefined) {
+            this.input.roughness = 1;
+        }
+        this._already = true;
     }
 
     getCodeFS() {
@@ -45,7 +59,7 @@ export class PhongColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(): uniformBufferPart[] {
+    getUniform(): uniformEntries[] {
         let scope = this;
         let phong: uniformBufferPart[] = [
             {
@@ -59,12 +73,22 @@ export class PhongColorMaterial extends BaseMaterial {
                 },
             },
             {
-                label: "Mesh FS Ks",
+                label: "Mesh FS metalness",
                 binding: 2,
                 size: 4 * 1,
                 get: () => {
-                    let a = new Float32Array(1); 
-                    a[0] = scope.input.Ks as number;
+                    let a = new Float32Array(1);
+                    a[0] = scope.input.metalness as number;
+                    return a;
+                },
+            },
+            {
+                label: "Mesh FS roughness",
+                binding: 3,
+                size: 4 * 1,
+                get: () => {
+                    let a = new Float32Array(1);
+                    a[0] = scope.input.roughness as number;
                     return a;
                 },
             },

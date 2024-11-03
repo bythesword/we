@@ -240,7 +240,7 @@ export abstract class BaseEntity {
     abstract init(): any
 
 
-    async initDCC(scene: any) {
+    initDCC(scene: any) {
         this._init = this.createDCC(scene);
         this.generateBox();
     }
@@ -397,6 +397,9 @@ export abstract class BaseEntity {
             {
                 return this._commmands;
             }
+        }
+        else if (this._init == initStateEntity.initializing) {
+            this.checkStatus();
         }
         return [];
     }

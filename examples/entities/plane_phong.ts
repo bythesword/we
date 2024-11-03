@@ -83,7 +83,7 @@ let boxGeometry = new PlaneGeometry({
   height: 3
 });
 //极简测试材质，red
-let redMaterial = new PhongColorMaterial({ color: { red:0.205, green: 0.205, blue: 0.205, alpha: 1 } });
+let redMaterial = new PhongColorMaterial({ color: { red:0.8, green: 0.8, blue: 0.8, alpha: 1 } ,metalness:0.5});
 //box实体
 let boxEntity = new Mesh(
   {
