@@ -473,7 +473,7 @@ class Scene extends BaseScene {
      */
     getWGSLOfSystemShader(): string {
         let lightNumber = this.getLightNumbers();
-        let lightsArray = `lights: array<Light, ${lightNumber}>,`
+        let lightsArray = `lights: array<ST_Light, ${lightNumber}>,`
         if (lightNumber == 0) {
             lightsArray = '';
         }
@@ -580,22 +580,13 @@ class Scene extends BaseScene {
 
         //第三部分，lightNumber * size
         //映射到每个viewer上，并写入新的数据（无论是否有变化）
-        for (let i = 0; i < lightNumber; i++) {
-            // const ST_LightValues = new ArrayBuffer(size);
-            const ST_LightViews = {
-                kind: new Int32Array(buffer, 0 + size * i, 1),
-                position: new Float32Array(buffer, 16 + size * i, 3),
-                color: new Float32Array(buffer, 32 + size * i, 3),
-                intensity: new Float32Array(buffer, 44 + size * i, 1),
-                distance: new Float32Array(buffer, 48 + size * i, 1),
-                direction: new Float32Array(buffer, 64 + size * i, 3),
-                decay: new Float32Array(buffer, 76 + size * i, 1),
-                angle: new Float32Array(buffer, 80 + size * i, 1),
-                shadow: new Int32Array(buffer, 84 + size * i, 1),
-                enable: new Int32Array(buffer, 88 + size * i, 1),
-            };
+        for (let i = 0; i < this.lights.length; i++) {
+            let StructBuffer = new Float32Array(buffer, 16 + 16 + size * i, size);
+            let lightStructBuffer = this.lights[i].getStructBuffer();
+            for (let j = 0; j < size; j++) {
+                StructBuffer[i * size + j] = lightStructBuffer[j];
+            }
         }
-
         //generate GPUBuffer
         let lightsGPUBuffer: GPUBuffer;
         if (this.systemUniformBuffers["lights"]) {

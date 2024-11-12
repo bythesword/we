@@ -6,8 +6,8 @@
 @fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
     var materialColor = vec4f($red, $green, $blue, $alpha);
    
-    $materialColor
-let specc= textureSample(u_specularTexture, u_Sampler, fsInput.uv).rgb ;
+    $materialColor 
+
     let lightIntensity = 5.0;
     let lightPosition = vec3f(0.0, 0.0, 8.0);
     let lightColor = vec3f(1.0, 1., 1.0);

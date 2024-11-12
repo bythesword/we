@@ -23,6 +23,10 @@ export abstract class BaseMaterial {
     alpha!: number;
     input!: optionBaseMaterial;
     _destroy: boolean;
+    /**新的材质，这个是需要处理的（异步数据的加载后，改为true，或没有异步数据加载，在init()中改为true）；
+     * constructor中设置为false。 
+     * 如果更改为为true，在材质不工作
+    */
     _already:boolean;
 
     constructor(input?: optionBaseMaterial) {

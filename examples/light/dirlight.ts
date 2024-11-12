@@ -4,12 +4,14 @@ import { optionCamreaControl } from "../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
-import { PlaneGeometry } from "../../src/we/base/geometry/planeGeomertry"
+import { BoxGeometry } from "../../src/we/base/geometry/boxGeometry"
 import { SphereGeometry } from "../../src/we/base/geometry/sphereGeometry"
 import { ColorMaterial } from "../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../src/we/base/entity/mesh/mesh"
 
 import { PhongColorMaterial } from "../../src/we/base/material/simple/phongColorMaterial"
+import { vec3 } from "wgpu-matrix"
+import { PhongLightsMaterial } from "../../src/we/base/material/simple/lightsphongMaterial"
 
 declare global {
   interface Window {
@@ -47,7 +49,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [0, 0, 6],
+  position: [0, 0, 3],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -77,20 +79,32 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let boxGeometry = new PlaneGeometry({
-
-  width: 3,
-  height: 3
+let Geometry = new SphereGeometry({
+  radius: 1,
+  widthSegments: 128,
+  heightSegments: 128
 });
 //极简测试材质，red
-let redMaterial = new PhongColorMaterial({ color: { red:0.8, green: 0.8, blue: 0.8, alpha: 1 } ,metalness:0.5});
+let redMaterial = new PhongLightsMaterial(
+  {
+    color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
+    Shininess: 1,
+    metalness:1,
+    roughness:1,
+  });
 //box实体
 let boxEntity = new Mesh(
   {
-    geometry: boxGeometry,
+    geometry: Geometry,
     material: redMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
-    wireFrame: false
+    wireFrame: false,
+    // position:vec3.create(1,0,0),
+    // scale:[2,2,1],
+    // rotate:{
+    //   axis:[1,0,0],
+    //   angleInRadians:0.15*Math.PI
+    // },
   }
 );
 //增加实体到scene

@@ -9,26 +9,21 @@ struct ST_AmbientLight {
   intensity : f32,
 };
 struct ST_Light {
-  //1=direction ,2=point,3=spot
-  kind : i32,
   position : vec3f,
-
+  decay : f32,
   color : vec3f,
   intensity : f32,
-
-  distance : f32,
-  //pointlight dir =[0,0,0]
   direction : vec3f,
-
-  decay : f32,
-  //spot is angle ,other default =0,
-  angle : f32,
+  distance : f32,
+  angle : vec2f,
   shadow : i32,
-  enable : i32,
+  visible : i32,
+  size : vec4f,
+  kind : i32,
 }
 
 struct ST_Lights {
-  lightNumber : u32,
+  lightNumber : i32,
   Ambient : ST_AmbientLight,
   $lightsArray
 };

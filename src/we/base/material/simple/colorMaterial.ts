@@ -16,10 +16,10 @@ export class ColorMaterial extends BaseMaterial {
 
     getCodeFS() {
         let code = colorOnlyFS
-        code = code.replace("$red", this.red.toString());
-        code = code.replace("$blue", this.blue.toString());
-        code = code.replace("$green", this.green.toString());
-        code = code.replace("$alpha", this.alpha.toString());
+        code = code.replaceAll("$red", this.red.toString());
+        code = code.replaceAll("$blue", this.blue.toString());
+        code = code.replaceAll("$green", this.green.toString());
+        code = code.replaceAll("$alpha", this.alpha.toString());
         return code;
     }
 

@@ -108,6 +108,7 @@ export class PlaneGeometry extends BaseGeometry {
 		}
 
         this.createWrieFrame();
+        this._already = true;
     }
 
 

@@ -40,9 +40,10 @@ export interface optionBaseLight {
      */
     decay?: number,
     angle?: number,
+    angleOut?: number,
     shadow?: optionLightShadow,
     size?: number,
-    enable?: boolean
+    visible?: boolean
     /**
      * 光源与stage的关系
      * 默认（undefined）：照亮所有stage
@@ -73,7 +74,7 @@ export abstract class BaseLight {
         if (this.parameters.color == undefined) this.parameters.color = { red: 1, green: 1, blue: 1 };
         if (this.parameters.distance == undefined) this.parameters.distance = 0.0;
         if (this.parameters.decay == undefined) this.parameters.decay = 1;
-        if (this.parameters.enable == undefined) this.parameters.enable = true;
+        if (this.parameters.visible == undefined) this.parameters.visible = true;
         if (this.parameters.intensity == undefined) this.parameters.intensity = 1.0;
 
 
@@ -88,17 +89,7 @@ export abstract class BaseLight {
         this._buffer = this.updateStructBuffer();
     }
 
-    getStructBuffer(): structBaselight {
-        if (this._buffer == undefined) {
-            this._buffer = this.updateStructBuffer();
-        }
-        return this._buffer;
-    }
-    //todo ：未完成，20241103
-    updateStructBuffer(): structBaselight {
-        let buffer = new Float32Array(lightStructSize);
-        return buffer;
-    }
+
     abstract generateShadowMap(device: GPUDevice): shadowMap | false;
 
     getKind(): number {
@@ -128,24 +119,27 @@ export abstract class BaseLight {
             return this.parameters.shadow.castShadow;
         return false;
     }
-    getEnable(): boolean {
-        return this.parameters.enable!;
+    getVisible(): boolean {
+        return this.parameters.visible! as boolean;
     }
 
     /**只有方向光返回值，其他返回false */
     getDirection(): Vec3 | false {
-        if (this._kind == lightType.directional) {
+        if (this._kind == lightType.point) {
+            return false;
+        }
+        else {
             return this.parameters.direction!;
         }
-        return false;
+
     }
     getDecay() {
         return this.parameters.decay!;
     }
     /**只有spot有值，其他false */
-    getAngle(): number | false {
+    getAngle(): number[] | false {
         if (this._kind == lightType.spot) {
-            return this.parameters.angle!;
+            return [this.parameters.angle!, this.parameters.angleOut!];
         }
         return false;
     }
@@ -163,5 +157,67 @@ export abstract class BaseLight {
             await scope.parameters.update!(scope, deltaTime);
             scope.updateStructBuffer();
         }
+    }
+    getStructBuffer(): structBaselight {
+        if (this._buffer == undefined) {
+            this._buffer = this.updateStructBuffer();
+        }
+        return this._buffer;
+    }
+    //todo ：未完成，20241103
+    updateStructBuffer(): structBaselight {
+        // const ST_LightValues = new ArrayBuffer(size);
+        let ST_LightValues = new Float32Array(lightStructSize);
+        const ST_LightViews = {
+            position: new Float32Array(ST_LightValues, 0, 3),
+            decay: new Float32Array(ST_LightValues, 12, 1),
+            color: new Float32Array(ST_LightValues, 16, 3),
+            intensity: new Float32Array(ST_LightValues, 28, 1),
+            direction: new Float32Array(ST_LightValues, 32, 3),
+            distance: new Float32Array(ST_LightValues, 44, 1),
+            angle: new Float32Array(ST_LightValues, 48, 2),
+            shadow: new Int32Array(ST_LightValues, 56, 1),
+            visible: new Int32Array(ST_LightValues, 60, 1),
+            size: new Float32Array(ST_LightValues, 64, 4),
+            kind: new Int32Array(ST_LightValues, 80, 1),
+        };
+
+        ST_LightViews.kind[0] = this.getKind();
+
+        let position = this.getPosition();
+        if (position) {
+            ST_LightViews.position[0] = position[0];
+            ST_LightViews.position[1] = position[1];
+            ST_LightViews.position[2] = position[2];
+        }
+
+        let color = this.getColor();
+        ST_LightViews.color[0] = color.red;
+        ST_LightViews.color[1] = color.green;
+        ST_LightViews.color[2] = color.blue;
+
+        ST_LightViews.intensity[0] = this.getIntensity();
+
+        ST_LightViews.distance[0] = this.getDistance();
+
+        let dir = this.getDirection();
+        if (dir) {
+            ST_LightViews.direction[0] = dir[0];
+            ST_LightViews.direction[1] = dir[1];
+            ST_LightViews.direction[2] = dir[2];
+        }
+
+        ST_LightViews.decay[0] = this.getDecay();
+
+        let angle = this.getAngle();
+        if (angle) {
+            ST_LightViews.angle[0] = angle[0];
+            ST_LightViews.angle[1] = angle[1];
+        }
+
+        ST_LightViews.shadow[0] = this.getShadowEnable() ? 1 : 0;
+        ST_LightViews.visible[0] = this.getVisible() ? 1 : 0;
+
+        return ST_LightValues;
     }
 }
