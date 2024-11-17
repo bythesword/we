@@ -1,35 +1,28 @@
 import {
     Mat4,
     Vec3,
-    Vec4,
-    // mat4, 
-    // vec3
+    mat4,
 } from 'wgpu-matrix';
 
 
-import { BaseCamera, projectionOptions } from "./baseCamera";
+import { BaseCamera, cameraRayValues, projectionOptions } from "./baseCamera";
 
 export interface optionOrthProjection extends projectionOptions {
-    left?: number,
-    right?: number,
-    top?: number,
-    bottom?: number,
+    left: number,
+    right: number,
+    top: number,
+    bottom: number,
 
 }
 
 export class OrthographicCamera extends BaseCamera {
-    constructor(option:optionOrthProjection) {
-        super(option);
+ 
+    getCameraRays(): cameraRayValues {
+        throw new Error('Method not implemented.');
+    }
+    updateProjectionMatrix(option: optionOrthProjection) {
+        this.projectionMatrix = mat4.ortho(option.left, option.right, option.bottom, option.top, option.near, option.far);
     }
 
-    update(position: Vec3, direction: Vec3): Mat4[] {
-        throw new Error('Method not implemented.');
-    }
-    getMVP(): Mat4[] {
-        throw new Error('Method not implemented.');
-    }
-    updateProjectionMatrix(option: projectionOptions): Mat4 {
-        throw new Error('Method not implemented.');
-    }
 
 }

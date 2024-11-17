@@ -35,7 +35,7 @@ export type stagesOrderByRender = number[];
 // }
 
 export var defaultStageList: stagesOrderByRender = [defaultStage];
-
+export var lightNumber = 32;//这个需要同步到“system.wgsl”中的数量
 
 /**
  * RGBA四个数值的颜色interface，0--1
@@ -72,4 +72,4 @@ export interface color3U {
     blue: number,
 }
 
-export var shadowMapSize=1024;
+export var shadowMapSize = 1024;

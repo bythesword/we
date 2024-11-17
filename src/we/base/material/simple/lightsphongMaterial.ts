@@ -1,4 +1,5 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
+// import lightsFS from "../../shader/material/simple/phong.fs.wgsl?raw"
 import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 import { uniformBufferPart, uniformEntries } from "../../command/baseCommand";
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
@@ -177,26 +178,33 @@ export class PhongLightsMaterial extends PhongColorMaterial {
         }
     };
 
+    /**
+     * 
+     * @returns  FS code
+     */
     getCodeFS() {
         let code = lightsFS;
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
         code = code.replaceAll("$green", this.green.toString());
         code = code.replaceAll("$alpha", this.alpha.toString());
-        // @group(1) @binding(4) var u_Sampler: sampler;
-        // @group(1) @binding(5) var u_Texture: texture_2d<f32>;
-        let spec = " let   specularColor  = light_atten_coff * u_metalness * spec * lightColor;\n";
+
+        let spec = "     ";
         //这里的u_metalness也需要被使用，否则报错，乘上之后就是金属度的增加
-        let specTexture = "let specc= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;\n let  specularColor  = light_atten_coff * u_metalness *specc*    spec * lightColor;\n";
+        let specTexture = "let specc= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;\n    specularColor  = light_atten_coff * u_metalness *specc*    spec * lightColor;\n";
         // let specTexture = "spec =textureSample(u_specularTexture, u_Sampler,  uv);\n";
 
-        let normal = "let normal = normalize(vNormal);\n"
-        let normalTexture = "let normal =textureSample(u_normalTexture, u_Sampler,  uv).rgb;\n";
+        let normal = "  ";
+        let normalTexture = "  normal =textureSample(u_normalTexture, u_Sampler,  uv).rgb;\n";
 
         let flag_spec = false;
         let flag_texture = false;
         let flag_normal = false;
 
+        // @group(1) @binding(4) var u_Sampler: sampler;
+        // @group(1) @binding(5) var u_Texture: texture_2d<f32>;
+
+        //判断texture种类，增加对应贴图，增加一个采样（uniform中，binding 4）
         if (this.countOfTextures > 0) {
             code += "@group(1) @binding(4) var u_Sampler : sampler; \n ";
             let binding = 5;

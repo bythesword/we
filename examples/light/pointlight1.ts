@@ -13,6 +13,7 @@ import { PhongColorMaterial } from "../../src/we/base/material/simple/phongColor
 import { vec3 } from "wgpu-matrix"
 import { PhongLightsMaterial } from "../../src/we/base/material/simple/lightsphongMaterial"
 import { DirectionalLight } from "../../src/we/base/light/DirectionalLight"
+import { PointLight } from "../../src/we/base/light/pointLight"
 
 declare global {
   interface Window {
@@ -89,9 +90,9 @@ let Geometry = new SphereGeometry({
 let redMaterial = new PhongLightsMaterial(
   {
     color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
-    Shininess: 132,
-    metalness: 0.1,
-    roughness: 1,
+    Shininess: 32,
+    metalness: 1.0,
+    roughness: 1.0,
   });
 //box实体
 let boxEntity = new Mesh(
@@ -111,10 +112,10 @@ let boxEntity = new Mesh(
 //增加实体到scene
 scene.add(boxEntity)
 
-let dirLight: DirectionalLight = new DirectionalLight(
+let dirLight: DirectionalLight = new PointLight(
   {
-    intensity: 1.0,
-    direction: [1.0, 0.0, 0.0],
+    position: [0.0, 0.0, 8.0],
+    intensity: 5.0,
 
   }
 );

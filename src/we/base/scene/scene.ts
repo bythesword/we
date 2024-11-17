@@ -18,21 +18,7 @@ import { Clock } from '../scene/clock';
 import { cameraRayValues } from "../camera/baseCamera";
 import { BaseScene, sceneJson, renderPassSetting } from './baseScene';
 
-// import {
-//     DrawCommand,
-//     // primitiveOption,
-//     // drawModeIndexed,
-//     // drawMode,
-//     // indexBuffer,
-//     // unifromGroup,
-//     // uniformEntries,
-//     // uniformBufferPart,
-//     // fsPart,
-//     // vsPart,
-//     // vsAttributes
-// } from "../command/DrawCommand"
 
-// import { ComputeCommand } from '../command/ComputeCommand';
 
 import {
     //  projectionOptions,
@@ -43,11 +29,8 @@ import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
-import { BaseLight, lightStructSize, structBaselight } from "../light/baseLight";
-import { AmbientLight, optionAmbientLight } from "../light/ambientLight";
-// import { optionPerspProjection, PerspectiveCamera } from "../camera/perspectiveCamera"
-// import { optionCamreaControl } from "../control/cameracCntrol"
-// import { ArcballCameraControl } from "../control/arcballCameraControl"
+import { BaseLight, lightStructSize } from "../light/baseLight";
+
 
 /**
  *  canvas: string, canvas id;
@@ -58,6 +41,8 @@ declare interface sceneInputJson extends sceneJson {
     canvas: string,
     // renderPassSetting?: renderPassSetting,
     color?: coreConst.color4F,
+    /**最大光源数量，默认= coreConst.lightNumber ，32个*/
+    lightNumber?: number,
 
 }
 
@@ -148,6 +133,9 @@ class Scene extends BaseScene {
 
     constructor(input: sceneInputJson) {
         super(input)
+        if (input.lightNumber) {
+            this._maxlightNumber = input.lightNumber;
+        }
         if (input.name) {
             this.name = input.name;
         }
@@ -258,7 +246,7 @@ class Scene extends BaseScene {
         });
 
         this.renderPassDescriptor = this.createRenderPassDescriptor();
-        this.updateSystemUniformBuffer();
+        // this.updateSystemUniformBuffer();
         this.initStages();
         this.initActors();
     }
@@ -373,6 +361,10 @@ class Scene extends BaseScene {
         }
     }
 
+    addLight(oneLight: BaseLight) {
+        this.lights.push(oneLight);
+    }
+
     /**
      * 获取scene 默认的canvas的render pass 
      * @returns GPURenderPassDescriptor
@@ -441,7 +433,7 @@ class Scene extends BaseScene {
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
-    //作废，20241022，由于洗漱map和结构的问题，不在进行全局的uniform排列，而采用原来的layout bindGroup0 ，产生12个巨大的buffer
+    //作废，20241022，由于稀疏map和结构的问题，不在进行全局的uniform排列，而采用原来的layout bindGroup0 ，产生12个巨大的buffer
     getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[] {
         let entries: GPUBindGroupEntry[] =
             [
@@ -472,14 +464,20 @@ class Scene extends BaseScene {
      * @returns 
      */
     getWGSLOfSystemShader(): string {
-        let lightNumber = this.getLightNumbers();
-        let lightsArray = `lights: array<ST_Light, ${lightNumber}>,`
-        if (lightNumber == 0) {
-            lightsArray = '';
-        }
+        // let lightNumber = this.getLightNumbers();
+        // let lightNumberForSystem = lightNumber + 1;
+        // let lightsArray = `lights: array<ST_Light, ${lightNumberForSystem}>,`
+        // if (lightNumber == 0) {
+        //     lightsArray = 'lights: array<ST_Light, 1>';
+        // }
+        // let code = wgsl_main.toString();
+        //// code = code.replace("$lightNumber", lightNumber.toString());//作废 num写入了结构体的buffer中，通过uniform传递
+        // code = code.replace("$lightsArray", lightsArray.toString());
+
+        // let lightNumber = coreConst.lightNumber;
+        let lightNumber = this._maxlightNumber.toString();
         let code = wgsl_main.toString();
-        // code = code.replace("$lightNumber", lightNumber.toString());//作废 num写入了结构体的buffer中，通过uniform传递
-        code = code.replace("$lightsArray", lightsArray.toString());
+        code = code.replace("$lightNumber", lightNumber);
         return code;
     }
 
@@ -557,16 +555,43 @@ class Scene extends BaseScene {
             * @returns 光源的GPUBuffer,大小=16 + 16 + lightNumber * 96,
      */
     getUniformOfSystemLights(): GPUBuffer {
-        let lightNumber = this.getLightNumbers();
-
         let size = lightStructSize;
+        let lightNumber = coreConst.lightNumber;
+        let lightRealNumberOfSystem = this.getLightNumbers();
+
+        let lightsGPUBuffer: GPUBuffer;
+
+        if (lightNumber == this._lastNumberOfLights)
+            //generate GPUBuffer
+            if (this.systemUniformBuffers["lights"]) {
+                lightsGPUBuffer = this.systemUniformBuffers["lights"];
+            }
+            else {
+                lightsGPUBuffer = this.device.createBuffer({
+                    label: 'lightsGPUBuffer',
+                    size: 16 + 16 + lightNumber * size,
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                });
+            }
+        else {//不同，注销并新建
+            if (this.systemUniformBuffers["lights"]) {
+                this.systemUniformBuffers["lights"].destroy();
+            }
+            lightsGPUBuffer = this.device.createBuffer({
+                label: 'lightsGPUBuffer',
+                size: 16 + 16 + lightNumber * size,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+            this._lastNumberOfLights = lightNumber;
+        }
+
 
         //总arraybuffer
         let buffer = new ArrayBuffer(16 + 16 + lightNumber * size);
 
-        //第一个16，是光源舒亮
+        //第一个16，是光源数量
         let ST_lightNumber = new Uint32Array(buffer, 0, 1);
-        ST_lightNumber[0] = lightNumber;
+        ST_lightNumber[0] = lightRealNumberOfSystem;
 
         //第二个16，是当前的环境光参数（每个stage的环境光可能不同，室内外）
         let ST_AmbientLightViews = {
@@ -581,27 +606,16 @@ class Scene extends BaseScene {
         //第三部分，lightNumber * size
         //映射到每个viewer上，并写入新的数据（无论是否有变化）
         for (let i = 0; i < this.lights.length; i++) {
-            let StructBuffer = new Float32Array(buffer, 16 + 16 + size * i, size);
+            let StructBuffer = new Float32Array(buffer, 16 + 16 + size * i, size / 4);//todo，20241117，需要确认是否/4(byte*4 -->float32*1)
             let lightStructBuffer = this.lights[i].getStructBuffer();
             for (let j = 0; j < size; j++) {
                 StructBuffer[i * size + j] = lightStructBuffer[j];
             }
         }
-        //generate GPUBuffer
-        let lightsGPUBuffer: GPUBuffer;
-        if (this.systemUniformBuffers["lights"]) {
-            lightsGPUBuffer = this.systemUniformBuffers["lights"];
-        }
-        else {
-            lightsGPUBuffer = this.device.createBuffer({
-                label: 'lightsGPUBuffer',
-                size: 16 + 16 + lightNumber * size,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            });
-        }
 
         //生成浮点数据队列
         let bufferFloat32Array = new Float32Array(buffer);
+        // let bufferFloat32Array = buffer;
         //将新生成的浮点数据写入到GPUBuffer中，
         this.device.queue.writeBuffer(
             lightsGPUBuffer,
@@ -612,6 +626,11 @@ class Scene extends BaseScene {
         );
         return lightsGPUBuffer;
     }
+    /**
+     * 
+     * @param mvp 
+     * @returns 
+     */
     getUnitMVP(mvp: Mat4[] | boolean = false): GPUBuffer {
         const uniformBufferSize = 4 * 4 * 4 * 4;//MVP 
         let MVP: GPUBuffer;
@@ -657,6 +676,12 @@ class Scene extends BaseScene {
         );
         return MVP;
     }
+
+
+    /**
+     * 获取MVP矩阵
+     * @returns MVP(16*4)
+     */
     getMVP(): GPUBuffer {
         if (this.defaultCamera) {
             let mvpArray = this.defaultCamera.getMVP();

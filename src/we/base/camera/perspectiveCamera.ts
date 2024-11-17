@@ -22,20 +22,25 @@ export interface optionPerspProjection extends projectionOptions {
 
 export class PerspectiveCamera extends BaseCamera {
 
-    
+
     getCameraRays(): cameraRayValues {
         throw new Error('Method not implemented.');
     }
 
 
-    declare option: optionPerspProjection
-    constructor(option: optionPerspProjection) {
-        super(option);
-        this.option = option;
-        this.projectionMatrix = mat4.perspective(option.fov, option.aspect, option.near, option.far);
+    // declare option: optionPerspProjection
+    // /**
+    //  * 
+    //  * @param option:optionPerspProjection
+    //  */
+    // constructor(option: optionPerspProjection) {
+    //     super(option);
+    //     // this.option = option;
+    //     // this.updateProjectionMatrix(option);
+    //     // this.projectionMatrix = mat4.perspective(option.fov, option.aspect, option.near, option.far);
 
-        // const modelViewProjectionMatrix = mat4.create();
-    }
+    //     // const modelViewProjectionMatrix = mat4.create();
+    // }
 
     /**
      * 更新摄像机矩阵（三个，M，V，P）
@@ -44,31 +49,31 @@ export class PerspectiveCamera extends BaseCamera {
      * @param normalize ：摄像机方向是否归一化的
      * @returns  MVP的Mat4[]
      */
-    update(position: Vec3, direction: Vec3, normalize = false): Mat4[] {
-        this.position = position;
-        if (normalize === false) {
-            vec3.normalize(vec3.subtract(position, direction, this.back));
-        }
-        else {
-            this.back = direction;
-        }
-        this.right = vec3.normalize(vec3.cross(this.up, this.back));
-        this.up = vec3.normalize(vec3.cross(this.back, this.right));
+    // update(position: Vec3, direction: Vec3, normalize = false): Mat4[] {
+    //     this.position = position;
+    //     if (normalize === false) {
+    //         vec3.normalize(vec3.subtract(position, direction, this.back));
+    //     }
+    //     else {
+    //         this.back = direction;
+    //     }
+    //     this.right = vec3.normalize(vec3.cross(this.up, this.back));
+    //     this.up = vec3.normalize(vec3.cross(this.back, this.right));
 
-        // console.log("projectionMatrix=", this.projectionMatrix)
+    //     // console.log("projectionMatrix=", this.projectionMatrix)
 
-        this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
-        // let mv = mat4.multiply(this.viewMatrix, this.modelMatrix,);
-        // // console.log("M*V=", mv, "M*V的invert=", mat4.invert(mv))
+    //     this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
+    //     // let mv = mat4.multiply(this.viewMatrix, this.modelMatrix,);
+    //     // // console.log("M*V=", mv, "M*V的invert=", mat4.invert(mv))
 
-        // let mv1 = mat4.multiply(mat4.invert(this.viewMatrix), mat4.invert(this.modelMatrix),);
-        // // console.log("M.invert * V.invert=", mv1)
+    //     // let mv1 = mat4.multiply(mat4.invert(this.viewMatrix), mat4.invert(this.modelMatrix),);
+    //     // // console.log("M.invert * V.invert=", mv1)
 
-        // let mvp = mat4.multiply(this.projectionMatrix, mat4.invert(mv));
-        // // console.log(mat4.invert(mv), mvp)
+    //     // let mvp = mat4.multiply(this.projectionMatrix, mat4.invert(mv));
+    //     // // console.log(mat4.invert(mv), mvp)
 
-        return this.MVP;
-    }
+    //     return this.MVP;
+    // }
 
     /**
      * 更新透视相机的投影矩阵

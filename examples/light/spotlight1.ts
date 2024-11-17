@@ -13,6 +13,8 @@ import { PhongColorMaterial } from "../../src/we/base/material/simple/phongColor
 import { vec3 } from "wgpu-matrix"
 import { PhongLightsMaterial } from "../../src/we/base/material/simple/lightsphongMaterial"
 import { DirectionalLight } from "../../src/we/base/light/DirectionalLight"
+import { SpotLight } from "../../src/we/base/light/SpotLight"
+import { PlaneGeometry } from "../../src/we/base/geometry/planeGeomertry"
 
 declare global {
   interface Window {
@@ -80,18 +82,24 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let Geometry = new SphereGeometry({
-  radius: 1,
-  widthSegments: 128,
-  heightSegments: 128
+// let Geometry = new SphereGeometry({
+//   radius: 1,
+//   widthSegments: 128,
+//   heightSegments: 128
+// });
+let Geometry = new PlaneGeometry({
+
+  width: 13,
+  height: 13
 });
+
 //极简测试材质，red
 let redMaterial = new PhongLightsMaterial(
   {
     color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
-    Shininess: 132,
-    metalness: 0.1,
-    roughness: 1,
+    Shininess: 128,
+    metalness: 1.51,
+    roughness: .510,
   });
 //box实体
 let boxEntity = new Mesh(
@@ -111,11 +119,13 @@ let boxEntity = new Mesh(
 //增加实体到scene
 scene.add(boxEntity)
 
-let dirLight: DirectionalLight = new DirectionalLight(
+let dirLight: DirectionalLight = new SpotLight(
   {
-    intensity: 1.0,
-    direction: [1.0, 0.0, 0.0],
-
+    direction: [0.0, 0.0, -1.0],
+    position: [0,0, 3],
+    intensity: 2.0,
+    angle: 25/180*Math.PI,//12.5
+    angleOut: 28/180*Math.PI //17.5
   }
 );
 

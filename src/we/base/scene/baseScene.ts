@@ -1,44 +1,48 @@
-import {
-    Mat4,
-    // mat4,
-    // vec3
-} from 'wgpu-matrix';
+
 import { AmbientLight, optionAmbientLight } from '../light/ambientLight';
 import { BaseLight } from '../light/baseLight';
-// import { Clock } from '../scene/clock';
+import * as coreConst from "../const/coreConst"
 
 export declare interface sceneJson {
     /**canvas id */
     name?: string,
+    /**渲染的输出目标 */
     renderTo?: HTMLCanvasElement | GPUTexture,
+    /**深度与模拟 */
     depthStencil?: GPUDepthStencilState,
+    /** renderpass 设置 */
     renderPassSetting?: renderPassSetting,
+    /**环境光 */
     ambientLight?: optionAmbientLight
 }
- 
+
 /**scene 的默认renderPassSetting 
  * 有color和depth ，分别有2组
  * 第一组是每一帧初始化时，clear的配置
  * 第二组是load同一帧的之前内容，而不是采用clear的方式
 */
 export interface renderPassSetting {
+    /**一帧的第一次color的设置 */
     color?: {
         clearValue?: GPUColor,
         loadOp?: GPULoadOp,
         storeOp?: GPUStoreOp,
         depthSlice?: GPUIntegerCoordinate,
     },
+    /**一帧的第一次depth的设置 */
     depth?: {
         depthClearValue?: number,
         depthLoadOp?: GPULoadOp,
         depthStoreOp?: GPUStoreOp,
     },
+    /**一帧的第二次color的设置 */
     colorSecond?: {
         // clearValue?: GPUColor,
         loadOp?: GPULoadOp,
         storeOp?: GPUStoreOp,
         depthSlice?: GPUIntegerCoordinate,
     },
+    /**一帧的第二次depth的设置 */
     depthSecond?: {
         // depthClearValue?: number,
         depthLoadOp?: GPULoadOp,
@@ -108,11 +112,18 @@ export abstract class BaseScene {
     /** lights array */
     lights!: BaseLight[];
     ambientLight!: AmbientLight;
+    /**当前scene|stage中起作用的光源索引 */
     lightsIndex!: [];
-    // ambientLightIndex!: number;
+    /***上一帧光源数量，动态增减光源，uniform的光源的GPUBuffer大小会变化，这个值如果与this.lights.length相同，不更新；不同，怎更新GPUBuffer */
+    _lastNumberOfLights!: number;
+
+    /**最大光源数量 */
+    _maxlightNumber!: number;
 
     constructor(input: sceneJson) {
         this.input = input;
+        this._maxlightNumber = coreConst.lightNumber;
+        this._lastNumberOfLights = 0;
         if ("depthStencil" in input) {
             this.depthStencil = input.depthStencil as GPUDepthStencilState;
         }
@@ -123,7 +134,7 @@ export abstract class BaseScene {
                 format: 'depth24plus',
             };
         }
-        this.lights = []; 
+        this.lights = [];
     }
     //异步执行，需要单独调用
     abstract init(): any
@@ -148,6 +159,13 @@ export abstract class BaseScene {
     abstract updateSystemUniformBuffer(): any
 
     /**
+     * 每个shader绑定system的group0；
+     * 
+     * scene以及实现；
+     * 
+     * 
+     * stage的可以通过全局变量scene进行调用scene的
+     * 
      * uniform of system  bindGroup to  group  0 for pershader
      */
     abstract createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline): GPUBindGroup
@@ -157,13 +175,17 @@ export abstract class BaseScene {
         document.body.innerHTML += `<pre>${msg}</pre>`;
         throw Error(msg);
     }
+
+    /**每个继承类的更新入口 */
     abstract update(deltaTime: number): any
 
+    /***     作废，20241022，由于稀疏map和结构的问题，不在进行全局的uniform排列，而采用原来的layout bindGroup0 ，产生12个巨大的buffer*/
     abstract getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[]
+    /**scene 、stage都是从baseScene基础，其核心渲染的全局wgsl可能不同 */
     abstract getWGSLOfSystemShader(): string
 
     /**
-     * 
+     * 环境光设置，更新环境光
      * @param values : optionAmbientLight,默认强度=0，即不存在环境光
      */
     setAmbientLight(values: optionAmbientLight = {

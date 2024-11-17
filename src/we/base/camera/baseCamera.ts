@@ -5,7 +5,7 @@ import {
   Mat4,
   Vec3,
   Vec4,
-  // mat4,
+  mat4,
   vec3
 } from 'wgpu-matrix';
 
@@ -29,7 +29,7 @@ export interface projectionOptions {
   position: Vec3,
   lookAt?: Vec3,
 }
-
+//todo
 export interface cameraRayValues {
   direction: Vec3,
   left: Vec3,
@@ -76,6 +76,8 @@ export abstract class BaseCamera {
 
   /** MVP的Mat4的数组，[model,view,projection]  */
   MVP!: Mat4[];
+  /**数字ID，scene中的队列的id */
+  NID!: number;
 
 
   lookAt!: Vec3;
@@ -122,8 +124,7 @@ export abstract class BaseCamera {
     else {
       this.lookAt = vec3.create(0, 0, 0);
     }
-
-
+    this.updateProjectionMatrix(option);//构造投影矩阵
   }
   // /** 获取up方向 */
   // get upDirection() {
@@ -133,14 +134,57 @@ export abstract class BaseCamera {
   // set upDirection(up: Vec3) {
   //   vec3.copy(up, this._upDirection);
   // }
+
+  // abstract update(position: Vec3, direction: Vec3, normalize: boolean): Mat4[];
   /**
-   * 更新入口 
-   * Mat4[model,view,projection]
+   * 通过position,dir更新摄像机矩阵（三个，M，V，P）
+   * @param position ：摄像机位置
+   * @param direction ：摄像机方向
+   * @param normalize ：摄像机方向是否归一化的
+   * @returns  MVP的Mat4[]
    */
-  abstract update(position: Vec3, direction: Vec3, normalize: boolean): Mat4[];
+  update(position: Vec3, direction: Vec3, normalize = false): Mat4[] {
+    this.position = position;
+    if (normalize === false) {
+      vec3.normalize(vec3.subtract(position, direction, this.back));
+    }
+    else {
+      this.back = direction;
+    }
+    this.right = vec3.normalize(vec3.cross(this.up, this.back));
+    this.up = vec3.normalize(vec3.cross(this.back, this.right));
+
+    // console.log("projectionMatrix=", this.projectionMatrix)
+
+    this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
+    // let mv = mat4.multiply(this.viewMatrix, this.modelMatrix,);
+    // // console.log("M*V=", mv, "M*V的invert=", mat4.invert(mv))
+
+    // let mv1 = mat4.multiply(mat4.invert(this.viewMatrix), mat4.invert(this.modelMatrix),);
+    // // console.log("M.invert * V.invert=", mv1)
+
+    // let mvp = mat4.multiply(this.projectionMatrix, mat4.invert(mv));
+    // // console.log(mat4.invert(mv), mvp)
+
+    return this.MVP;
+  }
+  updateByPositionYawPitch(position: Vec3, yaw: number, pitch: number): Mat4[] {
+    //更新camera的矩阵，通过yaw和pitch的增量，暂缓后边通过camera.update更新
+    // Reconstruct the camera's rotation, and store into the camera matrix.
+    let view = mat4.rotateX(mat4.rotationY(yaw), pitch);
+    mat4.copy(view, this.viewMatrix);
+
+    this.position = position;
+    this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
+    return this.MVP;
+  }
+
   abstract getCameraRays(): cameraRayValues
+
+
   /**
    * 更新投影参数
+   * 
    * @param options :projectionOptions
    * 
    */
@@ -166,6 +210,10 @@ export abstract class BaseCamera {
     return this.direction;
   }
 
+  /**
+   *  返回MVP矩阵,分别是M,V,P三个矩阵
+   * @returns  Mat4[]
+   */
   getMVP() {
     if (this.MVP)
       return this.MVP;

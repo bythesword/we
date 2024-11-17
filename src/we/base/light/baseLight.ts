@@ -55,20 +55,36 @@ export interface optionBaseLight {
     update?: (scope: any, deltaTime: number) => Promise<any>,
 }
 
-
+/**
+ * 光源的uniform的尺寸，ArrayBuffer的大小(byte) 
+ */
 export var lightStructSize = 96;
+
+/**
+ * 输出的uniform的buffer的类型，float32Array，大小(length)以float32(4个字节)计算=lightStructSize/4
+ */
 export type structBaselight = Float32Array;
 
+
+//todo
+/**
+ * shadowmap 
+ */
 export interface shadowMap {
     map: GPUTexture,
 }
 export abstract class BaseLight {
     _id!: number;
     _kind!: number;
+    /**
+     * 
+     */
     _buffer!: structBaselight;
-
+    /**数字ID，scene中的队列的id */
+    NID!: number;
+    /**输入参数=input */
     parameters: optionBaseLight;
-    constructor(input: optionBaseLight) {
+    constructor(input: optionBaseLight, kind: number = -1) {
         this.parameters = input;
         if (this.parameters.position == undefined) this.parameters.position = [0.0, 0.0, 0.0];
         if (this.parameters.color == undefined) this.parameters.color = { red: 1, green: 1, blue: 1 };
@@ -76,7 +92,7 @@ export abstract class BaseLight {
         if (this.parameters.decay == undefined) this.parameters.decay = 1;
         if (this.parameters.visible == undefined) this.parameters.visible = true;
         if (this.parameters.intensity == undefined) this.parameters.intensity = 1.0;
-
+        this._kind = kind;
 
         if (this.parameters.shadow != undefined)
             if (this.parameters.shadow.castShadow === true)
@@ -96,7 +112,7 @@ export abstract class BaseLight {
         return this._kind
     }
     getPosition(): Vec3 | false {
-        if (this._kind != 1) {
+        if (this._kind == lightType.point || this._kind == lightType.spot) {
             return this.parameters.position!;
         }
         return false;
@@ -167,7 +183,7 @@ export abstract class BaseLight {
     //todo ：未完成，20241103
     updateStructBuffer(): structBaselight {
         // const ST_LightValues = new ArrayBuffer(size);
-        let ST_LightValues = new Float32Array(lightStructSize);
+        let ST_LightValues = new ArrayBuffer(lightStructSize);
         const ST_LightViews = {
             position: new Float32Array(ST_LightValues, 0, 3),
             decay: new Float32Array(ST_LightValues, 12, 1),
@@ -218,6 +234,6 @@ export abstract class BaseLight {
         ST_LightViews.shadow[0] = this.getShadowEnable() ? 1 : 0;
         ST_LightViews.visible[0] = this.getVisible() ? 1 : 0;
 
-        return ST_LightValues;
+        return new Float32Array(ST_LightValues);
     }
 }

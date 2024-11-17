@@ -1,3 +1,11 @@
+/***
+ * 未完成、未开始、未设计
+ * 一个command（commandEncoder）中，多个(passEncoder=>renderPassDescriptor可能不同),多个Draw
+ * 
+ * 切换setVertexBuffer（）
+ * 切换bindGroup，有顺序的保留
+ * 切换pipeline
+ */
 import {
     BaseCommand,
     // uniformBufferPart,

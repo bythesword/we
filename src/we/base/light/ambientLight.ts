@@ -26,11 +26,11 @@ export class AmbientLight extends BaseLight {
             this._color = vec3.fromValues(input.color.red, input.color.green, input.color.blue);
         if (input.intensity)
             this._intensity = input.intensity
-        this.structBuffer = { buffer: new Float32Array(4 * 4) };
-        this.structBuffer.buffer[0] = this._color[0];
-        this.structBuffer.buffer[1] = this._color[1];
-        this.structBuffer.buffer[2] = this._color[2];
-        this.structBuffer.buffer[3] = this._intensity;
+        this.structBuffer = new Float32Array(4 * 4);
+        // this.structBuffer.buffer[0] = this._color[0];
+        // this.structBuffer.buffer[1] = this._color[1];
+        // this.structBuffer.buffer[2] = this._color[2];
+        // this.structBuffer.buffer[3] = this._intensity;
 
     }
     getStructBuffer(): structBaselight {

@@ -1,13 +1,14 @@
 import { Vec3 } from "wgpu-matrix";
-import { optionBaseLight, shadowMap, structBaselight } from "./baseLight";
+import { lightType, optionBaseLight, shadowMap, structBaselight } from "./baseLight";
 import { BaseLight } from "./baseLight";
 import { color3F } from "../const/coreConst";
 
 
 
 export interface optionPointLight extends optionBaseLight {
+    /**位置 */
     position: Vec3,
-    color: color3F,
+
     /**光的强度 ,wgsl，不受距离与立体角影响
      * 默认=1.0
     */
@@ -24,9 +25,14 @@ export interface shadowMapBox {
 }
 
 export class PointLight extends BaseLight {
+    constructor(input: optionPointLight) {
+        super(input, lightType.point);
+    }
+
     generateShadowMap(device: GPUDevice): shadowMapBox {
         throw new Error("Method not implemented.");
     }
+
 
 
 

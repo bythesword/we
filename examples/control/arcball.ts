@@ -5,14 +5,10 @@ import { CameraActor, optionCameraActor } from "../../src/we/base/actor/cameraAc
 
 import { Scene, sceneInputJson } from "../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../src/we/base/geometry/boxGeometry"
-import { SphereGeometry } from "../../src/we/base/geometry/sphereGeometry"
-import { ColorMaterial } from "../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../src/we/base/entity/mesh/mesh"
 
-import { PhongColorMaterial } from "../../src/we/base/material/simple/phongColorMaterial"
 import { vec3 } from "wgpu-matrix"
-import { PhongLightsMaterial } from "../../src/we/base/material/simple/lightsphongMaterial"
-import { DirectionalLight } from "../../src/we/base/light/DirectionalLight"
+import { PhongMaterial } from "../../src/we/base/material/simple/phongMaterial"
 
 declare global {
   interface Window {
@@ -24,9 +20,9 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.1,
-    green: 0.1,
-    blue: 0.1,
+    red: 0.5,
+    green: 0.5,
+    blue: 0.5,
     alpha: 1
   },
   ambientLight: {
@@ -80,46 +76,34 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let Geometry = new SphereGeometry({
-  radius: 1,
-  widthSegments: 128,
-  heightSegments: 128
-});
+let boxGeometry = new BoxGeometry();
 //极简测试材质，red
-let redMaterial = new PhongLightsMaterial(
-  {
-    color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
-    Shininess: 132,
-    metalness: 0.1,
-    roughness: 1,
-  });
+let redMaterial = new PhongMaterial({
+  color: { red: 0, green: 1, blue: 0, alpha: 1 },
+  metalness: 1,
+  texture: {
+    texture: "../images/box/container2.png",
+    specularTexture: "../images/box/container2_specular.png",
+  }
+});
 //box实体
 let boxEntity = new Mesh(
   {
-    geometry: Geometry,
+    geometry: boxGeometry,
     material: redMaterial,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
     // position:vec3.create(1,0,0),
-    // scale:[2,2,1],
+    // scale:[1,1,1],
     // rotate:{
     //   axis:[1,0,0],
-    //   angleInRadians:0.15*Math.PI
-    // },
+    //   angleInRadians:-0.15*Math.PI
+    // }
   }
 );
 //增加实体到scene
 scene.add(boxEntity)
 
-let dirLight: DirectionalLight = new DirectionalLight(
-  {
-    intensity: 1.0,
-    direction: [1.0, 0.0, 0.0],
-
-  }
-);
-
-scene.addLight(dirLight);
 
 //运行场景
 scene.run()

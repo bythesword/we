@@ -72,7 +72,8 @@ export class CameraActor extends BaseActor {
     }
 
     getMVP() {
-        return this.camera.MVP;
+        return this.camera.getMVP();
+        // return this.camera.MVP;
     }
 
     setDefaultCamera(scope: any) {

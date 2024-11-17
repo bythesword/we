@@ -1,15 +1,10 @@
 import {
-    // Mat3, mat3, Mat4, mat4, Quat, quat, utils, Vec2, vec2,
     Vec3, vec3,
-    //   Vec4, vec4,
 } from 'wgpu-matrix';
 
 import {
-    // InputHandler,
-    // valuesOfCamreaControl,
     optionCamreaControl,
     CamreaControl,
-    // Input
 } from "./cameracCntrol"
 
 import * as MathFun from "../math/baseFunction"
@@ -48,9 +43,9 @@ export class ArcballCameraControl extends CamreaControl {
         vec3.copy(vec, this.axis_);
     }
 
-    constructor(option: optionCamreaControl) {
-        super(option)
-    }
+    // constructor(option: optionCamreaControl) {
+    //     super(option)
+    // }
     init() {
         // throw new Error('Method not implemented.');
     }

@@ -1,11 +1,4 @@
-// import {
-//     // Mat3, mat3, Mat4, 
-//     // mat4,
-//     // Quat, quat, utils, Vec2, vec2, 
-//     Vec3,
-//     // vec3,
-//     // Vec4, vec4, 
-// } from 'wgpu-matrix';
+
 
 import { BaseCamera } from "../camera/baseCamera"
 
@@ -55,21 +48,25 @@ export function createInputHandler(
     const setDigital = (e: KeyboardEvent, value: boolean) => {
         switch (e.code) {
             case 'KeyW':
+            case 'ArrowUp':
                 digital.forward = value;
                 e.preventDefault();
                 e.stopPropagation();
                 break;
             case 'KeyS':
+            case 'ArrowDown':
                 digital.backward = value;
                 e.preventDefault();
                 e.stopPropagation();
                 break;
             case 'KeyA':
+            case 'ArrowLeft':
                 digital.left = value;
                 e.preventDefault();
                 e.stopPropagation();
                 break;
             case 'KeyD':
+            case 'ArrowRight':
                 digital.right = value;
                 e.preventDefault();
                 e.stopPropagation();
@@ -111,12 +108,12 @@ export function createInputHandler(
         (e) => {
             // mouseDown = (e.buttons & 1) !== 0;
             // if (mouseDown) {
-                // The scroll value varies substantially between user agents / browsers.
-                // Just use the sign.
-                analog.zoom += Math.sign(e.deltaY);
-                // console.log(analog.zoom)
-                e.preventDefault();
-                e.stopPropagation();
+            // The scroll value varies substantially between user agents / browsers.
+            // Just use the sign.
+            analog.zoom += Math.sign(e.deltaY);
+            // console.log(analog.zoom)
+            e.preventDefault();
+            e.stopPropagation();
             // }
         },
         { passive: false }
@@ -148,8 +145,8 @@ export function createInputHandler(
 // }
 
 export interface optionCamreaControl {
-    window: Window,
-    canvas: HTMLCanvasElement,//const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+    window?: Window,
+    canvas?: HTMLCanvasElement,//const canvas = document.querySelector('canvas') as HTMLCanvasElement;
     camera?: BaseCamera,
     // parent: any,
 }
@@ -157,7 +154,7 @@ export interface optionCamreaControl {
 export abstract class CamreaControl {
     /** scene ,必须,cavas or texture */
     scene: any;
-    _camera: BaseCamera | undefined;
+    _camera!: BaseCamera;
     _isDestroy!: boolean;
     _option!: optionCamreaControl;
 
@@ -165,9 +162,16 @@ export abstract class CamreaControl {
 
     constructor(option: optionCamreaControl) {
         this._option = option;
+        if (this._option.window == undefined) {
+            this._option.window = window;
+        }
+        if (this._option.canvas == undefined) {
+            this._option.canvas = window.scene.canvas;
+        }
         if (option.camera) {
             this.camera = option.camera;
         }
+
         // else if (option.parent.cameraDefault) {
         //     this._camera = option.parent.cameraDefault;
         // }
@@ -176,7 +180,7 @@ export abstract class CamreaControl {
         // }
         // this.scene = option.parent;
         this.isDestroy = false;
-        this.inputHandler = createInputHandler(option.window, option.canvas)
+        this.inputHandler = createInputHandler(this._option.window, this._option.canvas!)
         this.init();
     }
     abstract init(): any;
@@ -187,13 +191,10 @@ export abstract class CamreaControl {
     set camera(camera: BaseCamera) {
         this._camera = camera;
     }
-    get camera(): BaseCamera | boolean {
-        if (this._camera) {
-            return this._camera;
-        }
-        else {
-            return false;
-        }
+    get camera(): BaseCamera {
+
+        return this._camera;
+
     }
     get isDestroy() {
         return this._isDestroy;

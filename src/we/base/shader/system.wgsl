@@ -19,13 +19,14 @@ struct ST_Light {
   shadow : i32,
   visible : i32,
   size : vec4f,
-  kind : i32,
+  kind : i32,             //0=dir,1=point,2=spoint
 }
 
 struct ST_Lights {
-  lightNumber : i32,
+  lightNumber : u32,
   Ambient : ST_AmbientLight,
-  $lightsArray
+  //$lightsArray    //这个是变量的化，shader的编译会有问题，会不变的
+  lights : array<ST_Light, $lightNumber>, 
 };
 
 var<private > defaultCameraPosition : vec3f;
