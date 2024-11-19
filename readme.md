@@ -69,18 +69,31 @@ PBR的材质编辑器；
 ## 相关资料与推荐
 
 https://www.w3.org/TR/webgpu/
+
 https://www.w3.org/TR/wgsl/
+
 https://github.com/webgpu/webgpu-samples
+
 https://github.com/gfx-rs/wgpu
+
 https://developer.mozilla.org/zh-CN/docs/Web/API/WebGPU_API
+
 https://webgpufundamentals.org/
+
 https://github.com/webgpu/webgpufundamentals
+
 https://github.com/webgpu/webgpu-samples
+
 https://github.com/greggman/wgpu-matrix
+
 https://github.com/toji/gl-matrix
+
 WebGPU API reference https://gpuweb.github.io/types/index.html
+
 https://github.com/greggman/webgpu-utils
+
 https://github.com/google/filament
+
 https://github.com/google/dawn
 
 ## 感谢
@@ -96,7 +109,6 @@ https://github.com/google/dawn
 感谢LearnOpengl的原书作者 JoeyDeVries https://learnopengl.com ；
 
 感谢Filament的文档作者Romain Guy,Mathias Agopian ；
-
 
 ## 写在最后
 
