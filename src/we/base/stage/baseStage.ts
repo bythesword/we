@@ -14,7 +14,7 @@ declare interface lightUniform { }
 declare interface BVH { }
 /**system  uniform 时间结构体 */
 declare interface timeUniform {
-    deltaTime: number,
+     deltaTime: number,startTime:number,lastTime:number,
     time: number,
 }
 
@@ -140,7 +140,7 @@ export class BaseStage extends BaseScene {
     }
 
     //todo 20241020，未进行距离、方向、可见性、视锥、BVH等的剔除
-    update(deltaTime: number) {
+    update(deltaTime: number,startTime:number,lastTime:number) {
         let scene;
         if (this.scene)
             scene = this.scene;
@@ -150,7 +150,7 @@ export class BaseStage extends BaseScene {
         if (this.cache === false) {
             this.command = [];
             for (let i of this.root) {
-                let dcc = i.update(scene, deltaTime);
+                let dcc = i.update(scene, deltaTime,startTime,lastTime);
                 for (let j of dcc)
                     this.command.push(j);
             }

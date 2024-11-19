@@ -1,4 +1,4 @@
-import { uniformBufferPart, uniformEntries, unifromGroup } from "../command/baseCommand";
+import { uniformEntries } from "../command/baseCommand";
 import * as coreConst from "../const/coreConst"
 
 
@@ -27,7 +27,7 @@ export abstract class BaseMaterial {
      * constructor中设置为false。 
      * 如果更改为为true，在材质不工作
     */
-    _already:boolean;
+    _already: boolean;
 
     constructor(input?: optionBaseMaterial) {
         this._destroy = false;
@@ -46,7 +46,7 @@ export abstract class BaseMaterial {
         }
         else
             this.input = {};
-        this._already=false;
+        this._already = false;
     }
     abstract init(): any;
     abstract getCodeFS(): string;

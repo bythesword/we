@@ -220,7 +220,8 @@ export class BoxGeometry extends BaseGeometry {
             normal: [],
             uv: [],
             indeices: [],
-            materialStep: []
+            materialStep: [],
+            color:[],
         }
     }
 

@@ -66,10 +66,10 @@ export class Mesh extends BaseEntity {
 
     }
 
-    updateUniformBuffer(_scene: any, _deltaTime: number) {
+    updateUniformBuffer(_scene: any,  deltaTime: number,startTime:number,lastTime:number) {
         // throw new Error("Method not implemented.");
     }
-    updateDCC(_scene: any, _deltaTime: number): commmandType[] {
+    updateDCC(_scene: any,  deltaTime: number,startTime:number,lastTime:number): commmandType[] {
         // throw new Error("Method not implemented.");
         return this._commmands;
     }

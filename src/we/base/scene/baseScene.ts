@@ -177,7 +177,7 @@ export abstract class BaseScene {
     }
 
     /**每个继承类的更新入口 */
-    abstract update(deltaTime: number): any
+    abstract update(deltaTime: number,startTime:number,lastTime:number): any
 
     /***     作废，20241022，由于稀疏map和结构的问题，不在进行全局的uniform排列，而采用原来的layout bindGroup0 ，产生12个巨大的buffer*/
     abstract getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[]

@@ -1,17 +1,13 @@
-import {
-    Mat4,
+import { 
     vec3,
     Vec3
 } from "wgpu-matrix";
-import { BaseActor, actorCamera, actorControl, actorLight, optionActor } from "./baseActor";
+import { BaseActor,  optionActor } from "./baseActor";
 import {
     CamreaControl,
     // optionCamreaControl
 } from "../control/cameracCntrol";
-import { BaseCamera } from "../camera/baseCamera";
-import { OrthographicCamera, optionOrthProjection } from "../camera/orthographicCamera";
-import { PerspectiveCamera, optionPerspProjection } from "../camera/perspectiveCamera";
-
+import { BaseCamera } from "../camera/baseCamera"; 
 
 export interface optionCameraActor extends optionActor {
     lookAt?: Vec3,
@@ -28,7 +24,7 @@ export interface optionCameraActor extends optionActor {
 export class CameraActor extends BaseActor {
 
 
-    declare _option: optionCameraActor;
+    declare input: optionCameraActor;
     _camera!: BaseCamera;
     _control!: CamreaControl;
     // _position!: Vec3;
@@ -51,8 +47,8 @@ export class CameraActor extends BaseActor {
         //     this.position = option.position!;
         //     this.globalPosition = false;
         // }
-        this._camera = this._option.camera;
-        this._control = this._option.control as CamreaControl;
+        this._camera = this.input.camera;
+        this._control = this.input.control as CamreaControl;
         if (this.control.camera == undefined) {
             this.control.camera = this.camera;
         }
@@ -64,10 +60,10 @@ export class CameraActor extends BaseActor {
     initBindPool() {
 
     }
-    async update(deltaTime: number) {
-        this.control.update(deltaTime);
-        if (this.userCallBack) {
-            await this.userCallBack(this, this.userCallBackInput);
+    async update(deltaTime: number,startTime:number,lastTime:number) {
+        this.control.update(deltaTime,startTime,lastTime);
+        if (this.input.update) {
+            this.input.update(this,deltaTime,startTime,lastTime);
         }
     }
 

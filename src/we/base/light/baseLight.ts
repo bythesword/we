@@ -1,13 +1,12 @@
 import * as coreConst from "../const/coreConst";
 import {
-    //vec3,
-    Vec3, vec3
+    Vec3,
 } from "wgpu-matrix";
 
 // export interface optionBaseLightSize{
 
 // }
-export interface optionLightShadow {
+export interface optionLightShadow extends coreConst.optionUpdate {
     /**
      * 是否产生阴影
      * 默认=false
@@ -23,7 +22,7 @@ export enum lightType {
     point,
     spot,
 }
-export interface optionBaseLight {
+export interface optionBaseLight extends coreConst.optionUpdate {
     position?: Vec3,
     color?: coreConst.color3F,
     /**光的强度 
@@ -52,7 +51,7 @@ export interface optionBaseLight {
      * 若投射阴影，也仅在相关的stage中进行，比如室内不考虑室外
      */
     stage?: coreConst.stageName,
-    update?: (scope: any, deltaTime: number) => Promise<any>,
+    // update?: (scope: any,  deltaTime: number,startTime:number,lastTime:number) => Promise<any>,
 }
 
 /**
@@ -83,21 +82,21 @@ export abstract class BaseLight {
     /**数字ID，scene中的队列的id */
     NID!: number;
     /**输入参数=input */
-    parameters: optionBaseLight;
+    input: optionBaseLight;
     constructor(input: optionBaseLight, kind: number = -1) {
-        this.parameters = input;
-        if (this.parameters.position == undefined) this.parameters.position = [0.0, 0.0, 0.0];
-        if (this.parameters.color == undefined) this.parameters.color = { red: 1, green: 1, blue: 1 };
-        if (this.parameters.distance == undefined) this.parameters.distance = 0.0;
-        if (this.parameters.decay == undefined) this.parameters.decay = 1;
-        if (this.parameters.visible == undefined) this.parameters.visible = true;
-        if (this.parameters.intensity == undefined) this.parameters.intensity = 1.0;
+        this.input = input;
+        if (this.input.position == undefined) this.input.position = [0.0, 0.0, 0.0];
+        if (this.input.color == undefined) this.input.color = { red: 1, green: 1, blue: 1 };
+        if (this.input.distance == undefined) this.input.distance = 0.0;
+        if (this.input.decay == undefined) this.input.decay = 1;
+        if (this.input.visible == undefined) this.input.visible = true;
+        if (this.input.intensity == undefined) this.input.intensity = 1.0;
         this._kind = kind;
 
-        if (this.parameters.shadow != undefined)
-            if (this.parameters.shadow.castShadow === true)
-                if (this.parameters.shadow.mapSize == undefined) {
-                    this.parameters.shadow.mapSize = {
+        if (this.input.shadow != undefined)
+            if (this.input.shadow.castShadow === true)
+                if (this.input.shadow.mapSize == undefined) {
+                    this.input.shadow.mapSize = {
                         width: coreConst.shadowMapSize,
                         height: coreConst.shadowMapSize,
                     }
@@ -113,30 +112,30 @@ export abstract class BaseLight {
     }
     getPosition(): Vec3 | false {
         if (this._kind == lightType.point || this._kind == lightType.spot) {
-            return this.parameters.position!;
+            return this.input.position!;
         }
         return false;
     }
     getColor() {
-        return this.parameters.color as coreConst.color3F;
+        return this.input.color as coreConst.color3F;
     }
     getIntensity(): number {
-        return this.parameters.intensity!;
+        return this.input.intensity!;
     }
     /***
      * 光源的作用距离
      * 默认=0，一直起作用
      */
     getDistance(): number {
-        return this.parameters.distance!;
+        return this.input.distance!;
     }
     getShadowEnable(): boolean {
-        if (this.parameters.shadow && this.parameters.shadow.castShadow)
-            return this.parameters.shadow.castShadow;
+        if (this.input.shadow && this.input.shadow.castShadow)
+            return this.input.shadow.castShadow;
         return false;
     }
     getVisible(): boolean {
-        return this.parameters.visible! as boolean;
+        return this.input.visible! as boolean;
     }
 
     /**只有方向光返回值，其他返回false */
@@ -145,17 +144,17 @@ export abstract class BaseLight {
             return false;
         }
         else {
-            return this.parameters.direction!;
+            return this.input.direction!;
         }
 
     }
     getDecay() {
-        return this.parameters.decay!;
+        return this.input.decay!;
     }
     /**只有spot有值，其他false */
     getAngle(): number[] | false {
         if (this._kind == lightType.spot) {
-            return [this.parameters.angle!, this.parameters.angleOut!];
+            return [this.input.angle!, this.input.angleOut!];
         }
         return false;
     }
@@ -167,10 +166,10 @@ export abstract class BaseLight {
         this._id = id;
     }
     get id(): number { return this._id; }
-    async update(deltaTime: number) {
+    async update( deltaTime: number,startTime:number,lastTime:number) {
         let scope = this;
-        if (this.parameters.update) {
-            await scope.parameters.update!(scope, deltaTime);
+        if (this.input.update) {
+            await scope.input.update!(scope, deltaTime,startTime,lastTime);
             scope.updateStructBuffer();
         }
     }

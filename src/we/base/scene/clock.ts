@@ -16,6 +16,9 @@ export class Clock {
     get deltaTime() {
         return this._deltaTime;
     }
+    get start() {
+        return this.timeStart;
+    }
     get now() {
         return this.timeNow;
     }

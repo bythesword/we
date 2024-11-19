@@ -1,8 +1,20 @@
+/** 用户自定义功能接口的update interface */
+export interface optionUpdate {
+    /**自定义更新functon() */
+    update?: (scope: any, deltaTime: number,startTime:number,lastTime:number) => {},
+    // update?: (scope: any, deltaTime: number,startTime:number,lastTime:number) => {},
+    // update?: (scope: any, deltaTime: number,startTime:number,lastTime:number) => Promise<any>,
+}
+
+/** stage 索引类型 */
 export type stageIndex = string;
 
+/** stage name的对象接口*/
 export interface stageName {
     [name: number]: string
 }
+
+/**默认stage层级与名称 */
 export var stagesOfSystem: stageName = [
     "UI",
     "Sky",//天空盒
@@ -11,28 +23,13 @@ export var stagesOfSystem: stageName = [
     "Actor",//角色
 ]
 
-// export var stagesOfSystem: stageName = [
-//     ////// "Depth",   //这个是必须的，目前不在stage中
-//     "World",
-//     "worldTransparent",
 
-//     "Actor",//延迟
-//     "ActorTransparent",//延迟
-
-//     "Immediate",//Opaque//延迟//立即模式，不进入command
-//     "ImmediateTransparent",//延迟
-
-//     "Sky",
-//     "UI",//延迟
-// ]
 
 export var defaultStage = 2;//stagesOfSystem[0];
 export var defaultStageName = stagesOfSystem[defaultStage]
 
 export type stagesOrderByRender = number[];
-// export interface stagesOrderByRender {
-//     [id: number]: number
-// }
+
 
 export var defaultStageList: stagesOrderByRender = [defaultStage];
 export var lightNumber = 32;//这个需要同步到“system.wgsl”中的数量

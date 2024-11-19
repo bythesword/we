@@ -2,128 +2,31 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vite + TS</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
 </head>
 
 <body>
-  <!-- <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script> -->
-  <ul>
+    <ul>
+        <li>
+            <a href="./examples/base/index.html"> 基础功能</a>
+        </li>
 
-    <li>
-      <a href="./fromExample/cameras/base1.html">webGPU camera base 1</a>
-    </li>
-    <li></li>
-    <li>=======webGPU limite 测试==================
-    </li>
-    <li> <a href="./examples/webGPU//maxUniformBuffersPerShaderStage.html">V maxUniformBuffersPerShaderStage 12</a>
-    </li>
-    <li> <a href="./examples/webGPU/uniformAndTexture.html">V uniform and texture 12buffer(连续的)和纹理 ，都在group0</a> </li>
-    <li> <a href="./examples/webGPU/uniformAndTexture1.html">V uniform and texture 12buffer(不连续的)和纹理，都在group0</a> </li>
-    <li> <a href="./examples/webGPU/uniformAndTexture2.html">V uniform and texture 12buffer(连续的) group0 和纹理 group1</a>
-    </li>
-    <li> <a href="./examples/webGPU/uniformAndStruct.html">X uniform and Struct ；有最大12个的限制，struct=稀疏结构（map）</a>
-    </li>
-    <li> <a href="./examples/webGPU/uniformarray.html">V uniform 数组</a> </li>
+        <li>
 
-    <li></li>
-    <li>======DEV:scene===================
-    </li>
-    <li> <a href="./examples/scene/scene-triangle1.html">webGPU scene base 1 一个静态的WGSL的三角形</a> </li>
-    <li></li>
-    <li>=======DEV:camera + input==========
-    </li>
-    <li> <a href="./examples/camera/camera_base_raw_1.html">V webGPU camera 基础 raw </a> </li>
-    <li> <a href="./examples/camera/cameraActor_1.html">V webGPU camera 基础 1 :group 0 ,旧的，测试wgsl用，未替换的状态，会报错</a> </li>
-    <li> <a href="./examples/camera/cameraActor_2.html">V webGPU camera 基础 1 :group 0 </a> </li>
-    <li> <a href="./examples/camera/cameraActor_3.html">V webGPU camera 基础 2 : 绑定Actor ，绑定camera，绑定control </a> </li>
-    <li> <a href="./examples/camera/cameraActor_4.html">V webGPU camera 基础 4 : run循环 </a> </li>
-    <li> <a href="./examples/camera/camera_ortho_1.html">V webGPU 正交camera (滚轮，无大小变化，正确的，只有在near/far的消失)</a> </li>
-    <li></li>
-    <li>=======DEV:控制器==========
-    </li>
-    <li> <a href="./examples/control/arcball.html">arcball 控制器 </a> </li>
-    <li> <a href="./examples/control/wasd.html">wasd 控制器 </a> </li>
-    <li></li>
-    <li>=======DEV: Draw command========
-    </li>
-    <li>------ Raw uniform+WGSL DC ---------</li>
-    <li><a href="./examples/DC/DC_const_1.html">V Draw shader const 数值测试 1 ,只能替换数值！！！</a></li>
-
-
-    <li><a href="./examples/DC/DC_GPUBuffer_1.html">V Draw command vertex GPUbuffer </a></li>
-    <li><a href="./examples/DC/DC_vertex_1.html">V Draw command 一个attribute中( vertex buffer + color buffer )</a>
-    </li>
-    <li><a href="./examples/DC/DC_vertex_two_1.html">V 两个 一次绘制 buffer + uniform ,一次绘制有深度测试</a></li>
-    <li><a href="./examples/DC/DC_vertex_two_2.html">V 两个 两次 绘制 depth +buffer + uniform ;
-        两次的没有深度测试的情况</a>
-    </li>
-    <li><a href="./examples/DC/DC_vertex_two_3.html">V 两个 两次 绘制 depth +buffer + uniform ;
-        两次需要进行单独的深度测试的情况</a>
-    </li>
-    <li><a href="./examples/DC/DC_vertex_depth_1.html">XX 两个 depth +buffer + uniform （depth texture）；延迟，这个需要有depth
-        buffer的比较</a></li>
-
-    <li><a href="./examples/DC/DC_vertex_instance_1.html">V Draw command vertex buffer + 实例化</a></li>
-    <li><a href="./examples/DC/DC_vertex_index_1.html">V Draw command vertex buffer + 索引模式</a></li>
-    <li><a href="./examples/DC/DC_vertex_index_instance_1.html">V Draw command vertex buffer + 索引模式 + 实例化</a></li>
-    <li></li>
-    <li><a href="./examples/DC/DC_uniformbuffer_1.html">V Draw command uniform 1个 buffer</a></li>
-    <li><a href="./examples/DC/DC_uniformbuffer_2.html">V Draw command uniform 2个 buffe (定义了,就必须用，不用报错)r</a></li>
-    <li> <a href="./examples/DC/DC_storagebuffer_1.html">V Draw command uniform storage buffer</a></li>
-    <li></li>
-    <li> <a href="./examples/DC/DC_texture_1.html">V Draw command uniform texture & sampler,一个简单的纹理(定义了,就必须用，不用报错)</a>
-    </li>
-    <li> <a href="./examples/DC/DC_texture_cube.html">X Draw command uniform texture & sampler, cube的纹理</a></li>
-    <li> <a href="./examples/DC/DC_texture_video.html">X Draw command uniform texture & sampler, 视频纹理
-        ：device.importExternalTexture+ texture_external(WGSL)</a></li>
-    <li> <a href="./examples/DC/DC_texture_storage.html">X Draw command uniform texture & sampler,一个Storage Textures</a>
-    </li>
-    <li><a href="./examples/DC/DC_datatexture_1.html">X Draw command 数据纹理</a></li>
-    </li>
-    <li>------ 升级uniform DC ---------</li>
-    <li><a href="./examples/DC/DC_uniformbuffer_update_1.html">X Draw command 数据纹理</a></li>
-
-
-    <li></li>
-    <li>=======DEV:Compute command=========
-    </li>
-    <li><a href="./examples/CC/cs_1.html">V compute shader base test 1 copy from webgpufundamentals.org</a></li>
-    <li> <a href="./examples/DC/DC_texture_1.html">X Draw command uniform texture & sampler,一个Storage Textures</a></li>
-
-    <li></li>
-    <li>=======DEV:shader 格式化=========
-    </li>
-    <li><a href="./examples/wgsl/format_1.html">wgsl VS 格式化版本</a></li>
-
-    <li></li>
-    <li>=======DEV:geometry=========
-    </li>
-    <li><a href="./examples/geometry/box.html">box </a></li>
-
-
-    <li></li>
-    <li>=======DEV:entities=========
-    </li>
-    <li><a href="./examples/entities/box_1.html">red box</a></li>
-    <li><a href="./examples/entities/box_phong_1.html">red box phong</a></li>
-    <li><a href="./examples/entities/box_texture_1.html">box phong 纹理</a></li>
-    <li><a href="./examples/entities/box_texture_2.html">box phong 纹理+高光纹理</a></li>
-    <li><a href="./examples/entities/sphere_1.html">red sphere</a></li>
-    <li><a href="./examples/entities/sphere_phong_1.html">red sphere phong</a></li>
-    <li><a href="./examples/entities/plane_phong.html">gray plane phong</a></li>
-
-
-    <li></li>
-    <li>=======DEV:lights=========
-    </li>
-    <li><a href="./examples/light/dirlight.html">方向光1</a></li>
-    <li><a href="./examples/light/pointlight1.html">点光源1</a></li>
-    <li><a href="./examples/light/spotlight1.html">聚光灯1</a></li>
-  </ul>
+            <a href="./examples/example/index.html">示例</a>
+        </li>
+        <li>
+            高级示例
+        </li>
+        <li>
+            Demo
+        </li>
+        <li>
+            <a href="./examples/externalExample/index.html">外部参考</a>
+        </li>
+    </ul>
 </body>
 
 </html>

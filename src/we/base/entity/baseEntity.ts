@@ -5,21 +5,7 @@ import { commmandType } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
 
 
-// import {
-//     unifromGroup,
-//     uniformEntries,
-//     uniformBufferPart,
-//     uniformBuffer,
-//     storageBufferPart
-// } from "../command/baseCommand";
-// import { DrawCommand } from "../command/DrawCommand";
 
-// import { cameraRayValues } from "../camera/baseCamera";
-
-//待定，未使用
-// export interface entityUniform {
-//     uniforms: unifromGroup[]
-// }
 
 export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
 export interface geometryBufferOfEntity {
@@ -110,7 +96,7 @@ export interface optionShadowEntity {
  * input参数
  * 
  */
-export interface optionBaseEntity {
+export interface optionBaseEntity extends coreConst.optionUpdate {
     name?: string,
     //todo
     /** 顶点和材质组一对一 */
@@ -120,8 +106,8 @@ export interface optionBaseEntity {
         Transparent: number[] //coreConst.defaultStageTransparent,
         Opaque: number[]
     },
-    /**自定义更新functon() */
-    update?: (scope: any) => {},
+    // /**自定义更新functon() */
+    // update?: (scope: any) => {},
     /**阴影选项 */
     shadow?: optionShadowEntity,
     /**初始化的参数matrix     */
@@ -139,6 +125,16 @@ export interface optionBaseEntity {
     updateMatrixPerFrame?: boolean,
     /** side,显示的面，默认:front */
     side?: "front" | "back" | "all",
+    /**
+     * 实体是否为动态，boolean
+     * 默认=false
+     */
+    dynamicPostion?: boolean;
+    /**
+     * 是否未动态形变物体
+     * 默认=false
+     */
+    dynamicMesh?: boolean;
 }
 
 export abstract class BaseEntity {
@@ -202,6 +198,12 @@ export abstract class BaseEntity {
         this.input = input;
         this._dynamicPostion = false;
         this._dynamicMesh = false;
+        if (input.dynamicPostion) {
+            this._dynamicPostion = input.dynamicPostion
+        }
+        if (input.dynamicMesh) {
+            this._dynamicMesh = input.dynamicMesh
+        }
         this._LOD = [];
         this._destroy = false;
         this._commmands = [];
@@ -372,23 +374,24 @@ export abstract class BaseEntity {
      * 1、完成初始化，进行DCC更新
      * 2、未完成初始化，返回空数组
      */
-    update(scene: any, deltaTime: number, updateForce: boolean = false): commmandType[] {
+    update(scene: any, deltaTime: number,startTime:number,lastTime:number, updateForce: boolean = false): commmandType[] {
         //初始化DCC
         if (this._init === initStateEntity.unstart) {
             this.initDCC(scene);
         }
         //初始化是完成状态，同时checkStatus=true
         else if (this._init === initStateEntity.finished && this.checkStatus()) {
+            if (this.input && this.input.update) {
+                this.input.update(this, deltaTime,startTime,lastTime);
+            }
             //动态物体 或 强制更新
             if (this._dynamicPostion === true || updateForce === true) {
                 this.matrixWorld = this.updateMatrixWorld();
             }
-            if (this._dynamicMesh === true || this._dynamicPostion === true || updateForce === true) {
-                if (this.input && this.input.update) {
-                    this.input.update(this);
-                }
-                this.updateUniformBuffer(scene, deltaTime);
-                this._commmands = this.updateDCC(scene, deltaTime);
+            if (this._dynamicMesh === true || this._dynamicPostion === true || updateForce === true || this.input!.update !== undefined) {
+
+                this.updateUniformBuffer(scene, deltaTime,startTime,lastTime);
+                this._commmands = this.updateDCC(scene, deltaTime,startTime,lastTime);
                 return this._commmands;
             }
             //静态，直接返回commands
@@ -424,7 +427,7 @@ export abstract class BaseEntity {
      * 
      * @param deltaTime 
      */
-    abstract updateUniformBuffer(scene: any, deltaTime: number): any
+    abstract updateUniformBuffer(scene: any, deltaTime: number,startTime:number,lastTime:number): any
 
 
     /**
@@ -437,7 +440,7 @@ export abstract class BaseEntity {
      * 2、如果没有更新直接返回DCC的数组
      * 
      */
-    abstract updateDCC(scene: any, deltaTime: number): commmandType[];
+    abstract updateDCC(scene: any,  deltaTime: number,startTime:number,lastTime:number): commmandType[];
 
     /**
      * 循环注销children
@@ -454,4 +457,6 @@ export abstract class BaseEntity {
     isDestroy() {
         return this._destroy;
     }
+
+
 }

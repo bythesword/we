@@ -184,7 +184,7 @@ export abstract class CamreaControl {
         this.init();
     }
     abstract init(): any;
-    abstract update(deltaTime: number): any
+    abstract update( deltaTime: number,startTime:number,lastTime:number): any
 
     abstract destroy(): any
 

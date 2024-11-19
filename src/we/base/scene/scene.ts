@@ -131,8 +131,13 @@ class Scene extends BaseScene {
     */
     renderPassSetting!: renderPassSetting;
 
+
+    /**每帧循环用户自定义更新function */
+    userDefineUpdateArray!: updateCall[];
+
     constructor(input: sceneInputJson) {
-        super(input)
+        super(input);
+        this.userDefineUpdateArray = [];
         if (input.lightNumber) {
             this._maxlightNumber = input.lightNumber;
         }
@@ -495,7 +500,9 @@ class Scene extends BaseScene {
             // let deltaTime = scope.clock.deltaTime;
             scope.clock.update();
             const deltaTime = scope.clock.deltaTime;
-            await scope.update(deltaTime);
+            const startTime = scope.clock.start;
+            const lastTime = scope.clock.last;
+            await scope.update(deltaTime,startTime,lastTime);
             scope.oneFrameRender();
             scope.pickup();
             scope.postProcess();
@@ -510,9 +517,9 @@ class Scene extends BaseScene {
      * 2、更新Acter
      * 3、更新实体 entity
      */
-    async update(deltaTime: number) {
+    async update(deltaTime: number,startTime:number,lastTime:number) {
         if (this.defaultActor)
-            this.defaultActor.update(deltaTime);
+            this.defaultActor.update(deltaTime,startTime,lastTime);
         this.updateSystemUniformBuffer();
 
         //todo
@@ -520,14 +527,14 @@ class Scene extends BaseScene {
         // let rays = this.defaultCamera!.getCameraRays();
         // 四个中间点，稍稍延迟
         // this.updateBVH(rays)
-        await this.updateLights(deltaTime);
-        this.updateAcotr(deltaTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
-        this.updateEntities(deltaTime);//更新实体状态，比如水，树，草等动态的
-        this.updateStagesCommand(deltaTime);
+        await this.updateLights(deltaTime,startTime,lastTime);
+        this.updateAcotr(deltaTime,startTime,lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
+        // this.updateEntities(deltaTime,startTime,lastTime);//更新实体状态，比如水，树，草等动态的
+        this.updateStagesCommand(deltaTime,startTime,lastTime);
     }
-    async updateLights(deltaTime: number) {
+    async updateLights(deltaTime: number,startTime:number,lastTime:number) {
         for (let i of this.lights) {
-            await i.update(deltaTime);
+            await i.update(deltaTime,startTime,lastTime);
         }
     }
 
@@ -704,14 +711,18 @@ class Scene extends BaseScene {
      * 2、是否为动态Actor
      * 3、生命周期
      */
-    updateAcotr(deltaTime: number) {
+    updateAcotr(deltaTime: number,startTime:number,lastTime:number) {
         if (this.actors)
             for (let i in this.actors) {
                 if (this.defaultActor && this.actors[i] != this.defaultActor)
-                    this.actors[i].update(deltaTime);
+                    this.actors[i].update(deltaTime,startTime,lastTime);
             }
     }
     /**实体更新 
+     * 
+     * //20241119
+     * 重复执行，这个entities在stage的update的for(root)中，执行了，暂时不需要
+     * 
      * 1、执行所有entity
      *      A、判断stage，是否有效与可见性，是否可见
      *      B、判断实体的可见性与有效性
@@ -721,7 +732,7 @@ class Scene extends BaseScene {
      *          视锥
      *        输出是否本轮可见 
     */
-    updateEntities(deltaTime: number,) {
+    updateEntities(deltaTime: number,startTime:number,lastTime:number) {
 
     }
 
@@ -734,17 +745,17 @@ class Scene extends BaseScene {
      *      视口是否变化
      * @param deltaTime 
      */
-    updateStagesCommand(deltaTime: number,) {
+    updateStagesCommand(deltaTime: number,startTime:number,lastTime:number) {
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
             const name = coreConst.stagesOfSystem[perList];
 
             {//每个stageGroup进行update，包含透明和不透明两个stage 
                 if (this.stages[name].opaque) {
-                    this.stages[name].opaque!.update(deltaTime);
+                    this.stages[name].opaque!.update(deltaTime,startTime,lastTime);
                 }
                 if (this.stages[name].transparent) {
-                    this.stages[name].transparent!.update(deltaTime);
+                    this.stages[name].transparent!.update(deltaTime,startTime,lastTime);
                 }
             }
         }
@@ -826,9 +837,42 @@ class Scene extends BaseScene {
      * 比如：
      *  订阅，触发、MQ、WW等
      */
-    updateUserDefine() { }
+    updateUserDefine() {
+        for (let i of this.userDefineUpdateArray) {
+            if (i.state) {
+                i.call(this);
+            }
+        }
+    }
+    /**增加用户自定义 */
+    addUserDefine(call: updateCall) {
+        this.userDefineUpdateArray.push(call);
+    }
+    /**设置用户自定义call function的状态 */
+    setUserDfineStateByName(name: String, state: boolean) {
+        for (let i of this.userDefineUpdateArray) {
+            if (i.name == name) {
+                i.state = state;
+                break;
+            }
+        }
+    }
+    /**获取用户字自定义 call function的状态 */
+    getUserDfineStateByName(name: string, state: boolean): { name: string, state: boolean } {
+        for (let i of this.userDefineUpdateArray) {
+            if (i.name == name) {
+                i.state = state;
+                return { name, state };
+            }
+        }
+        return { name: "false", state: false };
+    }
 
 }
-
+export interface updateCall {
+    call: (scope: any) => {},
+    name: string,
+    state: boolean;
+}
 export { Scene };
 export type { sceneInputJson };

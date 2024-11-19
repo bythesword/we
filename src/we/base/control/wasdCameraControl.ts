@@ -63,7 +63,7 @@ export class WASDCameraControl extends CamreaControl {
         this.recalculateAngles(this.camera.back);
         // throw new Error('Method not implemented.');
     }
-    update(deltaTime: number) {
+    update( deltaTime: number,startTime:number,lastTime:number) {
         let input = this.inputHandler();
         const sign = (positive: boolean, negative: boolean) =>
             (positive ? 1 : 0) - (negative ? 1 : 0);
@@ -99,11 +99,11 @@ export class WASDCameraControl extends CamreaControl {
         this.velocity = MathFun.lerp(
             targetVelocity,
             this.velocity,
-            Math.pow(1 - this.frictionCoefficient, deltaTime)
+            Math.pow(1 - this.frictionCoefficient, deltaTime,startTime,lastTime)
         );
         // Integrate velocity to calculate new position
         //新位置
-        position = vec3.addScaled(position, this.velocity, deltaTime);
+        position = vec3.addScaled(position, this.velocity, deltaTime,startTime,lastTime);
         this.camera.updateByPositionYawPitch(position, this.yaw, this.pitch);
 
     }
