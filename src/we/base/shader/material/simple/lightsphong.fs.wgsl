@@ -138,7 +138,7 @@ fn phongColorOfSpotLight(position : vec3f, vNormal : vec3f, lightPosition : vec3
     0.0,                                        //value if condition false
     pow(specular, u_Shininess),             //value if condition is true
     specular > 0.0);                            //condition
-    $spec
+     
 
     var specularColor = light_atten_coff * u_metalness * spec   * lightColor;
     $spec

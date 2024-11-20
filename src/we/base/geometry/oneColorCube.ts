@@ -25,7 +25,10 @@ export class OneColorCube extends BoxGeometry {
     }
     getCodeVS() {
         let width=this.width/2;
-        return `struct VertexShaderOutput {
+        //这个比正常的geometry的vs多了fsPosition
+        return `
+        override instance_num_matrix : u32 = 1;
+        struct VertexShaderOutput {
             @builtin(position) position : vec4f,
             @location(0) uv : vec2f,
             @location(1) normal : vec3f,
@@ -34,30 +37,23 @@ export class OneColorCube extends BoxGeometry {
             @location(4) fsPosition:vec4f,
           };
           
-          @group(1) @binding(0) var<uniform> entityMatrixWorld : mat4x4f;
+          @group(1) @binding(0) var<uniform> entityMatrixWorld : array<mat4x4f, $instacnce>;
           
           @vertex fn vs(
           @location(0) position : vec3f,
           @location(1) uv : vec2f,
           @location(2) normal : vec3f,
           @location(3) color : vec3f,
+          @builtin(instance_index) instanceIndex : u32,
           @builtin(vertex_index) vertexIndex : u32
           ) -> VertexShaderOutput {
             var vsOutput : VertexShaderOutput;
-            vsOutput.position = projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld * vec4f(position, 1.0);
+            vsOutput.position = projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld[instanceIndex] * vec4f(position, 1.0);
             vsOutput.uv = uv;
-            //let m3R : mat3x3f = mat3x3f(entityMatrixWorld[0][1], entityMatrixWorld[0][1], entityMatrixWorld[0][2],
-            //entityMatrixWorld[1][1], entityMatrixWorld[1][1], entityMatrixWorld[1][2],
-            //entityMatrixWorld[2][1], entityMatrixWorld[2][1], entityMatrixWorld[2][2],
-            //);
-            //let m3S : mat3x3f = mat3x3f(entityMatrixWorld[0][1], entityMatrixWorld[0][1], entityMatrixWorld[0][2],
-            //entityMatrixWorld[1][1], entityMatrixWorld[1][1], entityMatrixWorld[1][2],
-            //entityMatrixWorld[2][1], entityMatrixWorld[2][1], entityMatrixWorld[2][2],
-            //);
-            //mat3(transpose(inverse(model))) * aNormal;
-            vsOutput.normal = vec4f(entityMatrixWorld * vec4f(normal, 0)).xyz;
+        
+            vsOutput.normal = vec4f(entityMatrixWorld[instanceIndex] * vec4f(normal, 0)).xyz;
             vsOutput.color = color;
-            vsOutput.worldPosition = vec4f(entityMatrixWorld * vec4f(position, 1.0)).xyz;
+            vsOutput.worldPosition = vec4f(entityMatrixWorld[instanceIndex] * vec4f(position, 1.0)).xyz;
             vsOutput.fsPosition= 0.5*(vec4f(position,1) + vec4(${width}));
             return vsOutput;
           }`;
@@ -66,6 +62,19 @@ export class OneColorCube extends BoxGeometry {
       
 
     generateColorArray(length: number, color = [1, 1, 1]) {
+        /*
+          4 ——————————————  1
+          / |          / |
+         /  |         /  |        
+       6 ————————————  0 |          
+        |   |        |   |      
+        |   |5       |   |        
+        | / —————————|——— 3
+        |/           |  /
+     7  —————————————— / 2  
+          
+        */
+        //这个颜色不能与每个点对应上，todo
         let colorsArray = [
             1, 0, 1, 1,
             0, 0, 1, 1,

@@ -142,7 +142,7 @@ export interface drawOptionOfCommand extends baseOptionOfCommand {
      *          C、也可以通过shader生成random,进行随机（上述）操作，比如花草的摇曳的matrix
     */
 
-    instanceCount?: number,
+    // instanceCount?: number,
 
     /** draw mode:  */
     draw: {

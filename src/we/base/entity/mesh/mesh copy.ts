@@ -7,7 +7,6 @@ import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "
 import { commmandType } from "../../stage/baseStage";
 // import { color3U, color4U } from "../../const/coreConst";
 import { uniformBufferPart, uniformEntries, unifromGroup } from "../../command/baseCommand";
-import { mat4 } from "wgpu-matrix";
 
 
 
@@ -67,10 +66,10 @@ export class Mesh extends BaseEntity {
 
     }
 
-    // updateUniformBuffer(_scene: any, deltaTime: number, startTime: number, lastTime: number) {
-
-    // }
-    updateDCC(_scene: any, deltaTime: number, startTime: number, lastTime: number): commmandType[] {
+    updateUniformBuffer(_scene: any,  deltaTime: number,startTime:number,lastTime:number) {
+        // throw new Error("Method not implemented.");
+    }
+    updateDCC(_scene: any,  deltaTime: number,startTime:number,lastTime:number): commmandType[] {
         // throw new Error("Method not implemented.");
         return this._commmands;
     }
@@ -99,26 +98,16 @@ export class Mesh extends BaseEntity {
     createDCC(scene: any): initStateEntity {
 
         let scope = this;
-        /////////////////////box  
-        let shader;
-
-        if (this.input?.shaderCode) {
-            shader = this.input.shaderCode;
-        }
-        else {
-            let shaderFS = this._material.getCodeFS();
-            let shaderVS = this._geometry.getCodeVS();
-            shader = shaderVS + shaderFS;
-            shader = shader.replaceAll("$instacnce", this.numInstances.toString());
-        }
-
+        /////////////////////box 
+        let shaderFS = this._material.getCodeFS();
+        let shaderVS = this._geometry.getCodeVS();
+        let shader = shaderVS + shaderFS;
         let vsa = this._geometry.getAttribute();
         let indexBuffer = this._geometry.getIndeices();
         let counts = this._geometry.getDrawCount();
 
         let values: drawModeIndexed = {
-            indexCount: counts,
-            instanceCount: this.numInstances,
+            indexCount: counts
         };
         // let options: drawOptionOfCommand;
         let uniformFS = this._material.getUniform();
@@ -129,7 +118,7 @@ export class Mesh extends BaseEntity {
                     {
                         label: "Mesh matrixWorld",
                         binding: 0,
-                        size: 4 * 16 * this.numInstances,
+                        size: 4 * 16,
                         get: () => { return scope.getUniformOfMatrix() },
                     }
                 ]
@@ -161,11 +150,9 @@ export class Mesh extends BaseEntity {
             // rawUniform: true,
             draw: {
                 mode: "index",
-                values: values,
-
+                values: values
             },
             indexBuffer: indexBuffer as indexBuffer,
-
         };
 
         let DC = new DrawCommand(options);
@@ -178,8 +165,7 @@ export class Mesh extends BaseEntity {
             let wireFrameIndexBuffer = this._geometry.getWireFrameIndeices();
             let wireFrameCounts = this._geometry.getWireFrameDrawCount();
             let wireFrameValues: drawModeIndexed = {
-                indexCount: wireFrameCounts,
-                instanceCount: this.numInstances,
+                indexCount: wireFrameCounts
             }
             let wireFrameOptions: drawOptionOfCommand = {
                 label: "a triangle",
@@ -205,7 +191,7 @@ export class Mesh extends BaseEntity {
                             {
                                 label: "Mesh matrixWorld",
                                 binding: 0,
-                                size: 4 * 16 * this.numInstances,
+                                size: 4 * 16,
                                 get: () => { return scope.getUniformOfMatrix() },
                             }
                         ]
@@ -217,7 +203,6 @@ export class Mesh extends BaseEntity {
                     values: wireFrameValues
                 },
                 indexBuffer: wireFrameIndexBuffer as indexBuffer,
-                // instanceCount: this.numInstances,
 
             }
             let wireFrameDC = new DrawCommand(wireFrameOptions);

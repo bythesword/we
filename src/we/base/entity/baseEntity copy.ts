@@ -110,7 +110,7 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
     // update?: (scope: any) => {},
     /**阴影选项 */
     shadow?: optionShadowEntity,
-    /**初始化的参数matrix  ，这个mesh的   */
+    /**初始化的参数matrix     */
     matrix?: Mat4,
     /**初始化的参数scale     */
     scale?: Vec3,
@@ -136,14 +136,7 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
      */
     dynamicMesh?: boolean;
     /**实例化数量，默认为1 */
-    numInstances?: number,
-    /**
-     * 这里是实例化的每个实例的位置，默认是[0,0,0]
-     * 
-     * 一个可以使用默认，多个就会重叠
-     */
-    instancesPosition?: Vec3[],
-    /**自定义shader代码，包括VS和FS */
+    numInstances?: number;
     shaderCode?: string,
 }
 
@@ -175,19 +168,10 @@ export abstract class BaseEntity {
     _rotation!: Vec3;
     _destroy: boolean;
     _init: initStateEntity;
-    // /**局部的，按需更新 */
-    // matrixInstances!: Mat4[];
-    // /**层级的到root，可以动态更新 */
-    // matrixWorldInstances !: Mat4[];
-    /**当前mesh的local的矩阵，按需更新 */
+    /**局部的，按需更新 */
     matrix!: Mat4;
-    /**当前entity在世界坐标（层级的到root)，可以动态更新 */
+    /**层级的到root，可以动态更新 */
     matrixWorld !: Mat4;
-    /**
-     * 20241120，增加了matrix buffer，因为实例化可能是一个或多个，最终输出是一个buffer
-     */
-    matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCC中进行字符串替换，每个子类单独进行
-    /**是否每帧更新 */
     updateMatrixPerFrame: boolean;
     visible!: boolean;
     enable!: boolean;
@@ -196,7 +180,7 @@ export abstract class BaseEntity {
     id!: entityID;
     parent: BaseEntity | undefined;
 
-
+ 
     /**透明属性
      * 默认=false，
      * 通过后续材质或函数设置
@@ -209,19 +193,12 @@ export abstract class BaseEntity {
      */
     _output: boolean;
 
-    /**实例化数量，默认为1 */
-    numInstances: number;
+   /**实例化数量，默认为1 */
+   numInstances?: number;
 
-    /**
-     * 是否单独更新每个instance 
-     * 
-     * 默认=false
-    */
-    flagUpdateForPerInstance!: boolean;
-
+   
     constructor(input: optionBaseEntity) {
         this._init = initStateEntity.constructing;
-        this.flagUpdateForPerInstance = false;
         this._output = true;
         this.transparent = false;
         this.input = input;
@@ -247,11 +224,6 @@ export abstract class BaseEntity {
         this._rotation = vec3.create();
         this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
-        let perMatrix = mat4.identity();
-        for (let i = 0; i < this.numInstances; i++) {
-            this.matrixWorldBuffer.set(perMatrix, i * 16);
-        }
         this.visible = true;
         this.children = [];
         this.name = ''
@@ -351,10 +323,6 @@ export abstract class BaseEntity {
     }
 
     rotate(axis: Vec3, angle: number) {
-        ////这里注销到的是因为，for操作的是instance的每个个体
-        // for (let i = 0; i < this.numInstances; i++) {
-        //     this.matrix[i] = mat4.axisRotate(this.matrix[i], axis, angle, this.matrix[i]);
-        // }
         this.matrix = mat4.axisRotate(this.matrix, axis, angle, this.matrix);
     }
     rotateX(angle: number) {
@@ -366,19 +334,10 @@ export abstract class BaseEntity {
     rotateZ(angle: number) {
         this.rotate([0, 0, 1], angle);
     }
-    /**
-         * 将entity的矩阵应用POS的位置变换，是在原有矩阵
-         * @param pos :Vec3
-         */
+
+
     translate(pos: Vec3,) {
-        this.matrix = mat4.setTranslation(this.matrix, pos);
-    }
-    /**
-     * 将entity的位置变为POS,等价wgpu-matrix的mat4的translation
-     * @param pos :Vec3
-     */
-    translation(pos: Vec3,) {
-        this.matrix = mat4.setTranslation(this.matrix, pos);
+        this.matrix = mat4.translate(this.matrix, pos);
     }
     scale(vec: Vec3) {
         this.matrix = mat4.scale(this.matrix, vec);
@@ -391,11 +350,6 @@ export abstract class BaseEntity {
         this._position = pos;
     }
 
-    /**
-     * 更新矩阵的顺序是先进行线性变换，在进行位置变换
-     * 
-     * 其实是没有影响，线性工作在3x3矩阵，位置变换在[12,13,14]
-     */
     updateMatrix(): any {
         if (this.input?.matrix)
             mat4.copy(this.input.matrix, this.matrix);
@@ -404,14 +358,12 @@ export abstract class BaseEntity {
         if (this.input?.rotate)
             this.rotate(this.input.rotate.axis, this.input.rotate.angleInRadians);
         if (this.input?.position)
-            this.translation(this.input.position);
+            this.translate(this.input.position);
 
         this.matrixWorld = this.updateMatrixWorld();
     }
-
-    /** 
-     * 递归更新每层
-     */
+    // }
+    /**todo */
     updateMatrixWorld(m4: Mat4 | boolean = false): Mat4 {
         if (m4 === false)
             m4 = mat4.copy(this.matrix);
@@ -425,14 +377,8 @@ export abstract class BaseEntity {
             return m4;
         }
     }
-    /**
-     * 输出实例渲染的个数的buffer
-     * 
-     * 单个示例可以在input.update（）进行更新
-     */
     getUniformOfMatrix() {
-        return this.matrixWorldBuffer;
-        // return new Float32Array(this.matrixWorld);
+        return new Float32Array(this.matrixWorld);
     }
     /**每帧更新入口
      * 1、完成初始化，进行DCC更新
@@ -487,47 +433,11 @@ export abstract class BaseEntity {
 
 
     /**
-     * 是否单独更新每个instance
-     * 
-     * 即：使用用户更新的update()的结果，或连续的结果（前一帧的的矩阵内容）
-     * 
-     * 
-     * @param state :boolean
-     * 
-     */
-    setUpdateForPerInstance(state: boolean) {
-        this.flagUpdateForPerInstance = state;
-    }
-
-    /**
-     * 返回this.flagUpdateForPerInstance的标志位，默认状态=false
-     * @returns boolean
-     * 
-     */
-    getUpdateForPerInstance() {
-        return this.flagUpdateForPerInstance;
-    }
-    /**
      * 被update调用，更新vs、fs的uniform
      * 
-     * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
+     * @param deltaTime 
      */
-    // abstract
-    updateUniformBuffer(scene: any, deltaTime: number, startTime: number, lastTime: number): any {
-        for (let i = 0; i < this.numInstances; i++) {
-            let perMatrix = mat4.identity();
-            //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
-            if (this.flagUpdateForPerInstance) {
-                perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
-            }
-            let perWorld = mat4.copy(this.matrixWorld);
-            perMatrix = mat4.multiply(perWorld, perMatrix);
-            if (this.input?.instancesPosition) {
-                mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
-            }
-            this.matrixWorldBuffer.set(perMatrix, i * 16);
-        }
-    }
+    abstract updateUniformBuffer(scene: any, deltaTime: number, startTime: number, lastTime: number): any
 
 
     /**

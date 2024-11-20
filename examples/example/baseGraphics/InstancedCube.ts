@@ -4,11 +4,11 @@ import { optionCamreaControl } from "../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
-import { BoxGeometry } from "../../../src/we/base/geometry/boxGeometry"
 import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
+import { OneColorCube } from "../../../src/we/base/geometry/oneColorCube"
+import { VertexColorMaterial } from "../../../src/we/base/material/simple/vertexColorMatrial"
+import { mat4, vec3 } from "wgpu-matrix"
 
-import { vec3 } from "wgpu-matrix"
-import { PhongMaterial } from "../../../src/we/base/material/simple/phongMaterial"
 
 declare global {
   interface Window {
@@ -24,14 +24,6 @@ let input: sceneInputJson = {
     green: 0.5,
     blue: 0.5,
     alpha: 1
-  },
-  ambientLight: {
-    color: {
-      red: 1,
-      green: 1,
-      blue: 1
-    },
-    intensity: 0.13
   }
 }
 let scene = new Scene(input);
@@ -46,7 +38,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [0, 0, 3],
+  position: [0, 0, 16],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -76,31 +68,75 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let boxGeometry = new BoxGeometry();
+let boxGeometry = new OneColorCube();
 //极简测试材质，red
-let redMaterial = new PhongMaterial({
-  color: { red: 0, green: 1, blue: 0, alpha: 1 },
-  metalness: 1,
-  texture: {
-    texture: "../../resource/images/box/container2.png",
-    specularTexture: "../../resource/images/box/container2_specular.png",
+let redMaterial = new VertexColorMaterial;
+
+
+
+const step = 4.0;
+
+// Initialize the matrix data for every instance.
+let count = 4;
+let positiones = [];
+for (let x = 0; x < count; x++) {
+  for (let y = 0; y < count; y++) {
+    positiones.push(
+      vec3.fromValues(
+        step * (x - count / 2 + 0.5),
+        step * (y - count / 2 + 0.5),
+        0
+      ));
+
   }
-});
+}
+
 //box实体
 let boxEntity = new Mesh(
   {
     geometry: boxGeometry,
     material: redMaterial,
     wireFrame: false,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
-    // position:vec3.create(1,0,0),
-    // scale:[1,1,1],
-    // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:-0.15*Math.PI
-    // }
+    dynamicPostion: true,
+    numInstances: 16,
+    instancesPosition: positiones,
+    update: (scope, deltaTime, startTime, lastTime) => {
+      scope.matrix = mat4.identity();
+      const now = Date.now() / 1000;
+
+      //每个状态相同
+      // for (let i = 0; i < scope.numInstances; i++) {
+      //   let m4 = mat4.identity();
+      //   mat4.rotate(m4, vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1, m4);
+      //   scope.matrixWorldBuffer.set(m4, i * 16);
+      // }
+
+      //每个状态不同
+      let m = 0, i = 0, count = 4;
+      for (let x = 0; x < count; x++) {
+        for (let y = 0; y < count; y++) {
+          let m4 = mat4.identity();
+          mat4.rotate(
+            m4,
+            vec3.fromValues(
+              Math.sin((x + 0.5) * now),
+              Math.cos((y + 0.5) * now),
+              0
+            ),
+            1,
+            m4
+          );
+
+          scope.matrixWorldBuffer.set(m4, i * 16);
+          i++; 
+        }
+      }
+
+      return true;
+    },
   }
 );
+boxEntity.flagUpdateForPerInstance = true;//如果单独更新每个instance，这个是必须的，否则更新的是mesh的矩阵
 //增加实体到scene
 scene.add(boxEntity)
 

@@ -25,8 +25,8 @@ export class VertexColorMaterial extends BaseMaterial {
             return   fsInput.fsPosition ;
           }          `;
 
-        return FSOfposition;
-        // return this._type=="color"?FSOfColor:FSOfposition;
+        // return FSOfposition;
+        return this._type=="color"?FSOfColor:FSOfposition;
     }
 
     destroy() {
