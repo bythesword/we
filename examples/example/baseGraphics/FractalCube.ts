@@ -17,13 +17,15 @@ declare global {
     DC: any
   }
 }
+
+const  backgroudColor=0.5;
 let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.5,
-    green: 0.5,
-    blue: 0.5,
+    red: backgroudColor,
+    green: backgroudColor,
+    blue: backgroudColor,
     alpha: 1
   }
 }
@@ -219,10 +221,10 @@ let redMaterial = new VertexColorMaterial({
   @group(1) @binding(1) var u_Sampler : sampler;
   @group(1) @binding(2) var u_Texture: texture_2d<f32>;
   @fragment fn fs( fsInput : VertexShaderOutput) -> @location(0) vec4f {
-    //  return   fsInput.fsPosition ;
+ 
     let texColor = textureSample(u_Texture, u_Sampler, fsInput.uv * 1.  );
-    let f = select(1.0, 0.0, length(texColor.rgb - vec3(0.5)) < 0.01);
-   return f * texColor + (1.0 - f) * fsInput.fsPosition;
+    let f = select(1.0, 0.0, length(texColor.rgb - vec3(${backgroudColor})) < 0.01);
+    return f * texColor + (1.0 - f) * fsInput.fsPosition;
     // return vec4f(f,0,0,1);
     // return texColor;
   }          `

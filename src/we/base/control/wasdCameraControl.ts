@@ -99,11 +99,11 @@ export class WASDCameraControl extends CamreaControl {
         this.velocity = MathFun.lerp(
             targetVelocity,
             this.velocity,
-            Math.pow(1 - this.frictionCoefficient, deltaTime,startTime,lastTime)
+            Math.pow(1 - this.frictionCoefficient, deltaTime )
         );
         // Integrate velocity to calculate new position
         //新位置
-        position = vec3.addScaled(position, this.velocity, deltaTime,startTime,lastTime);
+        position = vec3.addScaled(position, this.velocity, deltaTime );
         this.camera.updateByPositionYawPitch(position, this.yaw, this.pitch);
 
     }

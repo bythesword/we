@@ -873,158 +873,158 @@ class Scene extends BaseScene {
     */
 
     initPostProcess() {
-        //     const module = this.device.createShaderModule({
-        //         label: 'our hardcoded rgb triangle shaders',
-        //         code: `
-        //           struct OurVertexShaderOutput {
-        //             @builtin(position) position: vec4f,
-        //             @location(0) color: vec4f,
-        //           };
+        // //     const module = this.device.createShaderModule({
+        // //         label: 'our hardcoded rgb triangle shaders',
+        // //         code: `
+        // //           struct OurVertexShaderOutput {
+        // //             @builtin(position) position: vec4f,
+        // //             @location(0) color: vec4f,
+        // //           };
 
-        //           @vertex fn vs(
-        //             @builtin(vertex_index) vertexIndex : u32
-        //           ) -> OurVertexShaderOutput {
-        //             let pos = array(
-        //               vec2f( 0.0,  0.5),  // top center
-        //               vec2f(-0.5, -0.5),  // bottom left
-        //               vec2f( 0.5, -0.5)   // bottom right
-        //             );
+        // //           @vertex fn vs(
+        // //             @builtin(vertex_index) vertexIndex : u32
+        // //           ) -> OurVertexShaderOutput {
+        // //             let pos = array(
+        // //               vec2f( 0.0,  0.5),  // top center
+        // //               vec2f(-0.5, -0.5),  // bottom left
+        // //               vec2f( 0.5, -0.5)   // bottom right
+        // //             );
 
 
-        //             var vsOutput: OurVertexShaderOutput;
-        //             vsOutput.position = vec4f(pos[vertexIndex], 0.0, 1.0); 
-        //             return vsOutput;
-        //           }
+        // //             var vsOutput: OurVertexShaderOutput;
+        // //             vsOutput.position = vec4f(pos[vertexIndex], 0.0, 1.0); 
+        // //             return vsOutput;
+        // //           }
 
-        //           @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
-        //             return fsInput.color;
-        //           }
-        //         `,
-        //     });
-        //     this.postProcessToSurfacePipeline = this.device.createRenderPipeline({
-        //         label: 'copy color text to canvas',
-        //         layout: 'auto',
-        //         vertex: {
-        //             module,
-        //         },
-        //         fragment: {
-        //             module,
-        //             targets: [{ format: this.presentationFormat }],
-        //         },
-        //     });
-        const postProcessToSurfaceRenderPassDescriptor: GPURenderPassDescriptor = {
-            colorAttachments: [
-                {
-                    view: (this.context as GPUCanvasContext)
-                        .getCurrentTexture()
-                        .createView(),
-                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
-                    loadOp: "clear",
-                    storeOp: "store"
-                }
-            ],
-        };
+        // //           @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
+        // //             return fsInput.color;
+        // //           }
+        // //         `,
+        // //     });
+        // //     this.postProcessToSurfacePipeline = this.device.createRenderPipeline({
+        // //         label: 'copy color text to canvas',
+        // //         layout: 'auto',
+        // //         vertex: {
+        // //             module,
+        // //         },
+        // //         fragment: {
+        // //             module,
+        // //             targets: [{ format: this.presentationFormat }],
+        // //         },
+        // //     });
+        // const postProcessToSurfaceRenderPassDescriptor: GPURenderPassDescriptor = {
+        //     colorAttachments: [
+        //         {
+        //             view: (this.context as GPUCanvasContext)
+        //                 .getCurrentTexture()
+        //                 .createView(),
+        //             clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+        //             loadOp: "clear",
+        //             storeOp: "store"
+        //         }
+        //     ],
+        // };
 
-        const code = `
-              @group(0) @binding(0) var u_Sampler : sampler;
-              @group(0) @binding(1) var u_Texture: texture_2d<f32>;
+        // const code = `
+        //       @group(0) @binding(0) var u_Sampler : sampler;
+        //       @group(0) @binding(1) var u_Texture: texture_2d<f32>;
               
-              struct OurVertexShaderOutput {
-                @builtin(position) position: vec4f,
-                @location(0) uv: vec2f,
-              };
+        //       struct OurVertexShaderOutput {
+        //         @builtin(position) position: vec4f,
+        //         @location(0) uv: vec2f,
+        //       };
         
-              @vertex fn vs(
-                @location(0) position : vec3f,
-                @location(1) uv : vec2f,
-              ) -> OurVertexShaderOutput {
-                var vsOutput: OurVertexShaderOutput;
-                vsOutput.position = vec4f(position, 1.0); 
-                vsOutput.uv = uv; 
-                return vsOutput;
-              }             
+        //       @vertex fn vs(
+        //         @location(0) position : vec3f,
+        //         @location(1) uv : vec2f,
+        //       ) -> OurVertexShaderOutput {
+        //         var vsOutput: OurVertexShaderOutput;
+        //         vsOutput.position = vec4f(position, 1.0); 
+        //         vsOutput.uv = uv; 
+        //         return vsOutput;
+        //       }             
 
-              @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
-                // return vec4f(1,0,0,1);
-                return textureSample(u_Texture, u_Sampler, fsInput.uv  );
-              }
-            ` ;
-        const sampler = window.weGPUdevice.createSampler({
-            magFilter: "nearest",
-            minFilter: "nearest",
-        });
-        // C  D 
-        // A  B
-        const screenRectangleVertexes = [
-            //x,y,z,u,v
-            -1, -1, 0, 0, 1,//A
-            1, -1, 0, 1, 1,//B
-            -1, 1, 0, 0, 0,//C
+        //       @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
+        //         // return vec4f(1,0,0,1);
+        //         return textureSample(u_Texture, u_Sampler, fsInput.uv  );
+        //       }
+        //     ` ;
+        // const sampler = window.weGPUdevice.createSampler({
+        //     magFilter: "nearest",
+        //     minFilter: "nearest",
+        // });
+        // // C  D 
+        // // A  B
+        // const screenRectangleVertexes = [
+        //     //x,y,z,u,v
+        //     -1, -1, 0, 0, 1,//A
+        //     1, -1, 0, 1, 1,//B
+        //     -1, 1, 0, 0, 0,//C
 
-            1, -1, 0, 1, 1,//B
-            1, 1, 0, 1, 0,//D
-            -1, 1, 0, 0, 0,//C
-        ];
-        const screenRectangleVertexesArray = new Float32Array(screenRectangleVertexes);
-        let options: drawOptionOfCommand = {
-            label: "PP render to surface",
-            scene: this,
-            vertex: {
-                code: code,
-                entryPoint: "vs",
-                buffers: [
-                    {
-                        vertexArray: screenRectangleVertexesArray,
-                        type: "Float32Array",
-                        arrayStride: 4 * 5,
-                        attributes: [
-                            {
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3',
-                            },
-                            {
-                                shaderLocation: 1,
-                                offset: 4 * 3,
-                                format: 'float32x2',
-                            },
-                        ]
-                    }
-                ]
-            },
-            fragment: {
-                code: code,
-                entryPoint: "fs",
-                targets: [{ format: this.presentationFormat }],
+        //     1, -1, 0, 1, 1,//B
+        //     1, 1, 0, 1, 0,//D
+        //     -1, 1, 0, 0, 0,//C
+        // ];
+        // const screenRectangleVertexesArray = new Float32Array(screenRectangleVertexes);
+        // let options: drawOptionOfCommand = {
+        //     label: "PP render to surface",
+        //     scene: this,
+        //     vertex: {
+        //         code: code,
+        //         entryPoint: "vs",
+        //         buffers: [
+        //             {
+        //                 vertexArray: screenRectangleVertexesArray,
+        //                 type: "Float32Array",
+        //                 arrayStride: 4 * 5,
+        //                 attributes: [
+        //                     {
+        //                         shaderLocation: 0,
+        //                         offset: 0,
+        //                         format: 'float32x3',
+        //                     },
+        //                     {
+        //                         shaderLocation: 1,
+        //                         offset: 4 * 3,
+        //                         format: 'float32x2',
+        //                     },
+        //                 ]
+        //             }
+        //         ]
+        //     },
+        //     fragment: {
+        //         code: code,
+        //         entryPoint: "fs",
+        //         targets: [{ format: this.presentationFormat }],
 
-            },
-            uniforms: [
-                {
-                    layout: 0,
-                    entries: [
-                        {
-                            label: "sampler of pp to screen ",
-                            binding: 0,
-                            resource: sampler
-                        },
-                        {
-                            label: "texture of pp to screen ",
-                            binding: 1,
-                            resource: this.colorTexture.createView()
-                        },
-                    ]
-                }
-            ],
-            draw: {
-                mode: "draw",
-                values: {
-                    vertexCount: 6
-                }
-            },
-            rawUniform: true,
-            // renderPassDescriptor: postProcessToSurfaceRenderPassDescriptor
-        }
-        this.DCcopyToSurface = new DrawCommand(options);
+        //     },
+        //     uniforms: [
+        //         {
+        //             layout: 0,
+        //             entries: [
+        //                 {
+        //                     label: "sampler of pp to screen ",
+        //                     binding: 0,
+        //                     resource: sampler
+        //                 },
+        //                 {
+        //                     label: "texture of pp to screen ",
+        //                     binding: 1,
+        //                     resource: this.colorTexture.createView()
+        //                 },
+        //             ]
+        //         }
+        //     ],
+        //     draw: {
+        //         mode: "draw",
+        //         values: {
+        //             vertexCount: 6
+        //         }
+        //     },
+        //     rawUniform: true,
+        //     // renderPassDescriptor: postProcessToSurfaceRenderPassDescriptor
+        // }
+        // this.DCcopyToSurface = new DrawCommand(options);
     }
 
     // addUserUpdate(fun: any) { }

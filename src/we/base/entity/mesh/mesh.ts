@@ -20,7 +20,9 @@ export interface optionMeshEntity extends optionBaseEntity {
     /**线框，boolean,默认使用 */
     wireFrame?: boolean,
     /**线框颜色，默认黑色 */
-    wireFrameColor?: coreConst.color4F
+    wireFrameColor?: coreConst.color4F,
+    /**剔除面 */
+    cullmode?:GPUCullMode,
 }
 
 
@@ -40,8 +42,13 @@ export class Mesh extends BaseEntity {
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
     _wireframeEnable!: boolean;
+    _cullMode!:GPUCullMode;
     constructor(input: optionMeshEntity) {
         super(input);
+        this._cullMode="back";
+        if(input.cullmode){
+            this._cullMode=input.cullmode;
+        }
         this._geometry = input.geometry;
         this._material = input.material;
         this._init = initStateEntity.unstart;
@@ -154,7 +161,7 @@ export class Mesh extends BaseEntity {
             },
             primitive: {
                 topology: 'triangle-list',
-                cullMode: 'none',
+                cullMode: this._cullMode,
             },
             // uniforms: [],
             uniforms: uniforms,
@@ -196,7 +203,7 @@ export class Mesh extends BaseEntity {
                 },
                 primitive: {
                     topology: "line-list",
-                    cullMode: 'none',
+                    cullMode: this._cullMode,
                 },
                 uniforms: [
                     {

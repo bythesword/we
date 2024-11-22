@@ -4,12 +4,14 @@ import { optionCamreaControl } from "../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
-import { BoxGeometry } from "../../../src/we/base/geometry/boxGeometry"
 import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
-
-import { vec3 } from "wgpu-matrix"
-import { PhongMaterial } from "../../../src/we/base/material/simple/phongMaterial" 
+import { OneColorCube } from "../../../src/we/base/geometry/oneColorCube"
+import { VertexColorMaterial } from "../../../src/we/base/material/simple/vertexColorMatrial"
+import { mat4, vec3 } from "wgpu-matrix"
+import { CubeSkyMaterial } from "../../../src/we/base/material/sky/cubeSkyMaterial"
 import { WASDCameraControl } from "../../../src/we/base/control/wasdCameraControl"
+ 
+
 
 declare global {
   interface Window {
@@ -25,14 +27,6 @@ let input: sceneInputJson = {
     green: 0.5,
     blue: 0.5,
     alpha: 1
-  },
-  ambientLight: {
-    color: {
-      red: 1,
-      green: 1,
-      blue: 1
-    },
-    intensity: 0.13
   }
 }
 let scene = new Scene(input);
@@ -45,10 +39,10 @@ window.scene = scene;
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
-  far: 100,
-  position: [0, 0, 3],
-  lookAt: [0, 0, 0]
+  near: 0.1,
+  far: 2000,
+  position: [0, 0, 0.],
+  lookAt: [0, 0, 1.]
 }
 //实例化摄像机
 let camera = new PerspectiveCamera(cameraOption);
@@ -77,29 +71,31 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let boxGeometry = new BoxGeometry();
+let boxGeometry = new OneColorCube();
 //极简测试材质，red
-let redMaterial = new PhongMaterial({
-  color: { red: 0, green: 1, blue: 0, alpha: 1 },
-  metalness: 1,
-  texture: {
-    texture: "/examples/resource/images/box/container2.png",
-    specularTexture: "/examples/resource/images/box/container2_specular.png",
+let redMaterial = new VertexColorMaterial({ type: "position" });
+let cubeMaterial = new CubeSkyMaterial({
+  cubeTexture: {
+    texture: [
+      '/examples/resource/images/cubemap/posx.jpg',
+      '/examples/resource/images/cubemap/negx.jpg',
+      '/examples/resource/images/cubemap/posy.jpg',
+      '/examples/resource/images/cubemap/negy.jpg',
+      '/examples/resource/images/cubemap/posz.jpg',
+      '/examples/resource/images/cubemap/negz.jpg',
+    ],
   }
-});
+})
 //box实体
 let boxEntity = new Mesh(
   {
+    scale:[100,100,100],
     geometry: boxGeometry,
-    material: redMaterial,
+    material: cubeMaterial,
     wireFrame: false,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
-    // position:vec3.create(1,0,0),
-    // scale:[1,1,1],
-    // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:-0.15*Math.PI
-    // }
+    dynamicPostion: true,
+    cullmode: "front",
+
   }
 );
 //增加实体到scene

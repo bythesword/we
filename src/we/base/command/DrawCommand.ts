@@ -161,8 +161,8 @@ export interface drawOptionOfCommand extends baseOptionOfCommand {
             depthStoreOp?: GPUStoreOp,
         }
     },
-    /**复制结果到纹理 */
-    copyTexture?: GPUTexture,
+    // /**复制结果到纹理 */
+    // copyTexture?: GPUTexture,
 }
 
 
@@ -514,17 +514,17 @@ export class DrawCommand extends BaseCommand {
         }
         passEncoder.end();
 
-        if (this.input.copyTexture) {
-            commandEncoder.copyTextureToTexture(
-                {
-                    texture: (this.scene.context as GPUCanvasContext).getCurrentTexture(),
-                },
-                {
-                    texture: this.input.copyTexture,
-                },
-                [this.scene.canvas.width, this.scene.canvas.height]
-            );
-        }
+        // if (this.input.copyTexture) {
+        //     commandEncoder.copyTextureToTexture(
+        //         {
+        //             texture: (this.scene.context as GPUCanvasContext).getCurrentTexture(),
+        //         },
+        //         {
+        //             texture: this.input.copyTexture,
+        //         },
+        //         [this.scene.canvas.width, this.scene.canvas.height]
+        //     );
+        // }
         const commandBuffer = commandEncoder.finish();
         device.queue.submit([commandBuffer]);
     }
