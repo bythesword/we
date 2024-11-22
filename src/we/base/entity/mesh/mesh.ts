@@ -140,7 +140,7 @@ export class Mesh extends BaseEntity {
                 uniforms[0].entries.push(i);
         }
         let options: drawOptionOfCommand = {
-            label: "a triangle",
+            label: this.name == "" ? "Mesh" : this.name,
             scene: scene,
             vertex: {
                 code: shader,
@@ -182,7 +182,7 @@ export class Mesh extends BaseEntity {
                 instanceCount: this.numInstances,
             }
             let wireFrameOptions: drawOptionOfCommand = {
-                label: "a triangle",
+                label: this.name == "" ? "Mesh wireframe" : this.name + " wireframe",
                 scene: scene,
                 vertex: {
                     code: wireFrameShaderCode,

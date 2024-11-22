@@ -118,6 +118,6 @@ let options: drawOptionOfCommand ={
 }
 
 let DC = new DrawCommand(options);
-await DC.init();
+// DC.init();
 window.DC = DC;
 DC.submit()

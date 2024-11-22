@@ -14,6 +14,9 @@ export interface optionBaseMaterial {
     // opacity?:number,
     // /**alphaTest时要使用的alpha值。如果不透明度低于此值，则不会渲染材质。默认值为0 */
     // alphaTest?: number,
+
+    /**指定的fragment code */
+    fsCode?:string
 }
 
 export abstract class BaseMaterial {
@@ -28,6 +31,7 @@ export abstract class BaseMaterial {
      * 如果更改为为true，在材质不工作
     */
     _already: boolean;
+    
 
     constructor(input?: optionBaseMaterial) {
         this._destroy = false;

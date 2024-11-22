@@ -1,16 +1,29 @@
+import { uniformEntries } from "../../command/baseCommand";
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
- 
-export interface optionVertexColorMaterial extends optionBaseMaterial {
-    type: "color" | "position"
-}
-export class VertexColorMaterial extends BaseMaterial {
 
+export interface optionVertexColorMaterial extends optionBaseMaterial {
+    type: "color" | "position",
+    textures?: GPUTexture
+}
+/**
+ * 展示用材质
+ */
+export class VertexColorMaterial extends BaseMaterial {
+    declare input: optionVertexColorMaterial;
     _type: String;
+    sampler!: GPUSampler;
+
     constructor(input?: optionVertexColorMaterial) {
         super(input);
         this._type = "position";
         if (input) {
             this._type = input.type;
+        }
+        if (input?.textures) {
+            this.sampler = window.weGPUdevice.createSampler({
+                magFilter: 'linear',
+                minFilter: 'linear',
+            });
         }
         this._already = true;
     }
@@ -18,6 +31,9 @@ export class VertexColorMaterial extends BaseMaterial {
         // throw new Error("Method not implemented.");
     }
     getCodeFS() {
+        if (this.input.fsCode) {
+            return this.input.fsCode;
+        }
         let FSOfColor = `@fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
             return vec4f(fsInput.color,1.0);
           }          `;
@@ -26,16 +42,30 @@ export class VertexColorMaterial extends BaseMaterial {
           }          `;
 
         // return FSOfposition;
-        return this._type=="color"?FSOfColor:FSOfposition;
+        return this._type == "color" ? FSOfColor : FSOfposition;
     }
 
     destroy() {
         this._destroy = true;
     }
 
-    getUniform(): false {
+    getUniform(): uniformEntries[] | false {
         // throw new Error("Method not implemented.");
-        return false;
+        if (this.input.textures) {
+            let unifomrArray: uniformEntries[] = []
+            unifomrArray.push({
+                binding: 1,
+                resource: this.sampler,
+            });
+            unifomrArray.push({
+                binding: 2,
+                resource: this.input.textures.createView(),
+            });
+
+            return unifomrArray;
+        }
+        else
+            return false;
     }
 
 }

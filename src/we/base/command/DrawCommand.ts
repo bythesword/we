@@ -13,7 +13,7 @@ import {
 // import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
 // import * as baseDefine from "../scene/base"
-import { getReplaceVertexConstantsVS,getReplaceVertexConstantsFS } from './shaderFormat';
+import { getReplaceVertexConstantsVS, getReplaceVertexConstantsFS } from './shaderFormat';
 
 
 /** VS的buffer的typearray的结构 
@@ -160,7 +160,9 @@ export interface drawOptionOfCommand extends baseOptionOfCommand {
             depthLoadOp?: GPULoadOp,
             depthStoreOp?: GPUStoreOp,
         }
-    }
+    },
+    /**复制结果到纹理 */
+    copyTexture?: GPUTexture,
 }
 
 
@@ -380,7 +382,7 @@ export class DrawCommand extends BaseCommand {
 
             };
         }
-        else { 
+        else {
             let wgslOfSystem = this.scene.getWGSLOfSystemShader();
             let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
             let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
@@ -415,7 +417,7 @@ export class DrawCommand extends BaseCommand {
         const pipeline = device.createRenderPipeline(descriptor);
         return pipeline;
     }
-    
+
     /**
      * 目前使用scene的colorAttachments,
      * todo ，增加texture
@@ -431,7 +433,7 @@ export class DrawCommand extends BaseCommand {
             if (this.uniformGroups[0] == undefined) {
                 this.uniformGroups[0] = this.scene.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
             }
-          
+
         }
         this.updateUniformBuffer();
 
@@ -511,6 +513,18 @@ export class DrawCommand extends BaseCommand {
             throw new Error("draw 模式设置错误");
         }
         passEncoder.end();
+
+        if (this.input.copyTexture) {
+            commandEncoder.copyTextureToTexture(
+                {
+                    texture: (this.scene.context as GPUCanvasContext).getCurrentTexture(),
+                },
+                {
+                    texture: this.input.copyTexture,
+                },
+                [this.scene.canvas.width, this.scene.canvas.height]
+            );
+        }
         const commandBuffer = commandEncoder.finish();
         device.queue.submit([commandBuffer]);
     }

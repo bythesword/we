@@ -272,6 +272,7 @@ export abstract class BaseCommand {
         this.device = options.scene.device;
         this.rawUniform = false;
         if (options.rawUniform) this.rawUniform = true;
+        this.label = this.input.label == undefined ? "no name" : this.input.label;
         return this;
     }
     abstract init(): any

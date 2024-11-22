@@ -30,6 +30,7 @@ import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseLight, lightStructSize } from "../light/baseLight";
+import { DrawCommand, drawOptionOfCommand } from "../command/DrawCommand"
 
 
 /**
@@ -40,6 +41,7 @@ declare interface sceneInputJson extends sceneJson {
     /**canvas id */
     canvas: string,
     // renderPassSetting?: renderPassSetting,
+    /**backgroudColor */
     color?: coreConst.color4F,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
@@ -134,6 +136,10 @@ class Scene extends BaseScene {
 
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray!: updateCall[];
+
+
+    /**DrawCommand类型： copy PP to Screen */
+    DCcopyToSurface!: DrawCommand;
 
     constructor(input: sceneInputJson) {
         super(input);
@@ -237,6 +243,7 @@ class Scene extends BaseScene {
             device,
             format: presentationFormat,
             alphaMode: 'premultiplied',//预乘透明度
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
         });
 
         this.aspect = canvas.width / canvas.height;
@@ -250,10 +257,17 @@ class Scene extends BaseScene {
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
 
+        this.colorTexture = this.device.createTexture({
+            size: [this.canvas.width, this.canvas.height],
+            format: this.presentationFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
+
+        });
         this.renderPassDescriptor = this.createRenderPassDescriptor();
         // this.updateSystemUniformBuffer();
         this.initStages();
         this.initActors();
+        this.initPostProcess();
     }
 
 
@@ -375,10 +389,10 @@ class Scene extends BaseScene {
      * @returns GPURenderPassDescriptor
      */
     createRenderPassDescriptor() {
-        // let scope = this;
-        this.colorAttachment = (this.context as GPUCanvasContext)
-            .getCurrentTexture()
-            .createView();
+        // this.colorAttachment = (this.context as GPUCanvasContext)
+        //     .getCurrentTexture()
+        //     .createView();
+        this.colorAttachment = this.colorTexture.createView();
         this.depthStencilAttachment = this.depthTexture.createView();
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
@@ -502,11 +516,11 @@ class Scene extends BaseScene {
             const deltaTime = scope.clock.deltaTime;
             const startTime = scope.clock.start;
             const lastTime = scope.clock.last;
-            await scope.update(deltaTime,startTime,lastTime);
-            scope.oneFrameRender();
-            scope.pickup();
-            scope.postProcess();
-            scope.updateUserDefine();
+            await scope.update(deltaTime, startTime, lastTime);
+            await scope.oneFrameRender();
+            await scope.pickup();
+            await scope.postProcess();
+            await scope.updateUserDefine();
             requestAnimationFrame(run)
         }
         requestAnimationFrame(run)
@@ -517,9 +531,9 @@ class Scene extends BaseScene {
      * 2、更新Acter
      * 3、更新实体 entity
      */
-    async update(deltaTime: number,startTime:number,lastTime:number) {
+    async update(deltaTime: number, startTime: number, lastTime: number) {
         if (this.defaultActor)
-            this.defaultActor.update(deltaTime,startTime,lastTime);
+            this.defaultActor.update(deltaTime, startTime, lastTime);
         this.updateSystemUniformBuffer();
 
         //todo
@@ -527,14 +541,14 @@ class Scene extends BaseScene {
         // let rays = this.defaultCamera!.getCameraRays();
         // 四个中间点，稍稍延迟
         // this.updateBVH(rays)
-        await this.updateLights(deltaTime,startTime,lastTime);
-        this.updateAcotr(deltaTime,startTime,lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
+        await this.updateLights(deltaTime, startTime, lastTime);
+        this.updateAcotr(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
         // this.updateEntities(deltaTime,startTime,lastTime);//更新实体状态，比如水，树，草等动态的
-        this.updateStagesCommand(deltaTime,startTime,lastTime);
+        this.updateStagesCommand(deltaTime, startTime, lastTime);
     }
-    async updateLights(deltaTime: number,startTime:number,lastTime:number) {
+    async updateLights(deltaTime: number, startTime: number, lastTime: number) {
         for (let i of this.lights) {
-            await i.update(deltaTime,startTime,lastTime);
+            await i.update(deltaTime, startTime, lastTime);
         }
     }
 
@@ -711,11 +725,11 @@ class Scene extends BaseScene {
      * 2、是否为动态Actor
      * 3、生命周期
      */
-    updateAcotr(deltaTime: number,startTime:number,lastTime:number) {
+    updateAcotr(deltaTime: number, startTime: number, lastTime: number) {
         if (this.actors)
             for (let i in this.actors) {
                 if (this.defaultActor && this.actors[i] != this.defaultActor)
-                    this.actors[i].update(deltaTime,startTime,lastTime);
+                    this.actors[i].update(deltaTime, startTime, lastTime);
             }
     }
     /**实体更新 
@@ -732,7 +746,7 @@ class Scene extends BaseScene {
      *          视锥
      *        输出是否本轮可见 
     */
-    updateEntities(deltaTime: number,startTime:number,lastTime:number) {
+    updateEntities(deltaTime: number, startTime: number, lastTime: number) {
 
     }
 
@@ -745,17 +759,17 @@ class Scene extends BaseScene {
      *      视口是否变化
      * @param deltaTime 
      */
-    updateStagesCommand(deltaTime: number,startTime:number,lastTime:number) {
+    updateStagesCommand(deltaTime: number, startTime: number, lastTime: number) {
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
             const name = coreConst.stagesOfSystem[perList];
 
             {//每个stageGroup进行update，包含透明和不透明两个stage 
                 if (this.stages[name].opaque) {
-                    this.stages[name].opaque!.update(deltaTime,startTime,lastTime);
+                    this.stages[name].opaque!.update(deltaTime, startTime, lastTime);
                 }
                 if (this.stages[name].transparent) {
-                    this.stages[name].transparent!.update(deltaTime,startTime,lastTime);
+                    this.stages[name].transparent!.update(deltaTime, startTime, lastTime);
                 }
             }
         }
@@ -787,7 +801,8 @@ class Scene extends BaseScene {
         //清空command
         this.command = [];
         (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
-            this.context.getCurrentTexture().createView();//ok,重新申明了this.context的类型
+            this.colorAttachment;
+        // this.context.getCurrentTexture().createView();//ok,重新申明了this.context的类型
         // (<GPUCanvasContext>this.context).getCurrentTexture().createView();//ok
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
@@ -816,9 +831,10 @@ class Scene extends BaseScene {
                     // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].clearValue = this.renderPassSetting.color!.clearValue!;
                     this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = this.renderPassSetting.depth!.depthLoadOp!;
                     (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
-                        (this.context as GPUCanvasContext)
-                            .getCurrentTexture()
-                            .createView();
+                        this.colorAttachment;
+                    // (this.context as GPUCanvasContext)
+                    //     .getCurrentTexture()
+                    //     .createView();
                 }
                 else if (i == "1") {
                     (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = this.renderPassSetting.colorSecond!.loadOp!;
@@ -830,7 +846,187 @@ class Scene extends BaseScene {
     }
 
     pickup() { }
-    postProcess() { }
+
+
+    postProcess() {
+        const commandEncoder = this.device.createCommandEncoder();
+
+        commandEncoder.copyTextureToTexture(
+
+            {
+                texture: this.colorTexture
+            },
+            {
+                texture: (this.context as GPUCanvasContext).getCurrentTexture(),
+            },
+            [this.canvas.width, this.canvas.height]
+        );
+        const commandBuffer = commandEncoder.finish();
+        this.device.queue.submit([commandBuffer]);
+
+
+        // this.DCcopyToSurface.update();//时间线上冲突，
+
+    }
+    /** 
+     * 初始化 后处理
+    */
+
+    initPostProcess() {
+        //     const module = this.device.createShaderModule({
+        //         label: 'our hardcoded rgb triangle shaders',
+        //         code: `
+        //           struct OurVertexShaderOutput {
+        //             @builtin(position) position: vec4f,
+        //             @location(0) color: vec4f,
+        //           };
+
+        //           @vertex fn vs(
+        //             @builtin(vertex_index) vertexIndex : u32
+        //           ) -> OurVertexShaderOutput {
+        //             let pos = array(
+        //               vec2f( 0.0,  0.5),  // top center
+        //               vec2f(-0.5, -0.5),  // bottom left
+        //               vec2f( 0.5, -0.5)   // bottom right
+        //             );
+
+
+        //             var vsOutput: OurVertexShaderOutput;
+        //             vsOutput.position = vec4f(pos[vertexIndex], 0.0, 1.0); 
+        //             return vsOutput;
+        //           }
+
+        //           @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
+        //             return fsInput.color;
+        //           }
+        //         `,
+        //     });
+        //     this.postProcessToSurfacePipeline = this.device.createRenderPipeline({
+        //         label: 'copy color text to canvas',
+        //         layout: 'auto',
+        //         vertex: {
+        //             module,
+        //         },
+        //         fragment: {
+        //             module,
+        //             targets: [{ format: this.presentationFormat }],
+        //         },
+        //     });
+        const postProcessToSurfaceRenderPassDescriptor: GPURenderPassDescriptor = {
+            colorAttachments: [
+                {
+                    view: (this.context as GPUCanvasContext)
+                        .getCurrentTexture()
+                        .createView(),
+                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+                    loadOp: "clear",
+                    storeOp: "store"
+                }
+            ],
+        };
+
+        const code = `
+              @group(0) @binding(0) var u_Sampler : sampler;
+              @group(0) @binding(1) var u_Texture: texture_2d<f32>;
+              
+              struct OurVertexShaderOutput {
+                @builtin(position) position: vec4f,
+                @location(0) uv: vec2f,
+              };
+        
+              @vertex fn vs(
+                @location(0) position : vec3f,
+                @location(1) uv : vec2f,
+              ) -> OurVertexShaderOutput {
+                var vsOutput: OurVertexShaderOutput;
+                vsOutput.position = vec4f(position, 1.0); 
+                vsOutput.uv = uv; 
+                return vsOutput;
+              }             
+
+              @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
+                // return vec4f(1,0,0,1);
+                return textureSample(u_Texture, u_Sampler, fsInput.uv  );
+              }
+            ` ;
+        const sampler = window.weGPUdevice.createSampler({
+            magFilter: "nearest",
+            minFilter: "nearest",
+        });
+        // C  D 
+        // A  B
+        const screenRectangleVertexes = [
+            //x,y,z,u,v
+            -1, -1, 0, 0, 1,//A
+            1, -1, 0, 1, 1,//B
+            -1, 1, 0, 0, 0,//C
+
+            1, -1, 0, 1, 1,//B
+            1, 1, 0, 1, 0,//D
+            -1, 1, 0, 0, 0,//C
+        ];
+        const screenRectangleVertexesArray = new Float32Array(screenRectangleVertexes);
+        let options: drawOptionOfCommand = {
+            label: "PP render to surface",
+            scene: this,
+            vertex: {
+                code: code,
+                entryPoint: "vs",
+                buffers: [
+                    {
+                        vertexArray: screenRectangleVertexesArray,
+                        type: "Float32Array",
+                        arrayStride: 4 * 5,
+                        attributes: [
+                            {
+                                shaderLocation: 0,
+                                offset: 0,
+                                format: 'float32x3',
+                            },
+                            {
+                                shaderLocation: 1,
+                                offset: 4 * 3,
+                                format: 'float32x2',
+                            },
+                        ]
+                    }
+                ]
+            },
+            fragment: {
+                code: code,
+                entryPoint: "fs",
+                targets: [{ format: this.presentationFormat }],
+
+            },
+            uniforms: [
+                {
+                    layout: 0,
+                    entries: [
+                        {
+                            label: "sampler of pp to screen ",
+                            binding: 0,
+                            resource: sampler
+                        },
+                        {
+                            label: "texture of pp to screen ",
+                            binding: 1,
+                            resource: this.colorTexture.createView()
+                        },
+                    ]
+                }
+            ],
+            draw: {
+                mode: "draw",
+                values: {
+                    vertexCount: 6
+                }
+            },
+            rawUniform: true,
+            // renderPassDescriptor: postProcessToSurfaceRenderPassDescriptor
+        }
+        this.DCcopyToSurface = new DrawCommand(options);
+    }
+
     // addUserUpdate(fun: any) { }
     /**
      * 用户自定义的更新
