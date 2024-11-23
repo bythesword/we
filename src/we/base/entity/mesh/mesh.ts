@@ -17,12 +17,15 @@ export interface optionMeshEntity extends optionBaseEntity {
     geometry: BaseGeometry,
     /**材质 */
     material: BaseMaterial, //| BaseMaterial[],
+
+    /**只显示线框 */
+    wireFrameOnly?: boolean;
     /**线框，boolean,默认使用 */
     wireFrame?: boolean,
     /**线框颜色，默认黑色 */
     wireFrameColor?: coreConst.color4F,
     /**剔除面 */
-    cullmode?:GPUCullMode,
+    cullmode?: GPUCullMode,
 }
 
 
@@ -42,12 +45,17 @@ export class Mesh extends BaseEntity {
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
     _wireframeEnable!: boolean;
-    _cullMode!:GPUCullMode;
+    _cullMode!: GPUCullMode;
+    _wireFrameOnly?: boolean;
     constructor(input: optionMeshEntity) {
         super(input);
-        this._cullMode="back";
-        if(input.cullmode){
-            this._cullMode=input.cullmode;
+        this._cullMode = "back";
+        if (input.cullmode) {
+            this._cullMode = input.cullmode;
+        }
+        this._wireFrameOnly = false;
+        if (input.wireFrameOnly) {
+            this._wireFrameOnly = true;
         }
         this._geometry = input.geometry;
         this._material = input.material;
@@ -108,75 +116,76 @@ export class Mesh extends BaseEntity {
         let scope = this;
         /////////////////////box  
         let shader;
+        if (this._wireFrameOnly === false) {
+            if (this.input?.shaderCode) {
+                shader = this.input.shaderCode;
+            }
+            else {
+                let shaderFS = this._material.getCodeFS();
+                let shaderVS = this._geometry.getCodeVS();
+                shader = shaderVS + shaderFS;
+                shader = shader.replaceAll("$instacnce", this.numInstances.toString());
+            }
 
-        if (this.input?.shaderCode) {
-            shader = this.input.shaderCode;
+            let vsa = this._geometry.getAttribute();
+            let indexBuffer = this._geometry.getIndeices();
+            let counts = this._geometry.getDrawCount();
+
+            let values: drawModeIndexed = {
+                indexCount: counts,
+                instanceCount: this.numInstances,
+            };
+            // let options: drawOptionOfCommand;
+            let uniformFS = this._material.getUniform();
+            let uniforms: unifromGroup[] = [
+                {
+                    layout: 1,
+                    entries: [
+                        {
+                            label: "Mesh matrixWorld",
+                            binding: 0,
+                            size: 4 * 16 * this.numInstances,
+                            get: () => { return scope.getUniformOfMatrix() },
+                        }
+                    ]
+                },
+            ];
+            if (uniformFS !== false) {
+                for (let i of uniformFS as uniformEntries[])
+                    uniforms[0].entries.push(i);
+            }
+            let options: drawOptionOfCommand = {
+                label: this.name == "" ? "Mesh" : this.name,
+                scene: scene,
+                vertex: {
+                    code: shader,
+                    entryPoint: "vs",
+                    buffers: vsa
+                },
+                fragment: {
+                    code: shader,
+                    entryPoint: "fs",
+                    targets: [{ format: scene.presentationFormat }]
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    cullMode: this._cullMode,
+                },
+                // uniforms: [],
+                uniforms: uniforms,
+                // rawUniform: true,
+                draw: {
+                    mode: "index",
+                    values: values,
+
+                },
+                indexBuffer: indexBuffer as indexBuffer,
+
+            };
+
+            let DC = new DrawCommand(options);
+            this._commmands.push(DC);
         }
-        else {
-            let shaderFS = this._material.getCodeFS();
-            let shaderVS = this._geometry.getCodeVS();
-            shader = shaderVS + shaderFS;
-            shader = shader.replaceAll("$instacnce", this.numInstances.toString());
-        }
-
-        let vsa = this._geometry.getAttribute();
-        let indexBuffer = this._geometry.getIndeices();
-        let counts = this._geometry.getDrawCount();
-
-        let values: drawModeIndexed = {
-            indexCount: counts,
-            instanceCount: this.numInstances,
-        };
-        // let options: drawOptionOfCommand;
-        let uniformFS = this._material.getUniform();
-        let uniforms: unifromGroup[] = [
-            {
-                layout: 1,
-                entries: [
-                    {
-                        label: "Mesh matrixWorld",
-                        binding: 0,
-                        size: 4 * 16 * this.numInstances,
-                        get: () => { return scope.getUniformOfMatrix() },
-                    }
-                ]
-            },
-        ];
-        if (uniformFS !== false) {
-            for (let i of uniformFS as uniformEntries[])
-                uniforms[0].entries.push(i);
-        }
-        let options: drawOptionOfCommand = {
-            label: this.name == "" ? "Mesh" : this.name,
-            scene: scene,
-            vertex: {
-                code: shader,
-                entryPoint: "vs",
-                buffers: vsa
-            },
-            fragment: {
-                code: shader,
-                entryPoint: "fs",
-                targets: [{ format: scene.presentationFormat }]
-            },
-            primitive: {
-                topology: 'triangle-list',
-                cullMode: this._cullMode,
-            },
-            // uniforms: [],
-            uniforms: uniforms,
-            // rawUniform: true,
-            draw: {
-                mode: "index",
-                values: values,
-
-            },
-            indexBuffer: indexBuffer as indexBuffer,
-
-        };
-
-        let DC = new DrawCommand(options);
-        this._commmands.push(DC);
 
         /////////////////////////////// wire frame
         if (this._wireframeEnable === true) {

@@ -13,6 +13,6 @@ struct FragmentOutput {
 ) -> FragmentOutput {
     var output : FragmentOutput;
     output.color = vec4f($red, $green, $blue, 1);
-    output.depth = pos.z - 0.000000138;
+    output.depth = pos.z - 0.000000238;
     return output;
 }
