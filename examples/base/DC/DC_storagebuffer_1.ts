@@ -145,3 +145,4 @@ window.DC = DC;
 await DC.update() // 等待异步
 console.log("***************")
 // DC.submit()
+scene.postProcess();

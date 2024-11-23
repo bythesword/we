@@ -6,6 +6,7 @@
   //Our camera and the skybox cube are both centered at (0, 0, 0)
   //so we can use the cube geomtry position to get viewing vector to sample the cube texture.
   //The magnitude of the vector doesn't matter.
-  var cubemapVec =  fsInput.fsPosition.xyz-vec3(0.5);
+  var cubemapVec = normalize(fsInput.fsPosition.xyz - vec3(0.5, 0.50, 0.5));
+  //return textureSample(myTexture, mySampler, fsInput.cubeUV);
   return textureSample(myTexture, mySampler, cubemapVec);
 }

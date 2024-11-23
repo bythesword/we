@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "dat.gui": "^0.7.9",
+    "tweakpane": "^4.0.5",
     "webgpu-utils": "^1.7.0",
     "wgpu-matrix": "^2.8.0",
     "wgsl-preprocessor": "^1.0.1"

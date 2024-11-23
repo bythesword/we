@@ -233,3 +233,4 @@ DC1.update()
 // scene.stages["World"].opaque!.command.push(DC1);
 // scene.run()
 
+scene.postProcess();

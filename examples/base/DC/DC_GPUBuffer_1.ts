@@ -113,3 +113,4 @@ let DC = new DrawCommand(options);
 // await DC.init();
 window.DC = DC;
 DC.submit()
+scene.postProcess();

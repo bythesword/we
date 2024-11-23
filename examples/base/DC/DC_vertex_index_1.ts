@@ -96,10 +96,11 @@ let options: drawOptionOfCommand ={
   draw: {
     mode: "index",
     values: {
-      indexCount: 3
+      indexCount: 3,
+      instanceCount: 3,
     }
   },
-  instanceCount: 3,
+  
   rawUniform: true,
   // }
 }
@@ -108,3 +109,4 @@ let DC = new DrawCommand(options);
 await DC.init();
 window.DC = DC;
 DC.submit()
+scene.postProcess();

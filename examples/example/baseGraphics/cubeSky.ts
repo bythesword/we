@@ -42,7 +42,7 @@ const cameraOption: optionPerspProjection = {
   near: 0.1,
   far: 2000,
   position: [0, 0, 0.],
-  lookAt: [0, 0, 1.]
+  lookAt: [0, 0, 10.]
 }
 //实例化摄像机
 let camera = new PerspectiveCamera(cameraOption);
@@ -56,6 +56,7 @@ const controlOption: optionCamreaControl = {
 };
 //实例化摄像机控制器
 let control = new WASDCameraControl(controlOption);
+// let control = new ArcballCameraControl(controlOption);
 
 //摄像机角色参数
 const ccOption: optionCameraActor = {

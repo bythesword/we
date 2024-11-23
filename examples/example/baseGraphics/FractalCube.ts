@@ -190,20 +190,7 @@ let colorTexture = scene.device.createTexture({
 });
 scene.addUserDefine({
   call: function (scope: any): any {
-    const commandEncoder = scene.device.createCommandEncoder();
-
-    commandEncoder.copyTextureToTexture(
-
-      {
-        texture: scene.colorTexture
-      },
-      {
-        texture: colorTexture,
-      },
-      [scene.canvas.width, scene.canvas.height]
-    );
-    const commandBuffer = commandEncoder.finish();
-    scene.device.queue.submit([commandBuffer]);
+    scope.copyTextureToTexture(scene.colorTexture,colorTexture,{width:scope.canvas.width, height:scope.canvas.height});
     return true;
   },
   name: "copy",
@@ -217,7 +204,7 @@ let boxGeometry = new OneColorCube();
 let redMaterial = new VertexColorMaterial({
   type: "position",
   textures: colorTexture,
-  fsCode: `
+  code: `
   @group(1) @binding(1) var u_Sampler : sampler;
   @group(1) @binding(2) var u_Texture: texture_2d<f32>;
   @fragment fn fs( fsInput : VertexShaderOutput) -> @location(0) vec4f {

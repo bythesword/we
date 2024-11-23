@@ -212,7 +212,7 @@ let options1: drawOptionOfCommand = {
           get: () => {
             const uniformOneColor =
               new Float32Array([
-                0, 1, 0, 1,
+                0, 0, 1, 1,
                 -0.1, 0
                 // rand(-0.31, 0.31), rand(-0.51, 0.51), 0,
               ]);
@@ -250,3 +250,4 @@ blue.update()
 // scene.stages["World"].opaque!.command.push(DC1);
 // scene.run()
 
+scene.postProcess();

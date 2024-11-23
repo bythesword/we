@@ -17,7 +17,8 @@ export interface geometryAttribute {
     uv: number[],
     color: number[],
     indeices: number[],
-    materialStep: geometryMaterialStep[]
+    materialStep: geometryMaterialStep[],
+
 }
 /**
  * 线框的几何属性
@@ -26,7 +27,10 @@ export interface geometryWireFrameAttribute {
     indeices: number[],
 }
 
-export interface optionBaseGemetry { }
+export interface optionBaseGemetry {
+    /**指定的shader code */
+    code?: string
+}
 /**
  * 设计目标提供静态的基础几何体
  */
@@ -192,6 +196,9 @@ export abstract class BaseGeometry {
      * @returns string
      */
     getCodeVS() {
+        if (this.input.code) {
+            return this.input.code;
+        }
         return triangleVS;
     }
     /**

@@ -16,7 +16,7 @@ export interface optionBaseMaterial {
     // alphaTest?: number,
 
     /**指定的fragment code */
-    fsCode?:string
+    code?:string
 }
 
 export abstract class BaseMaterial {

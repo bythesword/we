@@ -10,21 +10,28 @@ import { BoxGeometry, optionBoxGemetry } from "./boxGeometry";
 
 export class OneColorCube extends BoxGeometry {
 
-    width:number;
+    width: number;
 
     constructor(width = 2) {
-       
+
         let option: optionBoxGemetry = {
             width: width,
             height: width,
             depth: width
         }
         super(option);
-        this.width=width;
+        this.width = width;
         this.type = "OneColorCube";
     }
+    /**覆写了这个function
+     * 
+     * 增加了@location(4) fsPosition:vec4f, @location(5) cubeUV:vec3f,
+     * 
+     * 
+     * 适用于cube的三维UV
+     */
     getCodeVS() {
-        let width=this.width/2;
+        let width = this.width / 2;
         //这个比正常的geometry的vs多了fsPosition
         return `
         override instance_num_matrix : u32 = 1;
@@ -35,6 +42,7 @@ export class OneColorCube extends BoxGeometry {
             @location(2) color : vec3f,
             @location(3) worldPosition : vec3f,
             @location(4) fsPosition:vec4f,
+            @location(5) cubeUV:vec3f,
           };
           
           @group(1) @binding(0) var<uniform> entityMatrixWorld : array<mat4x4f, $instacnce>;
@@ -51,15 +59,17 @@ export class OneColorCube extends BoxGeometry {
             vsOutput.position = projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld[instanceIndex] * vec4f(position, 1.0);
             vsOutput.uv = uv;
         
+            
             vsOutput.normal = vec4f(entityMatrixWorld[instanceIndex] * vec4f(normal, 0)).xyz;
             vsOutput.color = color;
             vsOutput.worldPosition = vec4f(entityMatrixWorld[instanceIndex] * vec4f(position, 1.0)).xyz;
             vsOutput.fsPosition= 0.5*(vec4f(position,1) + vec4(${width}));
+            vsOutput.cubeUV=normalize(vsOutput.worldPosition  - defaultCameraPosition);
             return vsOutput;
           }`;
     }
-    
-      
+
+
 
     generateColorArray(length: number, color = [1, 1, 1]) {
         /*

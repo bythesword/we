@@ -31,8 +31,8 @@ export class VertexColorMaterial extends BaseMaterial {
         // throw new Error("Method not implemented.");
     }
     getCodeFS() {
-        if (this.input.fsCode) {
-            return this.input.fsCode;
+        if (this.input.code) {
+            return this.input.code;
         }
         let FSOfColor = `@fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
             return vec4f(fsInput.color,1.0);

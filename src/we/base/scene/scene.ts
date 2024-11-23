@@ -928,12 +928,12 @@ class Scene extends BaseScene {
         // const code = `
         //       @group(0) @binding(0) var u_Sampler : sampler;
         //       @group(0) @binding(1) var u_Texture: texture_2d<f32>;
-              
+
         //       struct OurVertexShaderOutput {
         //         @builtin(position) position: vec4f,
         //         @location(0) uv: vec2f,
         //       };
-        
+
         //       @vertex fn vs(
         //         @location(0) position : vec3f,
         //         @location(1) uv : vec2f,
@@ -1027,7 +1027,7 @@ class Scene extends BaseScene {
         // this.DCcopyToSurface = new DrawCommand(options);
     }
 
-    // addUserUpdate(fun: any) { }
+    
     /**
      * 用户自定义的更新
      * 比如：
@@ -1064,6 +1064,31 @@ class Scene extends BaseScene {
         return { name: "false", state: false };
     }
 
+    /**
+     * GPUTexture 之间的copy
+     * 
+     * A、B这个两个GPUTexture在一个frame ，不能同时是GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC，否则会产生同步错误
+     * 
+     * @param A :GPUTexture
+     * @param B :GPUTexture
+     * @param size :{ width: number, height: number }
+     */
+    copyTextureToTexture(A: GPUTexture, B: GPUTexture, size: { width: number, height: number }) {
+        const commandEncoder = this.device.createCommandEncoder();
+
+        commandEncoder.copyTextureToTexture(
+
+            {
+                texture: A
+            },
+            {
+                texture: B,
+            },
+            [size.width, size.height]
+        );
+        const commandBuffer = commandEncoder.finish();
+        this.device.queue.submit([commandBuffer]);
+    }
 }
 export interface updateCall {
     call: (scope: any) => {},
