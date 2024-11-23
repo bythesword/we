@@ -114,7 +114,17 @@ export class ComputeCommand extends BaseCommand {
 
     async submit() {
         const device = this.device;
-        this.scene.updateUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
+        // this.scene.updateUnifrombufferForPerShader();//更新ystem的uniform ，MVP，camera，lights等
+        if (this.rawUniform) {//RAW
+
+        }
+        else {//system uniform 
+            //创建
+            if (this.uniformGroups[0] == undefined) {
+                this.uniformGroups[0] = this.scene.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
+            }
+
+        }
         this.updateUniformBuffer();
 
 
@@ -128,7 +138,7 @@ export class ComputeCommand extends BaseCommand {
             passEncoder.setBindGroup(parseInt(i), perGroup); //每次绑定group，buffer已经在GPU memory 中
         }
         // let x = 1, y = 1, z = 1;
-        let [x=1, y=1, z=1] = [...this.input.dispatchCount]  ;
+        let [x = 1, y = 1, z = 1] = [...this.input.dispatchCount];
         passEncoder.dispatchWorkgroups(x, y, z);
         // passEncoder.dispatchWorkgroups(...this.input.dispatchCount);
         passEncoder.end();
