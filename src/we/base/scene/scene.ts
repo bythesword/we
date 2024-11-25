@@ -243,7 +243,7 @@ class Scene extends BaseScene {
             device,
             format: presentationFormat,
             alphaMode: 'premultiplied',//预乘透明度
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST  | GPUTextureUsage.TEXTURE_BINDING
         });
 
         this.aspect = canvas.width / canvas.height;
@@ -257,10 +257,11 @@ class Scene extends BaseScene {
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
 
+        //输出到texture，而不是canvas
         this.colorTexture = this.device.createTexture({
             size: [this.canvas.width, this.canvas.height],
             format: this.presentationFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
+            usage: GPUTextureUsage.RENDER_ATTACHMENT |   GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
 
         });
         this.renderPassDescriptor = this.createRenderPassDescriptor();
