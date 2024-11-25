@@ -161,10 +161,33 @@ export interface drawOptionOfCommand extends baseOptionOfCommand {
             depthStoreOp?: GPUStoreOp,
         }
     },
+    /**viewport,从标准化设备坐标(NDC)线性映射到视区坐标。
+     */
+    viewport?: viewport,
     // /**复制结果到纹理 */
     // copyTexture?: GPUTexture,
 }
-
+/**
+ *   默认是surface的全部,
+     * 
+     * x,y:≥=0;surface的offset(pixels)
+     * 
+     * width,height:≥ 0;pixels,x+width,y+height,这个两个不能超过surface的实际值
+     * 
+     * 
+     * minDepth,maxDepth是压缩后在NDC中的深度区间
+     * 0.0 ≤ minDepth ≤ 1.0;     
+     * 
+     *  0.0 ≤ maxDepth ≤ 1.0
+ */
+interface viewport {
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    minDepth?: number,
+    maxDepth?: number,
+}
 
 export class DrawCommand extends BaseCommand {
 
@@ -470,6 +493,12 @@ export class DrawCommand extends BaseCommand {
             const verticesBuffer = this.verticesBuffer[i];
             passEncoder.setVertexBuffer(parseInt(i), verticesBuffer);
         }
+        if (this.input.viewport) {
+            let minDepth = this.input.viewport.minDepth == undefined ? 0 : this.input.viewport.minDepth;
+            let maxDepth = this.input.viewport.maxDepth == undefined ? 1 : this.input.viewport.maxDepth;
+
+            passEncoder.setViewport(this.input.viewport.x, this.input.viewport.y, this.input.viewport.width, this.input.viewport.height, minDepth, maxDepth);
+        }
         if (this.input.draw.mode == "draw") {
             const count = (this.input.draw.values as drawMode).vertexCount;
             let instanceCount = 1;
@@ -513,18 +542,6 @@ export class DrawCommand extends BaseCommand {
             throw new Error("draw 模式设置错误");
         }
         passEncoder.end();
-
-        // if (this.input.copyTexture) {
-        //     commandEncoder.copyTextureToTexture(
-        //         {
-        //             texture: (this.scene.context as GPUCanvasContext).getCurrentTexture(),
-        //         },
-        //         {
-        //             texture: this.input.copyTexture,
-        //         },
-        //         [this.scene.canvas.width, this.scene.canvas.height]
-        //     );
-        // }
         const commandBuffer = commandEncoder.finish();
         device.queue.submit([commandBuffer]);
     }
