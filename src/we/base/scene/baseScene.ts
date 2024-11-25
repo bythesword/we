@@ -13,7 +13,12 @@ export declare interface sceneJson {
     /** renderpass 设置 */
     renderPassSetting?: renderPassSetting,
     /**环境光 */
-    ambientLight?: optionAmbientLight
+    ambientLight?: optionAmbientLight,
+    /**是否开启 Reversed Z，默认=false，为了开发简单些（避免debug的复杂度增加），release后，切换为默认=true */
+    reversedZ?: boolean,
+
+    /** 纹理深度格式，默认="depth32float" */
+    depthDefaultFormat?: GPUTextureFormat,
 }
 
 /**scene 的默认renderPassSetting 
@@ -68,28 +73,27 @@ export abstract class BaseScene {
       */
     device!: GPUDevice;
 
-    /**
-     * 渲染对象
-     * 默认的渲染对象输出：GPUCanvasContext;
-     * 
-    */
+    /** 渲染对象: 默认的渲染对象输出：GPUCanvasContext;    */
     context!: GPUCanvasContext | GPUTexture;
 
-
     /**
-     * 必须
      * 充分应用webGPU的texture的理念
+     * 
      * 每个stage都是一个texture
+     * 
      * scene，合并stage的texture，可以对stage进行缓存，即不变，就用上一张texture
+     * 
      * 缓存用（比如world的缓存，镜头不动）
      * */
     colorTexture!: GPUTexture;
-    /**renderPassDescriptor 需要 */
+    /**renderPassDescriptor   */
     colorAttachment!: GPUTextureView;
 
     /**
      * 深度缓存,stage必须
+     * 
      * 与其他stage合并texture或shader使用
+     * 
      * 透明和不透明都需要；
      */
     depthTexture!: GPUTexture;
@@ -120,19 +124,47 @@ export abstract class BaseScene {
     /**最大光源数量 */
     _maxlightNumber!: number;
 
+    depthDefaultFormat!: GPUTextureFormat;
+    depthClearValueOfZ= 1.0;
+    depthClearValueOfReveredZ=0.0;
+
+    depthStencilOfZ: GPUDepthStencilState = {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth32float',
+    };
+    depthStencilOfReveredZ: GPUDepthStencilState = {
+        depthWriteEnabled: true,
+        depthCompare: 'greater',
+        format: 'depth32float',
+    }
+    _isReversedZ!: boolean;
+
+
+
     constructor(input: sceneJson) {
         this.input = input;
+        this.depthDefaultFormat = 'depth32float';
+        if (input.depthDefaultFormat) {
+            this.depthDefaultFormat = input.depthDefaultFormat;
+        }
         this._maxlightNumber = coreConst.lightNumber;
         this._lastNumberOfLights = 0;
+        
+        this._isReversedZ = false;//20241125,release 后更改为 true
+        if (input.reversedZ) {
+            this._isReversedZ = input.reversedZ;
+        }
+        this.depthStencil = {
+            depthWriteEnabled: true,
+            depthCompare: "less",//this._isReversedZ ? "greater" : 'less',
+            format: this.depthDefaultFormat//'depth32float',
+        };
         if ("depthStencil" in input) {
             this.depthStencil = input.depthStencil as GPUDepthStencilState;
-        }
-        else {
-            this.depthStencil = {
-                depthWriteEnabled: true,
-                depthCompare: 'less',
-                format: 'depth24plus',
-            };
+            if (input.reversedZ) {
+                this.depthStencil.depthCompare = "greater";
+            }
         }
         this.lights = [];
     }
@@ -177,7 +209,7 @@ export abstract class BaseScene {
     }
 
     /**每个继承类的更新入口 */
-    abstract update(deltaTime: number,startTime:number,lastTime:number): any
+    abstract update(deltaTime: number, startTime: number, lastTime: number): any
 
     /***     作废，20241022，由于稀疏map和结构的问题，不在进行全局的uniform排列，而采用原来的layout bindGroup0 ，产生12个巨大的buffer*/
     abstract getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[]

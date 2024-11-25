@@ -46,6 +46,7 @@ declare interface sceneInputJson extends sceneJson {
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
 
+
 }
 
 
@@ -138,8 +139,6 @@ class Scene extends BaseScene {
     userDefineUpdateArray!: updateCall[];
 
 
-    /**DrawCommand类型： copy PP to Screen */
-    DCcopyToSurface!: DrawCommand;
 
     constructor(input: sceneInputJson) {
         super(input);
@@ -163,28 +162,30 @@ class Scene extends BaseScene {
             backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
         }
 
-        this.renderPassSetting = {
-            color: {
-                clearValue: backgroudColor,
-                loadOp: "clear",
-                storeOp: "store",
-            },
-            depth: {
-                depthClearValue: 1.0,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-            },
-            colorSecond: {
-                // clearValue: [0, 0, 0, 0],
-                loadOp: "load",
-                storeOp: "store",
-            },
-            depthSecond: {
-                // depthClearValue: 1.0,
-                depthLoadOp: 'load',
-                depthStoreOp: 'store',
+
+            this.renderPassSetting = {
+                color: {
+                    clearValue: backgroudColor,
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+                depth: {
+                    depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+                },
+                colorSecond: {
+                    // clearValue: [0, 0, 0, 0],
+                    loadOp: "load",
+                    storeOp: "store",
+                },
+                depthSecond: {
+                    // depthClearValue: 1.0,
+                    depthLoadOp: 'load',
+                    depthStoreOp: 'store',
+                }
             }
-        }
+
         if (input.renderPassSetting) {
             if (input.renderPassSetting.color) {
                 if (input.renderPassSetting.color.clearValue) this.renderPassSetting.color!.clearValue = input.renderPassSetting.color.clearValue;
@@ -253,7 +254,7 @@ class Scene extends BaseScene {
         //深度buffer
         this.depthTexture = device.createTexture({
             size: [canvas.width, canvas.height],
-            format: 'depth24plus',
+            format: this.depthDefaultFormat,            // format: 'depth24plus',
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
 
@@ -1027,7 +1028,7 @@ class Scene extends BaseScene {
         // this.DCcopyToSurface = new DrawCommand(options);
     }
 
-    
+
     /**
      * 用户自定义的更新
      * 比如：
