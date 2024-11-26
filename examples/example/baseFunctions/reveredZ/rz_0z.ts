@@ -5,54 +5,42 @@ import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/ca
 
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
-import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
 import { ColorMaterial } from "../../../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
-
-import { PhongColorMaterial } from "../../../../src/we/base/material/simple/phongColorMaterial"
-import { vec3 } from "wgpu-matrix"
-import { PhongLightsMaterial } from "../../../../src/we/base/material/simple/lightsphongMaterial"
-import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
-import { SpotLight } from "../../../../src/we/base/light/SpotLight"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
+
 
 declare global {
   interface Window {
-    scene: any
+    scene2: any
     DC: any
   }
 }
 let input: sceneInputJson = {
-  canvas: "render",
+  canvas: "renderZ",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.51,
-    green: 0.51,
-    blue: 0.51,
+    red: 1,
+    green: 1,
+    blue: 1,
     alpha: 1
   },
-  ambientLight: {
-    color: {
-      red: 1,
-      green: 1,
-      blue: 1
-    },
-    intensity: 0.13
-  }
+  reversedZ: true,
+
 }
 let scene = new Scene(input);
 await scene.init();
 
-window.scene = scene;
+window.scene2 = scene;
 
 
 //摄像机初始化参数
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.1,
+  near: 0.0001,
   far: 100,
-  position: [0, -3, 5],
+  position: [0, 0, 3],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -82,53 +70,39 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-// let Geometry = new SphereGeometry({
-//   radius: 1,
-//   widthSegments: 128,
-//   heightSegments: 128
-// });
 let Geometry = new PlaneGeometry({
-  width: 5,
-  height: 5
+  width: 2,
+  height: 0.5
 });
-
 //极简测试材质，red
-let redMaterial = new PhongLightsMaterial(
+let redMaterial = new ColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
+
+let redEntity = new Mesh(
   {
-    color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
-    Shininess: 16,
-    metalness: 1.,
-    roughness: .510,
-  });
-//box实体
-let boxEntity = new Mesh(
-  {
+    position: [0.5, 0, 0.00003],
     geometry: Geometry,
     material: redMaterial,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
-    // position:vec3.create(1,0,0),
-    // scale:[2,2,1],
-    // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:0.15*Math.PI
-    // },
+    cullmode:"none"
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+scene.add(redEntity)
 
-let dirLight: DirectionalLight = new SpotLight(
+
+let greenMaterial = new ColorMaterial({ color: { red: 0, green: 1, blue: 0, alpha: 1 } });
+let greenEntity = new Mesh(
   {
-    direction: [0.0, 0.0, -1.0],
-    position: [0,0, 3],
-    intensity: 2.0,
-    angle: 25/180*Math.PI, 
-    angleOut: 30/180*Math.PI  
+    position: [-0.5, 0, 0.00001],
+    geometry: Geometry,
+    material: greenMaterial,
+    // dynamicPostion: true,
+    wireFrame: false,
+    cullmode:"none"
   }
 );
-
-scene.addLight(dirLight);
+//增加实体到scene
+scene.add(greenEntity)
 
 //运行场景
 scene.run()

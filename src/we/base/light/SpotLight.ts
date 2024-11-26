@@ -1,14 +1,11 @@
 import { Vec3 } from "wgpu-matrix";
 import { lightType, optionBaseLight, shadowMap, structBaselight } from "./baseLight";
-import { BaseLight } from "./baseLight";
-import { color3F } from "../const/coreConst";
-// import * as coreConst from "../const/coreConst";
+import { BaseLight } from "./baseLight"; 
 
 
 
 export interface optionSpotLight extends optionBaseLight {
-    position: Vec3,
-    color?: color3F,
+    position: Vec3, 
     /**光的强度 ,wgsl，不受距离与立体角影响
      * 默认=1.0
     */

@@ -1,6 +1,8 @@
 
 
 import { BaseCamera } from "../camera/baseCamera"
+import { Root } from "../const/root";
+ 
 
 
 // Input holds as snapshot of input state
@@ -151,9 +153,9 @@ export interface optionCamreaControl {
     // parent: any,
 }
 
-export abstract class CamreaControl {
+export abstract class CamreaControl extends Root  {
     /** scene ,必须,cavas or texture */
-    scene: any;
+    // scene: any;
     _camera!: BaseCamera;
     _isDestroy!: boolean;
     _option!: optionCamreaControl;
@@ -161,12 +163,13 @@ export abstract class CamreaControl {
     inputHandler!: InputHandler;// = createInputHandler(window, canvas);
 
     constructor(option: optionCamreaControl) {
+        super();
         this._option = option;
         if (this._option.window == undefined) {
             this._option.window = window;
         }
         if (this._option.canvas == undefined) {
-            this._option.canvas = window.scene.canvas;
+            this._option.canvas = this.canvas;
         }
         if (option.camera) {
             this.camera = option.camera;
@@ -184,7 +187,7 @@ export abstract class CamreaControl {
         this.init();
     }
     abstract init(): any;
-    abstract update( deltaTime: number,startTime:number,lastTime:number): any
+    abstract update(deltaTime: number, startTime: number, lastTime: number): any
 
     abstract destroy(): any
 

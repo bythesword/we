@@ -279,4 +279,12 @@ export abstract class BaseGeometry {
             materialStep: []
         }
     }
+    getReady() {
+        if (this._already) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 }

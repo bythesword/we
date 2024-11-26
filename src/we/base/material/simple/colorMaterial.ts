@@ -1,7 +1,6 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
-import { unifromGroup } from "../../command/baseCommand";
-
+ 
 export class ColorMaterial extends BaseMaterial {
     init() {
        // throw new Error("Method not implemented.");

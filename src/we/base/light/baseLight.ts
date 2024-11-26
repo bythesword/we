@@ -2,6 +2,7 @@ import * as coreConst from "../const/coreConst";
 import {
     Vec3,
 } from "wgpu-matrix";
+import { Root } from "../const/root";
 
 // export interface optionBaseLightSize{
 
@@ -72,7 +73,7 @@ export type structBaselight = Float32Array;
 export interface shadowMap {
     map: GPUTexture,
 }
-export abstract class BaseLight {
+export abstract class BaseLight extends Root {
     _id!: number;
     _kind!: number;
     /**
@@ -84,6 +85,7 @@ export abstract class BaseLight {
     /**输入参数=input */
     input: optionBaseLight;
     constructor(input: optionBaseLight, kind: number = -1) {
+        super();
         this.input = input;
         if (this.input.position == undefined) this.input.position = [0.0, 0.0, 0.0];
         if (this.input.color == undefined) this.input.color = { red: 1, green: 1, blue: 1 };

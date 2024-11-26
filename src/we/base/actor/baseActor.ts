@@ -7,6 +7,7 @@ import { ObjectControl } from "../control/objectControl";
 // import { ObjectControl } from "../control/objectControl";
 import { BaseLight, optionBaseLight, lightType } from "../light/baseLight";
 import { BaseCamera } from "../camera/baseCamera";
+import { Root } from "../const/root";
 
 export interface actorLight {
     /** 相当于actor局部坐标 原点的xyz的position */
@@ -60,7 +61,7 @@ export interface optionActor extends coreConst.optionUpdate {
  * 
  * 场景中默认有一个Actor，
  */
-export abstract class BaseActor {
+export abstract class BaseActor extends Root {
 
     /** option的初始化参数保存 */
     input!: optionActor;
@@ -81,6 +82,7 @@ export abstract class BaseActor {
 
 
     constructor(option: optionActor) {
+        super();
         this.input = option;
         this.name = this.input.name;
         // // this.scene = option.scene;

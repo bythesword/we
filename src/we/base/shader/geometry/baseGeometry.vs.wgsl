@@ -18,7 +18,7 @@ struct VertexShaderOutput {
 ) -> VertexShaderOutput {
   var vsOutput : VertexShaderOutput;
   let abc = f32(instanceIndex);
-  vsOutput.position = projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld[instanceIndex] * vec4f(position, 1.0);
+  vsOutput.position =matrix_z * projectionMatrix * viewMatrix * modelMatrix *  entityMatrixWorld[instanceIndex] * vec4f(position, 1.0);
   vsOutput.uv = uv;
 
   vsOutput.normal = vec4f(entityMatrixWorld[instanceIndex] * vec4f(normal, 0)).xyz;

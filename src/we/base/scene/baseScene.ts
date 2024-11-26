@@ -157,7 +157,7 @@ export abstract class BaseScene {
         }
         this.depthStencil = {
             depthWriteEnabled: true,
-            depthCompare: "less",//this._isReversedZ ? "greater" : 'less',
+            depthCompare:  this._isReversedZ ? "greater" : 'less',
             format: this.depthDefaultFormat//'depth32float',
         };
         if ("depthStencil" in input) {
@@ -168,6 +168,7 @@ export abstract class BaseScene {
         }
         this.lights = [];
     }
+
     //异步执行，需要单独调用
     abstract init(): any
 

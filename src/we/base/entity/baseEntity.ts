@@ -3,6 +3,7 @@ import { BaseMaterial } from "../material/baseMaterial";
 import { ShadowMaterial } from "../material/shadow/shadowMaterial";
 import { commmandType } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
+import { Root } from "../const/root";
 
 
 
@@ -97,6 +98,16 @@ export interface optionShadowEntity {
  * 
  */
 export interface optionBaseEntity extends coreConst.optionUpdate {
+    /**
+ * 两种情况：
+ * 
+ * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
+ * 
+ * 2、代码实时构建，可以显示的带入scene，则不用等待
+ * 
+ * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
+ */
+    scene?: any,
     name?: string,
     //todo
     /** 顶点和材质组一对一 */
@@ -147,7 +158,7 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
     shaderCode?: string,
 }
 
-export abstract class BaseEntity {
+export abstract class BaseEntity extends Root {
 
 
     input: optionBaseEntity | undefined;
@@ -220,6 +231,7 @@ export abstract class BaseEntity {
     flagUpdateForPerInstance!: boolean;
 
     constructor(input: optionBaseEntity) {
+        super();
         this._init = initStateEntity.constructing;
         this.flagUpdateForPerInstance = false;
         this._output = true;
@@ -407,6 +419,7 @@ export abstract class BaseEntity {
             this.translation(this.input.position);
 
         this.matrixWorld = this.updateMatrixWorld();
+        this.updateUniformBuffer(false, 0, 0, 0);
     }
 
     /** 
@@ -440,34 +453,35 @@ export abstract class BaseEntity {
      */
     update(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
         //初始化DCC
-        if (this._init === initStateEntity.unstart) {
-            this.initDCC(scene);
-        }
-        //初始化是完成状态，同时checkStatus=true
-        else if (this._init === initStateEntity.finished && this.checkStatus()) {
-            if (this.input && this.input.update) {
-                this.input.update(this, deltaTime, startTime, lastTime);
+        if (this._readyForGPU)
+            if (this._init === initStateEntity.unstart) {
+                this.initDCC(scene);
             }
-            //动态物体 或 强制更新
-            if (this._dynamicPostion === true || updateForce === true) {
-                this.matrixWorld = this.updateMatrixWorld();
-            }
-            if (this._dynamicMesh === true || this._dynamicPostion === true || updateForce === true || this.input!.update !== undefined) {
+            //初始化是完成状态，同时checkStatus=true
+            else if (this._init === initStateEntity.finished && this.checkStatus()) {
+                if (this.input && this.input.update) {
+                    this.input.update(this, deltaTime, startTime, lastTime);
+                }
+                //动态物体 或 强制更新
+                if (this._dynamicPostion === true || updateForce === true) {
+                    this.matrixWorld = this.updateMatrixWorld();
+                }
+                if (this._dynamicMesh === true || this._dynamicPostion === true || updateForce === true || this.input!.update !== undefined) {
 
-                this.updateUniformBuffer(scene, deltaTime, startTime, lastTime);
-                this._commmands = this.updateDCC(scene, deltaTime, startTime, lastTime);
-                return this._commmands;
+                    this.updateUniformBuffer(scene, deltaTime, startTime, lastTime);
+                    this._commmands = this.updateDCC(scene, deltaTime, startTime, lastTime);
+                    return this._commmands;
+                }
+                //静态，直接返回commands
+                else
+                // if (this._dynamic === false)
+                {
+                    return this._commmands;
+                }
             }
-            //静态，直接返回commands
-            else
-            // if (this._dynamic === false)
-            {
-                return this._commmands;
+            else if (this._init == initStateEntity.initializing) {
+                this.checkStatus();
             }
-        }
-        else if (this._init == initStateEntity.initializing) {
-            this.checkStatus();
-        }
         return [];
     }
     /**

@@ -1,6 +1,6 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/phongcolor.fs.wgsl?raw"
-import { uniformBufferPart, uniformEntries, unifromGroup } from "../../command/baseCommand";
+import { uniformBufferPart, uniformEntries } from "../../command/baseCommand";
 
 
 /**

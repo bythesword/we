@@ -22,7 +22,7 @@ export interface optionCameraActor extends optionActor {
 }
 
 export class CameraActor extends BaseActor {
-
+ 
 
     declare input: optionCameraActor;
     _camera!: BaseCamera;
@@ -53,7 +53,8 @@ export class CameraActor extends BaseActor {
             this.control.camera = this.camera;
         }
 
-    }
+    } 
+
     setDefault(scope: any) {
         scope.defaultCamera = this.camera;
     }

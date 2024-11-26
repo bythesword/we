@@ -7,6 +7,7 @@ import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 import { ColorMaterial } from "../../../../src/we/base/material/simple/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
+import { mat4, vec3 } from "wgpu-matrix"
 
 
 declare global {
@@ -23,12 +24,14 @@ let input: sceneInputJson = {
     green: 0.1,
     blue: 0.1,
     alpha: 1
-  }
+  },
+  // reversedZ: true,
+  
 }
 let scene = new Scene(input);
 await scene.init();
 
-window.scene = scene;
+// window.scene = scene;
 
 
 //摄像机初始化参数
@@ -75,7 +78,22 @@ let boxEntity = new Mesh(
   {
     geometry: boxGeometry,
     material: redMaterial,
-    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
+    dynamicPostion: true,
+    update: (scope, deltaTime, startTime, lastTime) => {
+      // console.log("12");
+      scope.matrix = mat4.identity();
+      // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
+      const now = Date.now() / 10000;
+      // mat4.rotate(
+      //   scope.matrix,
+      //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      //   1,
+      //   scope.matrix
+      // );
+      scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
+      return true;
+    }
   }
 );
 //增加实体到scene

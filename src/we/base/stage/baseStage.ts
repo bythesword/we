@@ -4,7 +4,6 @@ import { BaseEntity } from "../entity/baseEntity";
 import { BaseScene, sceneJson, renderPassSetting } from "../scene/baseScene";
 import { BaseLight } from "../light/baseLight";
 import { BaseCamera } from "../camera/baseCamera";
-import { AmbientLight } from "../light/ambientLight";
 
 export type commmandType = DrawCommand | ComputeCommand;
 
@@ -14,7 +13,7 @@ declare interface lightUniform { }
 declare interface BVH { }
 /**system  uniform 时间结构体 */
 declare interface timeUniform {
-     deltaTime: number,startTime:number,lastTime:number,
+    deltaTime: number, startTime: number, lastTime: number,
     time: number,
 }
 
@@ -41,7 +40,7 @@ export interface optionBaseStage extends sceneJson {
     visible?: boolean;
     depthTest?: boolean;
     transparent?: boolean;
-    scene?: BaseScene;
+    scene: BaseScene;
 }
 
 /**
@@ -96,6 +95,7 @@ export class BaseStage extends BaseScene {
      */
     constructor(input: optionBaseStage) {
         super(input);
+        this.device = input.scene!.device;
         this._cache = false;
         if (input.scene)
             this.scene = input.scene;
@@ -140,7 +140,7 @@ export class BaseStage extends BaseScene {
     }
 
     //todo 20241020，未进行距离、方向、可见性、视锥、BVH等的剔除
-    update(deltaTime: number,startTime:number,lastTime:number) {
+    update(deltaTime: number, startTime: number, lastTime: number) {
         let scene;
         if (this.scene)
             scene = this.scene;
@@ -150,15 +150,17 @@ export class BaseStage extends BaseScene {
         if (this.cache === false) {
             this.command = [];
             for (let i of this.root) {
-                let dcc = i.update(scene, deltaTime,startTime,lastTime);
+                let dcc = i.update(scene, deltaTime, startTime, lastTime);
                 for (let j of dcc)
                     this.command.push(j);
             }
         }
 
     }
-    add(one: BaseEntity) {
+    async add(one: BaseEntity) {
+        await one.setRootENV(this.scene);
         this.root.push(one);
+
     }
     get cache() {
         return this._cache;

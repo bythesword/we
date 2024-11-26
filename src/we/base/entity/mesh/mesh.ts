@@ -41,6 +41,7 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
+
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
@@ -59,9 +60,14 @@ export class Mesh extends BaseEntity {
         }
         this._geometry = input.geometry;
         this._material = input.material;
+
         this._init = initStateEntity.unstart;
         this.init()
         this._init = initStateEntity.unstart;
+    }
+    /**覆写 Root的function,因为材料类需要GPUDevice */
+    async readyForGPU() {
+        await this._material.setRootENV(this.scene);
     }
     init() {
 
@@ -96,9 +102,16 @@ export class Mesh extends BaseEntity {
         }
     }
     checkStatus(): boolean {
-        return this._material._already && this._geometry._already;
+        return this._material.getReady() && this._geometry.getReady();
 
     }
+    /**
+     * 覆写了父类的这个function
+     * 
+     * 目的：判断是否完成准备工作，如果完成执行createDCC()
+     * 
+     * @param scene 
+     */
     initDCC(scene: any) {
         let already = this.checkStatus();
         if (already) {

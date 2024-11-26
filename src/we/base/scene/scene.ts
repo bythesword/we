@@ -30,12 +30,15 @@ import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseLight, lightStructSize } from "../light/baseLight";
-import { DrawCommand, drawOptionOfCommand } from "../command/DrawCommand"
+import { WeResource } from "../resource/weResource"
 
 
 /**
  *  canvas: string, canvas id;
+ * 
  *  color?:color4F,JSON {red:1.0,green:1,blue:1,alpha:1}
+ * 
+ *  lightNumber?: number  最大光源数量(默认:32)
  */
 declare interface sceneInputJson extends sceneJson {
     /**canvas id */
@@ -45,8 +48,6 @@ declare interface sceneInputJson extends sceneJson {
     color?: coreConst.color4F,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
-
-
 }
 
 
@@ -138,8 +139,8 @@ class Scene extends BaseScene {
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray!: updateCall[];
 
-
-
+    /** */
+    resources!: WeResource;
     constructor(input: sceneInputJson) {
         super(input);
         this.userDefineUpdateArray = [];
@@ -163,28 +164,28 @@ class Scene extends BaseScene {
         }
 
 
-            this.renderPassSetting = {
-                color: {
-                    clearValue: backgroudColor,
-                    loadOp: "clear",
-                    storeOp: "store",
-                },
-                depth: {
-                    depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
-                    depthLoadOp: 'clear',
-                    depthStoreOp: 'store',
-                },
-                colorSecond: {
-                    // clearValue: [0, 0, 0, 0],
-                    loadOp: "load",
-                    storeOp: "store",
-                },
-                depthSecond: {
-                    // depthClearValue: 1.0,
-                    depthLoadOp: 'load',
-                    depthStoreOp: 'store',
-                }
+        this.renderPassSetting = {
+            color: {
+                clearValue: backgroudColor,
+                loadOp: "clear",
+                storeOp: "store",
+            },
+            depth: {
+                depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            },
+            colorSecond: {
+                // clearValue: [0, 0, 0, 0],
+                loadOp: "load",
+                storeOp: "store",
+            },
+            depthSecond: {
+                // depthClearValue: 1.0,
+                depthLoadOp: 'load',
+                depthStoreOp: 'store',
             }
+        }
 
         if (input.renderPassSetting) {
             if (input.renderPassSetting.color) {
@@ -227,7 +228,7 @@ class Scene extends BaseScene {
         const device = await adapter.requestDevice();
         if (!device) throw new Error("Couldn't request WebGPU device.");
         this.device = device;
-        window.weGPUdevice = device;
+        this.device = device;
 
         const canvas = document.getElementById(this.input.canvas) as HTMLCanvasElement;
         this.canvas = canvas;
@@ -244,7 +245,7 @@ class Scene extends BaseScene {
             device,
             format: presentationFormat,
             alphaMode: 'premultiplied',//预乘透明度
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST  | GPUTextureUsage.TEXTURE_BINDING
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
 
         this.aspect = canvas.width / canvas.height;
@@ -262,128 +263,17 @@ class Scene extends BaseScene {
         this.colorTexture = this.device.createTexture({
             size: [this.canvas.width, this.canvas.height],
             format: this.presentationFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT |   GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
 
         });
+
+        this.resources = new WeResource(this);
+
         this.renderPassDescriptor = this.createRenderPassDescriptor();
         // this.updateSystemUniformBuffer();
         this.initStages();
         this.initActors();
         this.initPostProcess();
-    }
-
-
-    observer() {
-        // new ResizeObserver(entries => {
-        //     for (const entry of entries) {
-        //         const canvas = entry.target;
-        //         const width = entry.contentBoxSize[0].inlineSize;
-        //         const height = entry.contentBoxSize[0].blockSize;
-        //         canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
-        //         canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
-        //         // re-render
-        //         render();
-        //     }
-        // });
-    }
-
-    /**初始化 Actor 环境 
-     * todo：20240809
-    */
-    initActors() {
-        this.actors = {};
-    }
-    /**
-     * demo only，todo，20240809
-     * 初始化 stages  环境
-     * depth buffer 在此初始化，todo
-    */
-    initStages() {
-        // this.stageNameOfGroup = coreConst.stagesOfSystem;
-        // let worldOpeaue: BaseStage = new BaseStage({ name: "World" });
-        // let worldTransparent: BaseStage = new BaseStage({ name: "worldTransparent" });
-        // this.stages = {
-        //     "World": {
-        //         isGroup: true,
-        //         opaque: worldOpeaue,
-        //         transparent: worldTransparent
-        //     }
-        // };
-        let worldStage = new BaseStage({ name: "World", scene: this });
-        let worldStageTransparent = new BaseStage({ name: "WorldTransparent", transparent: true, scene: this });
-        this.stages = {};
-        this.stages["World"] = {
-            opaque: worldStage,
-            transparent: worldStageTransparent,
-        };
-        this.stagesOrders = coreConst.defaultStageList;
-
-    }
-    add = this.addToStage;
-    /**
-     *  将实体附加到stage
-     * @param entity    实体
-     * @param stage     默认=World
-     * @param transparent  默认=false
-     */
-    addToStage(entity: BaseEntity, stage: coreConst.stageIndex = coreConst.defaultStageName, transparent: boolean = false) {
-        if (entity.transparent === false || transparent === false) {
-            if (this.stages[stage].opaque)
-                this.stages[stage].opaque!.add(entity);
-            else
-                console.log(stage, "不透明，不存在");
-        }
-        else {
-            if (this.stages[stage].transparent)
-                this.stages[stage].transparent!.add(entity);
-            else
-                console.log(stage, "透明，不存在");
-        }
-
-    }
-    setDefaultCamera(camera: BaseCamera) {
-        this.defaultCamera = camera;
-    }
-    setDefaultActor(actor: BaseActor) {
-        this.defaultActor = actor;
-        actor.setDefault(this);
-    }
-    /**增加摄像机 Actor
-     * 适用于：非活动Actor场景
-     */
-    addCameraActor(one: CameraActor, isDefault = false) {
-        if (this.actors == undefined) {
-            this.actors = {};
-        }
-        this.actors[one.name] = one;
-        if (isDefault === true) {
-            this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
-        }
-    }
-    /**
-     * 增加actor，
-     * 增加到stage：//todo
-     *     "Actor",不透明
-           "ActorTransparent",透明
-
-     * @param one :BaseActor
-     * @param isDefault :boolean,default=false
-     */
-    addActor(one: BaseActor, isDefault = false) {
-        if (this.actors == undefined) {
-            this.actors = {};
-            this.actors[one.name] = one;
-        }
-        else {
-            this.actors[one.name] = one;
-        }
-        if (isDefault === true) {
-            this.setDefaultActor(one);
-        }
-    }
-
-    addLight(oneLight: BaseLight) {
-        this.lights.push(oneLight);
     }
 
     /**
@@ -418,6 +308,22 @@ class Scene extends BaseScene {
     getRenderPassDescriptor() {
         return this.renderPassDescriptor;
     }
+    observer() {
+        // new ResizeObserver(entries => {
+        //     for (const entry of entries) {
+        //         const canvas = entry.target;
+        //         const width = entry.contentBoxSize[0].inlineSize;
+        //         const height = entry.contentBoxSize[0].blockSize;
+        //         canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
+        //         canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
+        //         // re-render
+        //         render();
+        //     }
+        // });
+    }
+
+
+
     /**
      * start ：20241020
      *      todo ：最大的uniform buffer的限制=12，需要将所有的uniform buffer放到 bindGroup 0 中，
@@ -544,8 +450,8 @@ class Scene extends BaseScene {
         // 四个中间点，稍稍延迟
         // this.updateBVH(rays)
         await this.updateLights(deltaTime, startTime, lastTime);
-        this.updateAcotr(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
-        // this.updateEntities(deltaTime,startTime,lastTime);//更新实体状态，比如水，树，草等动态的
+        this.updateActor(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
+        this.updateEntities(deltaTime, startTime, lastTime);//更新实体状态，比如水，树，草等动态的
         this.updateStagesCommand(deltaTime, startTime, lastTime);
     }
     async updateLights(deltaTime: number, startTime: number, lastTime: number) {
@@ -689,6 +595,13 @@ class Scene extends BaseScene {
             cameraPosition[0] = this.defaultCamera.position[0];
             cameraPosition[1] = this.defaultCamera.position[1];
             cameraPosition[2] = this.defaultCamera.position[2];
+            // if (this._isReversedZ) {
+            //     cameraPosition[3] = 1;
+            // }
+        }
+        if (this._isReversedZ) {
+            let reversedZ = new Uint32Array(MVP_buffer.buffer, 4 * 4 * 4 * 3 + 3 * 4, 1);
+            reversedZ[0] = 1;
         }
         this.device.queue.writeBuffer(
             MVP,
@@ -727,11 +640,15 @@ class Scene extends BaseScene {
      * 2、是否为动态Actor
      * 3、生命周期
      */
-    updateAcotr(deltaTime: number, startTime: number, lastTime: number) {
+    updateActor(deltaTime: number, startTime: number, lastTime: number) {
         if (this.actors)
             for (let i in this.actors) {
-                if (this.defaultActor && this.actors[i] != this.defaultActor)
+                if (this.defaultActor && this.actors[i] != this.defaultActor) {
                     this.actors[i].update(deltaTime, startTime, lastTime);
+                }
+                else {
+
+                } this.actors[i].update(deltaTime, startTime, lastTime);
             }
     }
     /**实体更新 
@@ -799,7 +716,7 @@ class Scene extends BaseScene {
     * stage 透明深度与合并
     * sky、UI的合并与顺序
     * */
-    oneFrameRender() {
+    async oneFrameRender() {
         //清空command
         this.command = [];
         (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
@@ -847,10 +764,10 @@ class Scene extends BaseScene {
         }
     }
 
-    pickup() { }
+    async pickup() { }
 
 
-    postProcess() {
+    async postProcess() {
         const commandEncoder = this.device.createCommandEncoder();
 
         commandEncoder.copyTextureToTexture(
@@ -875,158 +792,6 @@ class Scene extends BaseScene {
     */
 
     initPostProcess() {
-        // //     const module = this.device.createShaderModule({
-        // //         label: 'our hardcoded rgb triangle shaders',
-        // //         code: `
-        // //           struct OurVertexShaderOutput {
-        // //             @builtin(position) position: vec4f,
-        // //             @location(0) color: vec4f,
-        // //           };
-
-        // //           @vertex fn vs(
-        // //             @builtin(vertex_index) vertexIndex : u32
-        // //           ) -> OurVertexShaderOutput {
-        // //             let pos = array(
-        // //               vec2f( 0.0,  0.5),  // top center
-        // //               vec2f(-0.5, -0.5),  // bottom left
-        // //               vec2f( 0.5, -0.5)   // bottom right
-        // //             );
-
-
-        // //             var vsOutput: OurVertexShaderOutput;
-        // //             vsOutput.position = vec4f(pos[vertexIndex], 0.0, 1.0); 
-        // //             return vsOutput;
-        // //           }
-
-        // //           @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
-        // //             return fsInput.color;
-        // //           }
-        // //         `,
-        // //     });
-        // //     this.postProcessToSurfacePipeline = this.device.createRenderPipeline({
-        // //         label: 'copy color text to canvas',
-        // //         layout: 'auto',
-        // //         vertex: {
-        // //             module,
-        // //         },
-        // //         fragment: {
-        // //             module,
-        // //             targets: [{ format: this.presentationFormat }],
-        // //         },
-        // //     });
-        // const postProcessToSurfaceRenderPassDescriptor: GPURenderPassDescriptor = {
-        //     colorAttachments: [
-        //         {
-        //             view: (this.context as GPUCanvasContext)
-        //                 .getCurrentTexture()
-        //                 .createView(),
-        //             clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
-        //             loadOp: "clear",
-        //             storeOp: "store"
-        //         }
-        //     ],
-        // };
-
-        // const code = `
-        //       @group(0) @binding(0) var u_Sampler : sampler;
-        //       @group(0) @binding(1) var u_Texture: texture_2d<f32>;
-
-        //       struct OurVertexShaderOutput {
-        //         @builtin(position) position: vec4f,
-        //         @location(0) uv: vec2f,
-        //       };
-
-        //       @vertex fn vs(
-        //         @location(0) position : vec3f,
-        //         @location(1) uv : vec2f,
-        //       ) -> OurVertexShaderOutput {
-        //         var vsOutput: OurVertexShaderOutput;
-        //         vsOutput.position = vec4f(position, 1.0); 
-        //         vsOutput.uv = uv; 
-        //         return vsOutput;
-        //       }             
-
-        //       @fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
-        //         // return vec4f(1,0,0,1);
-        //         return textureSample(u_Texture, u_Sampler, fsInput.uv  );
-        //       }
-        //     ` ;
-        // const sampler = window.weGPUdevice.createSampler({
-        //     magFilter: "nearest",
-        //     minFilter: "nearest",
-        // });
-        // // C  D 
-        // // A  B
-        // const screenRectangleVertexes = [
-        //     //x,y,z,u,v
-        //     -1, -1, 0, 0, 1,//A
-        //     1, -1, 0, 1, 1,//B
-        //     -1, 1, 0, 0, 0,//C
-
-        //     1, -1, 0, 1, 1,//B
-        //     1, 1, 0, 1, 0,//D
-        //     -1, 1, 0, 0, 0,//C
-        // ];
-        // const screenRectangleVertexesArray = new Float32Array(screenRectangleVertexes);
-        // let options: drawOptionOfCommand = {
-        //     label: "PP render to surface",
-        //     scene: this,
-        //     vertex: {
-        //         code: code,
-        //         entryPoint: "vs",
-        //         buffers: [
-        //             {
-        //                 vertexArray: screenRectangleVertexesArray,
-        //                 type: "Float32Array",
-        //                 arrayStride: 4 * 5,
-        //                 attributes: [
-        //                     {
-        //                         shaderLocation: 0,
-        //                         offset: 0,
-        //                         format: 'float32x3',
-        //                     },
-        //                     {
-        //                         shaderLocation: 1,
-        //                         offset: 4 * 3,
-        //                         format: 'float32x2',
-        //                     },
-        //                 ]
-        //             }
-        //         ]
-        //     },
-        //     fragment: {
-        //         code: code,
-        //         entryPoint: "fs",
-        //         targets: [{ format: this.presentationFormat }],
-
-        //     },
-        //     uniforms: [
-        //         {
-        //             layout: 0,
-        //             entries: [
-        //                 {
-        //                     label: "sampler of pp to screen ",
-        //                     binding: 0,
-        //                     resource: sampler
-        //                 },
-        //                 {
-        //                     label: "texture of pp to screen ",
-        //                     binding: 1,
-        //                     resource: this.colorTexture.createView()
-        //                 },
-        //             ]
-        //         }
-        //     ],
-        //     draw: {
-        //         mode: "draw",
-        //         values: {
-        //             vertexCount: 6
-        //         }
-        //     },
-        //     rawUniform: true,
-        //     // renderPassDescriptor: postProcessToSurfaceRenderPassDescriptor
-        // }
-        // this.DCcopyToSurface = new DrawCommand(options);
     }
 
 
@@ -1035,7 +800,7 @@ class Scene extends BaseScene {
      * 比如：
      *  订阅，触发、MQ、WW等
      */
-    updateUserDefine() {
+    async updateUserDefine() {
         for (let i of this.userDefineUpdateArray) {
             if (i.state) {
                 i.call(this);
@@ -1091,8 +856,114 @@ class Scene extends BaseScene {
         const commandBuffer = commandEncoder.finish();
         this.device.queue.submit([commandBuffer]);
     }
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**初始化 Actor 环境 
+       * todo：20240809
+      */
+    initActors() {
+        this.actors = {};
+    }
+    /**
+     * demo only，todo，20240809
+     * 初始化 stages  环境
+     * depth buffer 在此初始化，todo
+    */
+    initStages() {
+        // this.stageNameOfGroup = coreConst.stagesOfSystem;
+        // let worldOpeaue: BaseStage = new BaseStage({ name: "World" });
+        // let worldTransparent: BaseStage = new BaseStage({ name: "worldTransparent" });
+        // this.stages = {
+        //     "World": {
+        //         isGroup: true,
+        //         opaque: worldOpeaue,
+        //         transparent: worldTransparent
+        //     }
+        // };
+        let worldStage = new BaseStage({ name: "World", scene: this });
+        let worldStageTransparent = new BaseStage({ name: "WorldTransparent", transparent: true, scene: this });
+        this.stages = {};
+        this.stages["World"] = {
+            opaque: worldStage,
+            transparent: worldStageTransparent,
+        };
+        this.stagesOrders = coreConst.defaultStageList;
+
+    }
+    add = this.addToStage;
+    /**
+     *  将实体附加到stage
+     * @param entity    实体
+     * @param stage     默认=World
+     * @param transparent  默认=false
+     */
+    addToStage(entity: BaseEntity, stage: coreConst.stageIndex = coreConst.defaultStageName, transparent: boolean = false) {
+        if (entity.transparent === false || transparent === false) {
+            if (this.stages[stage].opaque)
+                this.stages[stage].opaque!.add(entity);
+            else
+                console.log(stage, "不透明，不存在");
+        }
+        else {
+            if (this.stages[stage].transparent)
+                this.stages[stage].transparent!.add(entity);
+            else
+                console.log(stage, "透明，不存在");
+        }
+
+    }
+    setDefaultCamera(camera: BaseCamera) {
+        this.defaultCamera = camera;
+    }
+    setDefaultActor(actor: BaseActor) {
+        this.defaultActor = actor;
+        actor.setDefault(this);
+    }
+    /**增加摄像机 Actor
+     * 适用于：非活动Actor场景
+     */
+    addCameraActor(one: CameraActor, isDefault = false) {
+        one.setRootENV(this);
+        if (this.actors == undefined) {
+            this.actors = {};
+        }
+        this.actors[one.name] = one;
+        if (isDefault === true) {
+            this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
+        }
+    }
+    /**
+     * 增加actor，
+     * 增加到stage：//todo
+     *     "Actor",不透明
+           "ActorTransparent",透明
+    
+     * @param one :BaseActor
+     * @param isDefault :boolean,default=false
+     */
+    addActor(one: BaseActor, isDefault = false) {
+        one.setRootScene(this);
+        if (this.actors == undefined) {
+            this.actors = {};
+            this.actors[one.name] = one;
+        }
+        else {
+            this.actors[one.name] = one;
+        }
+        if (isDefault === true) {
+            this.setDefaultActor(one);
+        }
+    }
+
+    addLight(oneLight: BaseLight) {
+        oneLight.setRootScene(this);
+        this.lights.push(oneLight);
+    }
+
 }
 export interface updateCall {
+    /**不可以使用异步方式，会影响性能 */
     call: (scope: any) => {},
     name: string,
     state: boolean;

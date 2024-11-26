@@ -1,6 +1,7 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import fragmengCode from "../../shader/sky/cubeSky.fs.wgsl?raw"
 import { uniformBufferPart, uniformEntries } from "../../command/baseCommand";
+import { weSamplerKind } from "../../resource/weResource";
 
 export interface optionCubeSkyMaterial extends optionBaseMaterial {
     cubeTexture: {
@@ -38,15 +39,19 @@ export class CubeSkyMaterial extends BaseMaterial {
         this.textures = {};
 
 
-        this.sampler = window.weGPUdevice.createSampler({
-            magFilter: input.samplerFilter ? input.samplerFilter : 'linear',
-            minFilter: input.samplerFilter ? input.samplerFilter : 'linear',
-        });
+        // this.sampler =  this.device.createSampler({
+        //     magFilter: input.samplerFilter ? input.samplerFilter : 'linear',
+        //     minFilter: input.samplerFilter ? input.samplerFilter : 'linear',
+        // });
 
-        this.init();
+        if (input.scene)
+            this.init();
+    }
+    async readyForGPU() {
+        await this.init();
     }
 
-    init() {
+    async init() {
         let scope = this;
         let imgSrcs = this.input.cubeTexture.texture;
         let aaa: any[] = [];
@@ -63,7 +68,7 @@ export class CubeSkyMaterial extends BaseMaterial {
         });
         const imageBitmaps1 = Promise.all(aaa).then(imageBitmaps => {
             console.log(imageBitmaps)
-            this.skyTexture = window.weGPUdevice.createTexture({
+            this.skyTexture = this.device.createTexture({
                 dimension: '2d',
                 // Create a 2d array texture.
                 // Assume each image has the same size.
@@ -76,7 +81,7 @@ export class CubeSkyMaterial extends BaseMaterial {
             });
             for (let i = 0; i < imageBitmaps.length; i++) {
                 const imageBitmap = imageBitmaps[i];
-                window.weGPUdevice.queue.copyExternalImageToTexture(
+                this.device.queue.copyExternalImageToTexture(
                     { source: imageBitmap },
                     { texture: scope.skyTexture, origin: [0, 0, i] },
                     [imageBitmap.width, imageBitmap.height]
@@ -101,7 +106,7 @@ export class CubeSkyMaterial extends BaseMaterial {
             () => { console.log("未能获取：", res) }
         ).then(
             (imageBitmap) => {
-                this.textures[id] = window.weGPUdevice.createTexture({
+                this.textures[id] = this.device.createTexture({
                     size: [imageBitmap!.width, imageBitmap!.height, 1],
                     format: 'rgba8unorm',
                     usage:
@@ -109,7 +114,7 @@ export class CubeSkyMaterial extends BaseMaterial {
                         GPUTextureUsage.COPY_DST |
                         GPUTextureUsage.RENDER_ATTACHMENT,
                 });
-                window.weGPUdevice.queue.copyExternalImageToTexture(
+                this.device.queue.copyExternalImageToTexture(
                     { source: imageBitmap as ImageBitmap },
                     { texture: this.textures[id] },
                     [imageBitmap!.width, imageBitmap!.height]
@@ -124,7 +129,7 @@ export class CubeSkyMaterial extends BaseMaterial {
     };
     generateTextureByBitmap(imageBitmap: ImageBitmap, id: string) {
         let scope = this;
-        this.textures[id] = window.weGPUdevice.createTexture({
+        this.textures[id] = this.device.createTexture({
             size: [imageBitmap!.width, imageBitmap!.height, 1],
             format: 'rgba8unorm',
             usage:
@@ -132,7 +137,7 @@ export class CubeSkyMaterial extends BaseMaterial {
                 GPUTextureUsage.COPY_DST |
                 GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        window.weGPUdevice.queue.copyExternalImageToTexture(
+        this.device.queue.copyExternalImageToTexture(
             { source: imageBitmap as ImageBitmap },
             { texture: this.textures[id] },
             [imageBitmap!.width, imageBitmap!.height]
@@ -152,6 +157,18 @@ export class CubeSkyMaterial extends BaseMaterial {
     }
     getUniform(): uniformEntries[] {
         let scope = this;
+        if (this.sampler == undefined) {
+            let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
+            if (this.scene.resources.sampler[weSamplerKind.linear]) {
+                this.sampler = this.scene.resources.sampler[weSamplerKind[sampler]];
+            }
+            else {
+                this.sampler = this.device.createSampler({
+                    magFilter: sampler,
+                    minFilter: sampler,
+                });
+            }
+        }
         let phong: uniformEntries[] = [
 
             {

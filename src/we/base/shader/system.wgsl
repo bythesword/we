@@ -3,6 +3,7 @@ struct ST_SystemMVP {
   view : mat4x4f,
   projection : mat4x4f,
   cameraPosition : vec3f,
+  reversedZ : u32,
 };
 struct ST_AmbientLight {
   color : vec3f,
@@ -26,7 +27,7 @@ struct ST_Lights {
   lightNumber : u32,
   Ambient : ST_AmbientLight,
   //$lightsArray    //这个是变量的化，shader的编译会有问题，会不变的
-  lights : array<ST_Light, $lightNumber>, 
+  lights : array<ST_Light, $lightNumber>,
 };
 
 var<private > defaultCameraPosition : vec3f;
@@ -39,7 +40,12 @@ var<private > AmbientLight : ST_AmbientLight;
 @group(0) @binding(0) var<uniform> U_MVP : ST_SystemMVP;
 @group(0) @binding(1) var<uniform> U_lights : ST_Lights;
 
-
+var<private> matrix_z : mat4x4f = mat4x4f(
+1.0, 0.0, 0.0, 0.0,
+0.0, 1.0, 0.0, 0.0,
+0.0, 0.0, 1.0, 0.0,
+0.0, 0.0, 0.0, 1.0
+); ;
 
 fn initSystem()
 {
@@ -49,6 +55,15 @@ fn initSystem()
   projectionMatrix = U_MVP.projection;
   MVP = modelMatrix * viewMatrix * projectionMatrix;
   AmbientLight = U_lights.Ambient;
+  if(U_MVP.reversedZ ==1)
+  {
+    matrix_z = mat4x4f(
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, -1.0, 0.0,
+    0.0, 0.0, 1.0, 1.0
+    );
+  }
 }
 
 

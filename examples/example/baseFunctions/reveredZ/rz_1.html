@@ -7,7 +7,7 @@
   <title>webgpu-samples: cameras</title>
   <style>
     :root {
-      color-scheme: light dark;
+      color-scheme: light;
     }
 
     html,
@@ -18,7 +18,7 @@
       /* make body fill the browser window */
       display: flex;
       place-content: center center;
-      background-color:antiquewhite;
+      background-color: bisque;
     }
 
     canvas {
@@ -26,16 +26,20 @@
       height: 600px;
       max-width: 100%;
       display: block;
-      border: 2px;
     }
   </style>
-  <script defer src="./DC_viewport.ts" type="module"></script>
+  <script defer src="./rz_1.ts" type="module"></script>
+  <script defer src="./rz_1z.ts" type="module"></script>
 </head>
 
 <body>
-  <div style="background-color: blue;width: 600px;
-  height: 600px;">
+  <div>
+    <h1> 正常Z</h1>
     <canvas id="render"></canvas>
+  </div>
+  <div>
+    <h1>反向Z</h1>
+    <canvas id="renderZ"></canvas>
   </div>
 </body>
 

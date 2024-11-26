@@ -19,12 +19,7 @@ export class VertexColorMaterial extends BaseMaterial {
         if (input) {
             this._type = input.type;
         }
-        if (input?.textures) {
-            this.sampler = window.weGPUdevice.createSampler({
-                magFilter: 'linear',
-                minFilter: 'linear',
-            });
-        }
+        
         this._already = true;
     }
     init() {
@@ -50,6 +45,8 @@ export class VertexColorMaterial extends BaseMaterial {
     }
 
     getUniform(): uniformEntries[] | false {
+        // let  sampler=this.scene.resources.
+ 
         // throw new Error("Method not implemented.");
         if (this.input.textures) {
             let unifomrArray: uniformEntries[] = []

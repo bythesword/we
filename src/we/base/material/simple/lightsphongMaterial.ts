@@ -1,8 +1,9 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 // import lightsFS from "../../shader/material/simple/phong.fs.wgsl?raw"
 import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
-import { uniformBufferPart, uniformEntries } from "../../command/baseCommand";
+import { uniformEntries } from "../../command/baseCommand";
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
+import { weSamplerKind } from "../../resource/weResource";
 
 export type textureType = ImageBitmap | string | GPUTexture;
 /*
@@ -41,17 +42,20 @@ export class PhongLightsMaterial extends PhongColorMaterial {
         this.textures = {};
         if (this.input.texture)
             this.countOfTextures = Object.keys(this.input.texture!).length;
-        if (this.countOfTextures > 0) {
-            this.sampler = window.weGPUdevice.createSampler({
-                magFilter: 'linear',
-                minFilter: 'linear',
-            });
-        }
-
-        this.init();
+        // if (this.countOfTextures > 0) {
+        //     this.sampler = this.device.createSampler({
+        //         magFilter: 'linear',
+        //         minFilter: 'linear',
+        //     });
+        // }
+        if (input?.scene)
+            this.init();
+    }
+    async readyForGPU() {
+        await this.init();
     }
 
-    init() {
+    async init() {
 
         if (this.input?.texture) {
             let texture = this.input.texture;
@@ -137,7 +141,7 @@ export class PhongLightsMaterial extends PhongColorMaterial {
             () => { console.log("未能获取：", res) }
         ).then(
             (imageBitmap) => {
-                this.textures[id] = window.weGPUdevice.createTexture({
+                this.textures[id] = this.device.createTexture({
                     size: [imageBitmap!.width, imageBitmap!.height, 1],
                     format: 'rgba8unorm',
                     usage:
@@ -145,7 +149,7 @@ export class PhongLightsMaterial extends PhongColorMaterial {
                         GPUTextureUsage.COPY_DST |
                         GPUTextureUsage.RENDER_ATTACHMENT,
                 });
-                window.weGPUdevice.queue.copyExternalImageToTexture(
+                this.device.queue.copyExternalImageToTexture(
                     { source: imageBitmap as ImageBitmap },
                     { texture: this.textures[id] },
                     [imageBitmap!.width, imageBitmap!.height]
@@ -160,7 +164,7 @@ export class PhongLightsMaterial extends PhongColorMaterial {
     };
     generateTextureByBitmap(imageBitmap: ImageBitmap, id: string) {
         let scope = this;
-        this.textures[id] = window.weGPUdevice.createTexture({
+        this.textures[id] = this.device.createTexture({
             size: [imageBitmap!.width, imageBitmap!.height, 1],
             format: 'rgba8unorm',
             usage:
@@ -168,7 +172,7 @@ export class PhongLightsMaterial extends PhongColorMaterial {
                 GPUTextureUsage.COPY_DST |
                 GPUTextureUsage.RENDER_ATTACHMENT,
         });
-        window.weGPUdevice.queue.copyExternalImageToTexture(
+        this.device.queue.copyExternalImageToTexture(
             { source: imageBitmap as ImageBitmap },
             { texture: this.textures[id] },
             [imageBitmap!.width, imageBitmap!.height]
@@ -248,6 +252,18 @@ export class PhongLightsMaterial extends PhongColorMaterial {
     }
     getUniform(): uniformEntries[] {
         let scope = this;
+        if (this.sampler == undefined) {
+            let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
+            if (this.scene.resources.sampler[weSamplerKind.linear]) {
+                this.sampler = this.scene.resources.sampler[weSamplerKind[sampler]];
+            }
+            else {
+                this.sampler = this.device.createSampler({
+                    magFilter: sampler,
+                    minFilter: sampler,
+                });
+            }
+        }
         let phong: uniformEntries[] = [
             {
                 label: "Mesh FS Shininess",

@@ -2,7 +2,7 @@
 @vertex fn vs(
 @location(0) position : vec3f
 ) -> @builtin(position) vec4f {
-    var pos = projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld * vec4f(position, 1.0);
+    var pos = matrix_z * projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld * vec4f(position, 1.0);
     return pos;
 }
 struct FragmentOutput {
@@ -13,6 +13,13 @@ struct FragmentOutput {
 ) -> FragmentOutput {
     var output : FragmentOutput;
     output.color = vec4f($red, $green, $blue, 1);
-    output.depth = pos.z - 0.000000238;
+    //output.depth = pos.z + 0.000000238;
+    if(U_MVP.reversedZ ==1)
+    {
+        output.depth = pos.z + 0.00000025;
+    }
+    else {
+        output.depth = pos.z - 0.00000025;
+    }
     return output;
 }

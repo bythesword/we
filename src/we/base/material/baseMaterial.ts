@@ -1,9 +1,22 @@
 import { uniformEntries } from "../command/baseCommand";
 import * as coreConst from "../const/coreConst"
+import { Root } from "../const/root";
 
 
 export interface optionBaseMaterial {
+    /**
+     * 两种情况：
+     * 
+     * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
+     * 
+     * 2、代码实时构建，可以显示的带入scene，则不用等待
+     * 
+     * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
+     */
+    scene?: any,
+    /**基础颜色 */
     color?: coreConst.color4F//number[],
+    /**顶点颜色，boolean */
     vertexColor?: boolean,
     /**此材质时启用深度测试。默认为 true */
     depthTest?: boolean,
@@ -16,10 +29,10 @@ export interface optionBaseMaterial {
     // alphaTest?: number,
 
     /**指定的fragment code */
-    code?:string
+    code?: string
 }
 
-export abstract class BaseMaterial {
+export abstract class BaseMaterial extends Root {
     red!: number;
     green!: number;
     blue!: number;
@@ -31,9 +44,10 @@ export abstract class BaseMaterial {
      * 如果更改为为true，在材质不工作
     */
     _already: boolean;
-    
+
 
     constructor(input?: optionBaseMaterial) {
+        super();
         this._destroy = false;
         this.red = 1.0;
         this.green = 1.0;
@@ -57,7 +71,29 @@ export abstract class BaseMaterial {
     abstract destroy(): any
     abstract getUniform(): uniformEntries[] | false
 
+    getReady() {
+        if (this._readyForGPU && this._already) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
     isDestroy() {
         return this._destroy;
     }
+    // getSampler() {
+    //     if (this.sampler == undefined) {
+    //         let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
+    //         if (this.scene.resources.sampler[weSamplerKind.linear]) {
+    //             this.sampler = this.scene.resources.sampler[weSamplerKind[sampler]];
+    //         }
+    //         else {
+    //             this.sampler = this.device.createSampler({
+    //                 magFilter: sampler,
+    //                 minFilter: sampler,
+    //             });
+    //         }
+    //     }
+    // }
 }

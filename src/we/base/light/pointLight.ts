@@ -1,8 +1,6 @@
 import { Vec3 } from "wgpu-matrix";
-import { lightType, optionBaseLight, shadowMap, structBaselight } from "./baseLight";
-import { BaseLight } from "./baseLight";
-import { color3F } from "../const/coreConst";
-
+import { lightType, optionBaseLight,  } from "./baseLight";
+import { BaseLight } from "./baseLight"; 
 
 
 export interface optionPointLight extends optionBaseLight {
