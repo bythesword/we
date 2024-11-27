@@ -6,10 +6,10 @@ import { CameraActor, optionCameraActor } from "../../../src/we/base/actor/camer
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
 import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../src/we/base/geometry/oneColorCube"
-import { VertexColorMaterial } from "../../../src/we/base/material/simple/vertexColorMatrial"
+import { VertexColorMaterial } from "../../../src/we/base/material/Standard/vertexColorMatrial"
 import { mat4, vec3 } from "wgpu-matrix"
-import { PhongMaterial } from "../../../src/we/base/material/simple/phongMaterial"
-import { PhongLightsMaterial } from "../../../src/we/base/material/simple/lightsphongMaterial"
+import { PhongMaterial } from "../../../src/we/base/material/Standard/phongMaterial"
+import { PhongLightsMaterial } from "../../../src/we/base/material/Standard/lightsphongMaterial"
 import { DirectionalLight } from "../../../src/we/base/light/DirectionalLight"
 import { SpotLight } from "../../../src/we/base/light/SpotLight"
 

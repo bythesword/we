@@ -6,7 +6,7 @@ import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/ca
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
-import { ColorMaterial } from "../../../../src/we/base/material/simple/colorMaterial"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 
 

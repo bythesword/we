@@ -5,10 +5,10 @@ import { CameraActor, optionCameraActor } from "../../../src/we/base/actor/camer
 
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../../src/we/base/geometry/boxGeometry"
-import { ColorMaterial } from "../../../src/we/base/material/simple/colorMaterial"
+import { ColorMaterial } from "../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
 
-import { PhongColorMaterial } from "../../../src/we/base/material/simple/phongColorMaterial"
+import { PhongColorMaterial } from "../../../src/we/base/material/Standard/phongColorMaterial"
 import { vec3 } from "wgpu-matrix"
 
 declare global {

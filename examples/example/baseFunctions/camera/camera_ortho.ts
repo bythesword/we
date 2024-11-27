@@ -4,10 +4,10 @@ import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntr
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { ColorMaterial } from "../../../../src/we/base/material/simple/colorMaterial"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
-import { VertexColorMaterial } from "../../../../src/we/base/material/simple/vertexColorMatrial"
+import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
 import { OrthographicCamera, optionOrthProjection } from "../../../../src/we/base/camera/orthographicCamera"
 
 

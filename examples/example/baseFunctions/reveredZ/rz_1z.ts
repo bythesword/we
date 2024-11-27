@@ -5,7 +5,7 @@ import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/ca
 
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
-import { ColorMaterial } from "../../../../src/we/base/material/simple/colorMaterial"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { mat4, vec3 } from "wgpu-matrix"
 

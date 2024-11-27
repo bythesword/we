@@ -8,7 +8,7 @@ import { BoxGeometry } from "../../../src/we/base/geometry/boxGeometry"
 import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
 
 import { vec3 } from "wgpu-matrix"
-import { PhongMaterial } from "../../../src/we/base/material/simple/phongMaterial" 
+import { PhongMaterial } from "../../../src/we/base/material/Standard/phongMaterial" 
 import { WASDCameraControl } from "../../../src/we/base/control/wasdCameraControl"
 
 declare global {

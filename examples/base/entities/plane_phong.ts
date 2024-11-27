@@ -6,10 +6,10 @@ import { CameraActor, optionCameraActor } from "../../../src/we/base/actor/camer
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
 import { PlaneGeometry } from "../../../src/we/base/geometry/planeGeomertry"
 import { SphereGeometry } from "../../../src/we/base/geometry/sphereGeometry"
-import { ColorMaterial } from "../../../src/we/base/material/simple/colorMaterial"
+import { ColorMaterial } from "../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
 
-import { PhongColorMaterial } from "../../../src/we/base/material/simple/phongColorMaterial"
+import { PhongColorMaterial } from "../../../src/we/base/material/Standard/phongColorMaterial"
 
 declare global {
   interface Window {
