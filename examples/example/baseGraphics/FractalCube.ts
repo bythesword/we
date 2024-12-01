@@ -99,6 +99,8 @@ let redMaterial = new VertexColorMaterial({
     @builtin(frag_depth) depth : f32,
     @location(0) color : vec4f,
     @location(1) id : u32,
+    @location(2) normal : vec4f,
+    @location(3) uv : vec4f,
 }
   @group(1) @binding(1) var u_Sampler : sampler;
   @group(1) @binding(2) var u_Texture: texture_2d<f32>;
@@ -108,7 +110,10 @@ let redMaterial = new VertexColorMaterial({
     //stage的初始化颜色与scene不同,造成看不见,已经修正
     let f = select(1.0, 0.0, length(texColor.rgb - vec3(${backgroudColor})) < 0.01);
     output.color = f * texColor + (1.0 - f) * fsInput.fsPosition;
-
+  
+    output.depth = fsInput.position.z;
+    output.uv = vec4f(fsInput.uv, 0, 1);
+    output.normal = vec4f(fsInput.normal, 1);
     output.id = fsInput.entityID;
   return output;
   }          `
