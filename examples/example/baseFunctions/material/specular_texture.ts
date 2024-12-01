@@ -6,9 +6,10 @@ import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/ca
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
-
-import { vec3 } from "wgpu-matrix"
+ 
 import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMaterial"
+import { PointLight } from "../../../../src/we/base/light/pointLight"
+import { mat4, vec3 } from "wgpu-matrix"
 
 declare global {
   interface Window {
@@ -92,18 +93,27 @@ let boxEntity = new Mesh(
     geometry: boxGeometry,
     material: redMaterial,
     wireFrame: false,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
-    // position:vec3.create(1,0,0),
-    // scale:[1,1,1],
-    // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:-0.15*Math.PI
-    // }
+    // dynamicPostion: true,
+    update: (scope, deltaTime, startTime, lastTime) => {
+      // console.log("12");
+      scope.matrix = mat4.identity(); 
+      const now = Date.now() / 1000;    
+      scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);      
+      return true;
+    },
   }
 );
 //增加实体到scene
 scene.add(boxEntity)
+let light1= new PointLight(
+  {
+    position: [0.0, 0.0, 8.0],
+    intensity: 12.0,
 
+  }
+);
+
+scene.addLight(light1);
 
 //运行场景
 scene.run()

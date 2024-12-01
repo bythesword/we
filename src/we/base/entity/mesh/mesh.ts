@@ -3,11 +3,12 @@ import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
-// import { cameraRayValues } from "../../camera/baseCamera";
 import { commmandType } from "../../stage/baseStage";
-// import { color3U, color4U } from "../../const/coreConst";
-import { uniformBufferPart, uniformEntries, unifromGroup } from "../../command/baseCommand";
-import { mat4 } from "wgpu-matrix";
+import { uniformEntries, unifromGroup } from "../../command/baseCommand";
+//for wireframe
+import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
+import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
+
 
 
 
@@ -137,7 +138,7 @@ export class Mesh extends BaseEntity {
                 let shaderFS = this._material.getCodeFS();
                 let shaderVS = this._geometry.getCodeVS();
                 shader = shaderVS + shaderFS;
-                shader = shader.replaceAll("$instacnce", this.numInstances.toString());
+                shader = this.shaderCodeProcess(shader);
             }
 
             let vsa = this._geometry.getAttribute();
@@ -157,7 +158,7 @@ export class Mesh extends BaseEntity {
                         {
                             label: "Mesh matrixWorld",
                             binding: 0,
-                            size: 4 * 16 * this.numInstances,
+                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
                             get: () => { return scope.getUniformOfMatrix() },
                         }
                     ]
@@ -178,7 +179,8 @@ export class Mesh extends BaseEntity {
                 fragment: {
                     code: shader,
                     entryPoint: "fs",
-                    targets: [{ format: scene.presentationFormat }]
+                    targets: this.getFragmentTargets()
+                    //[{ format: scene.presentationFormat }]
                 },
                 primitive: {
                     topology: 'triangle-list',
@@ -202,14 +204,23 @@ export class Mesh extends BaseEntity {
 
         /////////////////////////////// wire frame
         if (this._wireframeEnable === true) {
-            let wireFrameShaderCode = this._geometry.getWireFrameShdaerCode(this._wireframeColor);//获取线框的shader code ，传入线框颜色
+            let wireFrameShaderCodeVS = this._geometry.getWireFrameShdaerCodeVS(this._wireframeColor);//获取线框的shader code ，传入线框颜色
+            wireFrameShaderCodeVS = this.shaderCodeProcess(wireFrameShaderCodeVS);
+
+            let wireFrameShaderCodeFS = this._geometry.getWireFrameShdaerCodeFS(this._wireframeColor);//获取线框的shader code ，传入线框颜色
+            wireFrameShaderCodeFS=partHead_GBuffer_Add_FS +wireFrameShaderCodeFS;
+            wireFrameShaderCodeFS=wireFrameShaderCodeFS.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
+            let wireFrameShaderCode = wireFrameShaderCodeVS + wireFrameShaderCodeFS;
+
             let wireFrameVsa = this._geometry.getAttribute();
+
             let wireFrameIndexBuffer = this._geometry.getWireFrameIndeices();
             let wireFrameCounts = this._geometry.getWireFrameDrawCount();
             let wireFrameValues: drawModeIndexed = {
                 indexCount: wireFrameCounts,
                 instanceCount: this.numInstances,
             }
+
             let wireFrameOptions: drawOptionOfCommand = {
                 label: this.name == "" ? "Mesh wireframe" : this.name + " wireframe",
                 scene: scene,
@@ -221,7 +232,8 @@ export class Mesh extends BaseEntity {
                 fragment: {
                     code: wireFrameShaderCode,
                     entryPoint: "fs",
-                    targets: [{ format: scene.presentationFormat }]
+                    targets: this.getFragmentTargets()
+                    // targets: [{ format: scene.presentationFormat }]
                 },
                 primitive: {
                     topology: "line-list",
@@ -234,7 +246,7 @@ export class Mesh extends BaseEntity {
                             {
                                 label: "Mesh matrixWorld",
                                 binding: 0,
-                                size: 4 * 16 * this.numInstances,
+                                size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
                                 get: () => { return scope.getUniformOfMatrix() },
                             }
                         ]

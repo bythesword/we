@@ -1,5 +1,5 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
-import fragmengCode from "../../shader/sky/cubeSky.fs.wgsl?raw"
+import cubeSky from "../../shader/sky/cubeSky.fs.wgsl?raw"
 import { uniformBufferPart, uniformEntries } from "../../command/baseCommand";
 import { weSamplerKind } from "../../resource/weResource";
 
@@ -149,7 +149,8 @@ export class CubeSkyMaterial extends BaseMaterial {
 
     getCodeFS() {
 
-        return fragmengCode;
+        // return cubeSky;
+        return this.shaderCodeProcess(cubeSky);
     }
 
     destroy() {

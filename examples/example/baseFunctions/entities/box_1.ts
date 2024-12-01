@@ -75,7 +75,8 @@ let boxEntity = new Mesh(
   {
     geometry: boxGeometry,
     material: redMaterial,
-    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    // wireFrame: false,
+    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
   }
 );
 //增加实体到scene

@@ -1,12 +1,11 @@
-@group(1) @binding(1) var<uniform> u_Shininess : f32;
-@group(1) @binding(2) var<uniform> u_metalness : f32;
-@group(1) @binding(3) var<uniform> u_roughness : f32;
 
+//start :lightsphong.fs.wgsl
+@group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;
 
-@fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
-    let shininess = u_Shininess;
-    let metalness = u_metalness;
-    let roughness = u_roughness;
+@fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+    let shininess = u_bulinphong.shininess;
+    let metalness = u_bulinphong.metalness;
+    let roughness = u_bulinphong.roughness;
     var materialColor = vec4f($red, $green, $blue, $alpha);
     $materialColor
 
@@ -41,10 +40,14 @@
             colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] + onelightPhongColor[1];
         }
     }
-    //colorOfPhoneOfLights = phongColorOfDirectionalLight(fsInput.worldPosition, fsInput.normal, vec3f(0.0,1.0,0.0), vec3f(1), 2.0, defaultCameraPosition, fsInput.uv);
-    //colorOfPhoneOfLights = phongColorOfPointLight(fsInput.worldPosition, fsInput.normal, vec3f(5.0,5.0,8.0), vec3f(1), 5.2, defaultCameraPosition, fsInput.uv);
-    //return vec4f((colorOfAmbient + colorOfPhoneOfLights) * materialColor.rgb, materialColor.a);
-    return vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);
+
+    var output : ST_GBuffer;
+    $output
+    output.color = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);
+
+
+
+    return output;
 }
 
 fn PhongAmbientColor() -> vec3f
@@ -60,13 +63,13 @@ fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, lightDir : ve
     let light_atten_coff = lightIntensity;  //方向光不衰减
 
     let diff = max(dot(lightDir, normal), 0.0);
-    let diffColor = diff * light_atten_coff * lightColor * u_roughness;
+    let diffColor = diff * light_atten_coff * lightColor * u_bulinphong.roughness;
 
     var spec = 0.0;
     let viewDir = normalize(viewerPosition - position);
     let halfDir = normalize(lightDir + viewDir);
-    spec = pow (max(dot(viewDir, halfDir), 0.0), u_Shininess);
-    var specularColor = light_atten_coff * u_metalness * spec   * lightColor;
+    spec = pow (max(dot(viewDir, halfDir), 0.0), u_bulinphong.shininess);
+    var specularColor = light_atten_coff * u_bulinphong.metalness * spec * lightColor;
     $spec
 
     var colos_DS : array<vec3f, 2>;
@@ -84,14 +87,14 @@ fn phongColorOfPointLight(position : vec3f, vNormal : vec3f, lightPosition : vec
     let light_atten_coff = lightIntensity / length(lightPosition - position);   //光衰减，这里阳光是平方，todo，需要考虑gamma校正
 
     let diff = max(dot(lightDir, normal), 0.0);
-    let diffColor = diff * light_atten_coff * lightColor * u_roughness;
+    let diffColor = diff * light_atten_coff * lightColor * u_bulinphong.roughness;
 
     var spec = 0.0;
     let viewDir = normalize(viewerPosition - position);
     let reflectDir = reflect(-lightDir, normal);
-    spec = pow (max(dot(viewDir, reflectDir), 0.0), u_Shininess);
+    spec = pow (max(dot(viewDir, reflectDir), 0.0), u_bulinphong.shininess);
 
-    var specularColor = light_atten_coff * u_metalness * spec  * lightColor;
+    var specularColor = light_atten_coff * u_bulinphong.metalness * spec * lightColor;
     $spec
 
 
@@ -126,21 +129,21 @@ fn phongColorOfSpotLight(position : vec3f, vNormal : vec3f, lightPosition : vec3
     let halfVector = normalize(lightDir + viewDir);
 
     let diff = dot(lightDir, normal);
-    diffColor = inLight * diff * light_atten_coff * lightColor * u_roughness;
+    diffColor = inLight * diff * light_atten_coff * lightColor * u_bulinphong.roughness;
 
 
 
     let reflectDir = reflect(-lightDir, normal);
-        //spec = inLight * pow (max(dot(viewDir, reflectDir), 0.0), u_Shininess);
+        //spec = inLight * pow (max(dot(viewDir, reflectDir), 0.0), u_bulinphong.shininess);
 
     let specular = dot(normal, halfVector);
     var spec = inLight * select(
     0.0,                                        //value if condition false
-    pow(specular, u_Shininess),             //value if condition is true
+    pow(specular, u_bulinphong.shininess),          //value if condition is true
     specular > 0.0);                            //condition
-     
 
-    var specularColor = light_atten_coff * u_metalness * spec   * lightColor;
+
+    var specularColor = light_atten_coff * u_bulinphong.metalness * spec * lightColor;
     $spec
     var colos_DS : array<vec3f, 2>;
     colos_DS[0]=diffColor;
@@ -148,3 +151,4 @@ fn phongColorOfSpotLight(position : vec3f, vNormal : vec3f, lightPosition : vec3
     return colos_DS;
     //return diffColor + specularColor;
 }
+//end :lightsphong.fs.wgsl

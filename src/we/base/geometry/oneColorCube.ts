@@ -1,11 +1,8 @@
 /**
  * 一个彩色立方体，边长=2.0
  */
-import { BoxGeometry, optionBoxGemetry } from "./boxGeometry";
-// import * as coreConst from "../const/coreConst";
-// import triangleVS from "../shader/geometry/baseGeometry.vs.wgsl?raw"
-// import framelineVS from "../shader/geometry/baseGeometryFrameline.vs.wgsl?raw"
-
+import { BoxGeometry, optionBoxGemetry } from "./boxGeometry"; 
+import oneColorCubeVS from "../shader/geometry/OneColorCube.vs.wgsl?raw"
 
 
 export class OneColorCube extends BoxGeometry {
@@ -33,40 +30,9 @@ export class OneColorCube extends BoxGeometry {
     getCodeVS() {
         let width = this.width / 2;
         //这个比正常的geometry的vs多了fsPosition
-        return `
-        override instance_num_matrix : u32 = 1;
-        struct VertexShaderOutput {
-            @builtin(position) position : vec4f,
-            @location(0) uv : vec2f,
-            @location(1) normal : vec3f,
-            @location(2) color : vec3f,
-            @location(3) worldPosition : vec3f,
-            @location(4) fsPosition:vec4f,
-            @location(5) cubeUV:vec3f,
-          };
-          
-          @group(1) @binding(0) var<uniform> entityMatrixWorld : array<mat4x4f, $instacnce>;
-          
-          @vertex fn vs(
-          @location(0) position : vec3f,
-          @location(1) uv : vec2f,
-          @location(2) normal : vec3f,
-          @location(3) color : vec3f,
-          @builtin(instance_index) instanceIndex : u32,
-          @builtin(vertex_index) vertexIndex : u32
-          ) -> VertexShaderOutput {
-            var vsOutput : VertexShaderOutput;
-            vsOutput.position = projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld[instanceIndex] * vec4f(position, 1.0);
-            vsOutput.uv = uv;
-        
-            
-            vsOutput.normal = vec4f(entityMatrixWorld[instanceIndex] * vec4f(normal, 0)).xyz;
-            vsOutput.color = color;
-            vsOutput.worldPosition = vec4f(entityMatrixWorld[instanceIndex] * vec4f(position, 1.0)).xyz;
-            vsOutput.fsPosition= 0.5*(vec4f(position,1) + vec4(${width}));
-            vsOutput.cubeUV=normalize(vsOutput.worldPosition  - defaultCameraPosition);
-            return vsOutput;
-          }`;
+        let code=oneColorCubeVS;
+        code=code.replaceAll("$width", width.toString());
+        return code;
     }
 
 

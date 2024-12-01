@@ -3,6 +3,7 @@
 import { indexBuffer, vsAttributes } from "../command/DrawCommand";
 import { color3U } from "../const/coreConst";
 import framelineVS from "../shader/geometry/baseGeometryFrameline.vs.wgsl?raw"
+import framelineFS from "../shader/geometry/baseGeometryFrameline.fs.wgsl?raw"
 import triangleVS from "../shader/geometry/baseGeometry.vs.wgsl?raw"
 import * as coreConst from "../const/coreConst";
 
@@ -164,7 +165,21 @@ export abstract class BaseGeometry {
      * @param color 线框颜色
      * @returns shader code
      */
-    getWireFrameShdaerCode(color: coreConst.color4F): string {
+    getWireFrameShdaerCodeVS(color: coreConst.color4F): string {
+        let code = framelineVS;
+        return code;
+    }
+
+    /**
+     * todo：20241129，
+     * 1、后期使用线材质，或线框材质，或shader线框，代替；
+     * 2、这个目前这个目前没有输出entityID，输出的是0
+     * 
+     * 线框的FS
+     * @param color 
+     * @returns 
+     */
+    getWireFrameShdaerCodeFS(color: coreConst.color4F): string {
         let red = color.red;
         let green = color.green;
         let blue = color.blue;
@@ -172,11 +187,12 @@ export abstract class BaseGeometry {
         if ("alpha" in color) {
             color.alpha;
         }
-        let code = framelineVS;
+        let code = framelineFS;
         code = code.replace("$red", red.toString());
         code = code.replace("$blue", blue.toString());
         code = code.replace("$green", green.toString());
         code = code.replace("$alpha", alpha.toString());
+
         return code;
     }
 

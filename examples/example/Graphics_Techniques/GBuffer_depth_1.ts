@@ -10,7 +10,7 @@ import { VertexColorMaterial } from "../../../src/we/base/material/Standard/vert
 import { mat4, vec3 } from "wgpu-matrix"
 import { CubeSkyMaterial } from "../../../src/we/base/material/sky/cubeSkyMaterial"
 import { WASDCameraControl } from "../../../src/we/base/control/wasdCameraControl"
- 
+
 
 
 declare global {
@@ -73,34 +73,41 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new OneColorCube();
 //极简测试材质，red
-let redMaterial = new VertexColorMaterial({ type: "position" });
-let cubeMaterial = new CubeSkyMaterial({
-  cubeTexture: {
-    texture: [
-      '/examples/resource/images/cubemap/posx.jpg',
-      '/examples/resource/images/cubemap/negx.jpg',
-      '/examples/resource/images/cubemap/posy.jpg',
-      '/examples/resource/images/cubemap/negy.jpg',
-      '/examples/resource/images/cubemap/posz.jpg',
-      '/examples/resource/images/cubemap/negz.jpg',
-    ],
-  }
-})
+let redMaterial = new VertexColorMaterial();
 //box实体
 let boxEntity = new Mesh(
   {
-    scale:[100,100,100],
     geometry: boxGeometry,
-    material: cubeMaterial,
+    material: redMaterial,
     wireFrame: false,
     dynamicPostion: true,
-    cullmode: "front",
-
+    update: (scope, deltaTime, startTime, lastTime) => {
+      // console.log("12");
+      scope.matrix = mat4.identity();
+      // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
+      const now = Date.now() / 1000;
+      // mat4.rotate(
+      //   scope.matrix,
+      //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      //   1,
+      //   scope.matrix
+      // );
+      scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
+      return true;
+    },
   }
 );
 //增加实体到scene
 scene.add(boxEntity)
 
+scene.addUserDefine({
+  call: function (scope: any): any { 
+    scope.copyTextureToTexture(scene.stages["World"].opaque!.depthTexture, (scene.context as GPUCanvasContext).getCurrentTexture(), { width: scope.canvas.width, height: scope.canvas.height });
+    return true;
+  },
+  name: "copy",
+  state: true
+});
 
 //运行场景
 scene.run()

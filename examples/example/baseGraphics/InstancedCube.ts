@@ -127,8 +127,8 @@ let boxEntity = new Mesh(
             m4
           );
 
-          scope.matrixWorldBuffer.set(m4, i * 16);
-          i++; 
+          scope.matrixWorldBuffer.set(m4, scope._entityIdSizeForWGSL  + i * 16);
+          i++;
         }
       }
 

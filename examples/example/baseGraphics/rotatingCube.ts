@@ -70,7 +70,7 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new OneColorCube();
 //极简测试材质，red
-let redMaterial = new VertexColorMaterial;
+let redMaterial = new VertexColorMaterial();
 //box实体
 let boxEntity = new Mesh(
   {

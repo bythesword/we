@@ -3,8 +3,7 @@ import { ArcballCameraControl } from "../../../../src/we/base/control/arcballCam
 import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
-import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
+import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene" 
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
 import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
@@ -70,7 +69,7 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new OneColorCube();
 //极简测试材质，red
-let redMaterial = new VertexColorMaterial;
+let redMaterial = new VertexColorMaterial();
 //box实体
 let boxEntity = new Mesh(
   {

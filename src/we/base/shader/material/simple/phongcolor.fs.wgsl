@@ -1,3 +1,4 @@
+//作废，不再使用
 @group(1) @binding(1) var<uniform> u_Shininess : f32;
 @group(1) @binding(2) var<uniform> u_metalness : f32;
 @group(1) @binding(3) var<uniform> u_roughness : f32;

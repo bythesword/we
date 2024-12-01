@@ -1,25 +1,24 @@
-@group(1) @binding(0) var<uniform> entityMatrixWorld : mat4x4f;
+
+//start:baseGeometryFramelines.vs.wgsl
 @vertex fn vs(
-@location(0) position : vec3f
-) -> @builtin(position) vec4f {
-    var pos = matrix_z * projectionMatrix * viewMatrix * modelMatrix * entityMatrixWorld * vec4f(position, 1.0);
-    return pos;
+@location(0) position : vec3f,
+@builtin(instance_index) instanceIndex : u32
+) -> VertexShaderOutput {
+    var vsOutput : VertexShaderOutput;
+
+    //这个没有使用替换内容
+    vsOutput.position = matrix_z * projectionMatrix * viewMatrix * modelMatrix * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
+    vsOutput.uv = vec2f(1);
+    vsOutput.normal = vec3f(1);
+    vsOutput.color = vec3f(1);
+    vsOutput.worldPosition = vec4f(entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0)).xyz;
+    let entity_id = entity.entity_id << 14;
+    let stage_id = entity.stage_id << 29;
+    vsOutput.entityID = instanceIndex + entity_id + stage_id;
+
+
+
+
+    return vsOutput;
 }
-struct FragmentOutput {
-    @builtin(frag_depth) depth : f32,
-    @location(0) color : vec4f
-}
-@fragment fn fs(@builtin(position) pos : vec4f,
-) -> FragmentOutput {
-    var output : FragmentOutput;
-    output.color = vec4f($red, $green, $blue, 1);
-    //output.depth = pos.z + 0.000000238;
-    if(U_MVP.reversedZ ==1)
-    {
-        output.depth = pos.z + 0.00000025;
-    }
-    else {
-        output.depth = pos.z - 0.00000025;
-    }
-    return output;
-}
+//start:baseGeometryFramelines.vs.wgsl

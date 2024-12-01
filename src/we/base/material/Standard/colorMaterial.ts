@@ -19,7 +19,9 @@ export class ColorMaterial extends BaseMaterial {
         code = code.replaceAll("$blue", this.blue.toString());
         code = code.replaceAll("$green", this.green.toString());
         code = code.replaceAll("$alpha", this.alpha.toString());
-        return code;
+        // return code;
+        
+        return this.shaderCodeProcess(code);
     }
 
     destroy() {

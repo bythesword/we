@@ -1,10 +1,13 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
 import { ShadowMaterial } from "../material/shadow/shadowMaterial";
-import { commmandType } from "../stage/baseStage";
+import { BaseStage, commmandType } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
 import { Root } from "../const/root";
 
+import partAdd_st_entity_VS from "../shader/entities/part_add.st_entity.vs.wgsl?raw"
+import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.VertexShaderOutput.vs.wgsl?raw"
+import partReplace_VertexShaderOutput_VS from "../shader/entities/part_replace.VertexShaderOutput.vs.wgsl?raw"
 
 
 
@@ -106,17 +109,19 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
  * 2、代码实时构建，可以显示的带入scene，则不用等待
  * 
  * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
+ * 
+ * 20241129,类型从any 改为BaseStage
  */
-    scene?: any,
+    scene?: BaseStage,
     name?: string,
     //todo
     /** 顶点和材质组一对一 */
     vertexAndMaterialGroup?: entityContentGroup,
-    /**默认=World */
-    stage?: {
-        Transparent: number[] //coreConst.defaultStageTransparent,
-        Opaque: number[]
-    },
+    // /**默认=World */
+    // stage?: {
+    //     Transparent: number[] //coreConst.defaultStageTransparent,
+    //     Opaque: number[]
+    // },
     // /**自定义更新functon() */
     // update?: (scope: any) => {},
     /**阴影选项 */
@@ -204,9 +209,16 @@ export abstract class BaseEntity extends Root {
     enable!: boolean;
     children!: BaseEntity[];
     name!: string;
-    id!: entityID;
+    /**在stage中的ID，默认=0，如果_id=0，则与ID相关的功能失效 */
+    _id!: entityID;
+    get ID() {
+        return this._id;
+    }
+    set ID(id: entityID) {
+        this._id = id;
+    }
     parent: BaseEntity | undefined;
-
+    stageID!: number
 
     /**透明属性
      * 默认=false，
@@ -230,6 +242,9 @@ export abstract class BaseEntity extends Root {
     */
     flagUpdateForPerInstance!: boolean;
 
+    /**entiy 的ID等其他数据占位，这个需要与wgsl shader中同步更改 */
+    _entityIdSizeForWGSL = 4;//f32
+
     constructor(input: optionBaseEntity) {
         super();
         this._init = initStateEntity.constructing;
@@ -249,6 +264,7 @@ export abstract class BaseEntity extends Root {
         if (input.dynamicMesh) {
             this._dynamicMesh = input.dynamicMesh
         }
+        this.ID = 0;
         this._LOD = [];
         this._destroy = false;
         this._commmands = [];
@@ -259,15 +275,17 @@ export abstract class BaseEntity extends Root {
         this._rotation = vec3.create();
         this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
+        // this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
+
+        this.matrixWorldBuffer = new Float32Array(this._entityIdSizeForWGSL + 4 * 4 * this.numInstances);
         let perMatrix = mat4.identity();
         for (let i = 0; i < this.numInstances; i++) {
-            this.matrixWorldBuffer.set(perMatrix, i * 16);
+            this.matrixWorldBuffer.set(perMatrix, this._entityIdSizeForWGSL + i * 16);
         }
         this.visible = true;
         this.children = [];
         this.name = ''
-        this.id = new Date().getTime();
+        this.ID = new Date().getTime();
         this.updateMatrixPerFrame = false;
 
         if (input.name) this.name = input.name;
@@ -329,7 +347,7 @@ export abstract class BaseEntity extends Root {
         obj.parent = this;
     }
     remove(obj: BaseEntity) {
-        let index = this.getObjectIndexByID(obj.id);
+        let index = this.getObjectIndexByID(obj.ID);
         if (index !== false) {
             delete this.children[index as number];
             return true;
@@ -340,7 +358,7 @@ export abstract class BaseEntity extends Root {
     }
     getObjectIndexByID(id: entityID): number | boolean {
         for (let i in this.children) {
-            if (this.children[i].id == id) {
+            if (this.children[i].ID == id) {
                 return parseInt(i);
             }
         }
@@ -470,18 +488,24 @@ export abstract class BaseEntity extends Root {
 
                     this.updateUniformBuffer(scene, deltaTime, startTime, lastTime);
                     this._commmands = this.updateDCC(scene, deltaTime, startTime, lastTime);
-                    return this._commmands;
+                    // return this._commmands;
                 }
                 //静态，直接返回commands
                 else
                 // if (this._dynamic === false)
                 {
-                    return this._commmands;
+                    // return this._commmands;
                 }
             }
             else if (this._init == initStateEntity.initializing) {
                 this.checkStatus();
             }
+        // return [];
+        // let commands = this.updateChilden(scene, deltaTime, startTime, lastTime);
+        return this._commmands;
+    }
+    updateChilden(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
+
         return [];
     }
     /**
@@ -492,6 +516,22 @@ export abstract class BaseEntity extends Root {
      */
     abstract checkStatus(): boolean
 
+    // /**确认parent 状态 */
+    // getStatusOfParents(): boolean {
+    //     if (this.parent) {
+    //         return this.parent.getStateus() && this.visible && this.enable;
+    //     }
+    //     else {
+    //         return this.visible && this.enable;
+    //     }
+    // }
+    /** */
+    getStateus(): boolean {
+        if (this.checkStatus() && this.visible && this.enable) {
+            return true;
+        }
+        return false;
+    }
     // /** 作废
     //  * 包围盒：
     //  *      距离、视锥（所有点）（dot）、方向（cross，摄像机正方向）
@@ -528,19 +568,31 @@ export abstract class BaseEntity extends Root {
      */
     // abstract
     updateUniformBuffer(scene: any, deltaTime: number, startTime: number, lastTime: number): any {
+
         for (let i = 0; i < this.numInstances; i++) {
             let perMatrix = mat4.identity();
             //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
             if (this.flagUpdateForPerInstance) {
-                perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
+                perMatrix = this.matrixWorldBuffer.subarray(this._entityIdSizeForWGSL + i * 16, (i + 1) * 16);
             }
             let perWorld = mat4.copy(this.matrixWorld);
             perMatrix = mat4.multiply(perWorld, perMatrix);
             if (this.input?.instancesPosition) {
                 mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
             }
-            this.matrixWorldBuffer.set(perMatrix, i * 16);
+            this.matrixWorldBuffer.set(perMatrix, this._entityIdSizeForWGSL + i * 16);
         }
+        let baseInfoSetting = new Float32Array(this._entityIdSizeForWGSL);
+        baseInfoSetting[0] = this.ID;
+        baseInfoSetting[1] = this.getStageID();
+
+        this.matrixWorldBuffer.set(baseInfoSetting, 0);
+    }
+    getID() {
+        return { stageID: this.stageID, ID: this.ID };
+    }
+    getStageID() {
+        return this.stageID;
     }
 
 
@@ -571,6 +623,42 @@ export abstract class BaseEntity extends Root {
     isDestroy() {
         return this._destroy;
     }
+    /**
+     * 增加结构体 “ST_entity” 和uniform binding
+     * @param code :string 
+     * @returns string
+     */
+    shaderCodeAddPartForVS_ST_entity(code: string): string {
+        let shaderCodeAdded = partAdd_st_entity_VS + code;
+        return shaderCodeAdded;
+    }
+    /**
+     * 替换VS中的instance相关的内容
+     * @param shaderCode :string
+     * @returns string
+     */
+    shaderCodeReplaceFor_instance(shaderCode: string): string {
+        let shaderCodeReplaced = shaderCode.replaceAll("$instacnce", this.numInstances.toString());
+        return shaderCodeReplaced;
+    }
 
-
+    /**合并shaderCodeAddPartForVS_ST_entity.shaderCodeReplaceFor_instance两个功能
+     * 
+     */
+    shaderCodeProcess(shaderCode: string): string {
+        let code = partAdd_st_entity_VS + shaderCode;//增加结构体 ST_entity
+        code = partAdd_st_VertexShaderOutput_VS + code;//增加结构体 VertexShaderOutput
+        code = code.replaceAll("$instacnce", this.numInstances.toString());//替换$instacnce ,实例化数量
+        code = code.replaceAll("$vsOutput", partReplace_VertexShaderOutput_VS.toString());//替换$vsOutput的输出内容
+        return code;
+    }
+    /**
+     * 获取stage中的renderPassDescriptor: GPURenderPassDescriptor的对应的colorAttachment的format格式
+     * 
+     * DC的pipeline的fragment target 使用
+     * @returns GPUColorTargetState[]
+     */
+    getFragmentTargets(): GPUColorTargetState[] {
+        return this.stage.colorAttachmentTargets;
+    }
 }

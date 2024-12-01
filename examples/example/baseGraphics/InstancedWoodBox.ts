@@ -5,12 +5,9 @@ import { CameraActor, optionCameraActor } from "../../../src/we/base/actor/camer
 
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
 import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
-import { OneColorCube } from "../../../src/we/base/geometry/oneColorCube"
-import { VertexColorMaterial } from "../../../src/we/base/material/Standard/vertexColorMatrial"
+import { OneColorCube } from "../../../src/we/base/geometry/oneColorCube" 
 import { mat4, vec3 } from "wgpu-matrix"
-import { PhongMaterial } from "../../../src/we/base/material/Standard/phongMaterial"
-import { PhongLightsMaterial } from "../../../src/we/base/material/Standard/lightsphongMaterial"
-import { DirectionalLight } from "../../../src/we/base/light/DirectionalLight"
+import { PhongMaterial } from "../../../src/we/base/material/Standard/phongMaterial" 
 import { SpotLight } from "../../../src/we/base/light/SpotLight"
 
 
@@ -42,7 +39,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.1,
   far: 1000,
-  position: [0, 0, 12],
+  position: [0, 0, 16],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -74,7 +71,7 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new OneColorCube();
 //极简测试材质，red
-let redMaterial = new PhongLightsMaterial({
+let redMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
   metalness: 1,
   texture: {
@@ -129,15 +126,16 @@ let boxEntity = new Mesh(
           mat4.rotate(
             m4,
             vec3.fromValues(
-              Math.sin((x + 0.01) * now),
-              Math.cos((y + 0.01) * now),
+              Math.sin((x + 0.95) * now),
+              Math.cos((y + 0.95) * now),
               0
             ),
             1,
             m4
           );
 
-          scope.matrixWorldBuffer.set(m4, i * 16);
+          // scope.matrixWorldBuffer.set(m4, i * 16);
+          scope.matrixWorldBuffer.set(m4, scope._entityIdSizeForWGSL  + i * 16);
           i++;
         }
       }
@@ -153,7 +151,7 @@ scene.add(boxEntity)
 let spotLight= new SpotLight(
   {
     direction: [0.0, 0.0, -1.0],
-    position: [0,0, 11],
+    position: [0,0, 12],
     intensity: 22.0,
     angle: 29/180*Math.PI,//12.5
     angleOut: 38/180*Math.PI //17.5

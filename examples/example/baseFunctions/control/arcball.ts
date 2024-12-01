@@ -9,6 +9,7 @@ import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 
 import { vec3 } from "wgpu-matrix"
 import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMaterial"
+import { PointLight } from "../../../../src/we/base/light/pointLight"
 
 declare global {
   interface Window {
@@ -103,7 +104,15 @@ let boxEntity = new Mesh(
 );
 //增加实体到scene
 scene.add(boxEntity)
+let light1: PointLight = new PointLight(
+  {
+    position: [0.0, 0.0, 8.0],
+    intensity: 5.0,
 
+  }
+);
+
+scene.addLight(light1);
 
 //运行场景
 scene.run()

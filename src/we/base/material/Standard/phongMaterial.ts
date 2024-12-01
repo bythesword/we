@@ -1,5 +1,5 @@
 
-import colorOnlyFS from "../../shader/material/simple/phong.fs.wgsl?raw"
+import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 import { uniformEntries } from "../../command/baseCommand";
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
 import { weSamplerKind } from "../../resource/weResource";
@@ -42,12 +42,11 @@ export class PhongMaterial extends PhongColorMaterial {
         if (this.input.texture)
             this.countOfTextures = Object.keys(this.input.texture!).length;
         // if (this.countOfTextures > 0) {
-        //     this.sampler =  this.device.createSampler({
+        //     this.sampler = this.device.createSampler({
         //         magFilter: 'linear',
         //         minFilter: 'linear',
         //     });
         // }
-
         if (input?.scene)
             this.init();
     }
@@ -111,6 +110,7 @@ export class PhongMaterial extends PhongColorMaterial {
         else {
             this._already = true;
         }
+
 
 
     }
@@ -181,30 +181,37 @@ export class PhongMaterial extends PhongColorMaterial {
         }
     };
 
+    /**
+     * 
+     * @returns  FS code
+     */
     getCodeFS() {
-        let code = colorOnlyFS
+        let code = lightsFS;
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
         code = code.replaceAll("$green", this.green.toString());
         code = code.replaceAll("$alpha", this.alpha.toString());
-        // @group(1) @binding(4) var u_Sampler: sampler;
-        // @group(1) @binding(5) var u_Texture: texture_2d<f32>;
-        let spec = " let   specularColor  = light_atten_coff * u_metalness * spec * lightColor;\n";
 
+        let spec = "     ";
         //这里的u_metalness也需要被使用，否则报错，乘上之后就是金属度的增加
-        let specTexture = "let specc= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;\n let  specularColor  = light_atten_coff * u_metalness *specc*    spec * lightColor;\n";
+        let specTexture = `let specc= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;
+            specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;
         // let specTexture = "spec =textureSample(u_specularTexture, u_Sampler,  uv);\n";
 
-        let normal = "let normal = normalize(vNormal);\n"
-        let normalTexture = "let normal =textureSample(u_normalTexture, u_Sampler,  uv).rgb;\n";
+        let normal = "  ";
+        let normalTexture = "  normal =textureSample(u_normalTexture, u_Sampler,  uv).rgb;\n";
 
         let flag_spec = false;
         let flag_texture = false;
         let flag_normal = false;
 
+        // @group(1) @binding(4) var u_Sampler: sampler;
+        // @group(1) @binding(5) var u_Texture: texture_2d<f32>;
+
+        //判断texture种类，增加对应贴图，增加一个采样（uniform中，binding 4）
         if (this.countOfTextures > 0) {
-            code += "@group(1) @binding(4) var u_Sampler : sampler; \n ";
-            let binding = 5;
+            code += "@group(1) @binding(2) var u_Sampler : sampler; \n ";
+            let binding = 3;
             for (let i in this.textures) {
                 if (i == "specularTexture") {
                     flag_spec = true;
@@ -237,7 +244,7 @@ export class PhongMaterial extends PhongColorMaterial {
         else {
             code = code.replaceAll("$normal", normal);
         }
-        return code;
+        return this.shaderCodeProcess(code);
     }
 
     destroy() {
@@ -259,50 +266,25 @@ export class PhongMaterial extends PhongColorMaterial {
         }
         let phong: uniformEntries[] = [
             {
-                label: "Mesh FS Shininess",
+                label: "Mesh FS bulin phong",
                 binding: 1,
-                size: 4 * 1,
+                size: 4 * 3,
                 get: () => {
-                    let a = new Float32Array(1);
+                    let a = new Float32Array(3);
                     a[0] = scope.input.Shininess as number;
+                    a[1] = scope.input.metalness as number;
+                    a[2] = scope.input.roughness as number;
                     return a;
                 },
             },
-            {
-                label: "Mesh FS metalness",
-                binding: 2,
-                size: 4 * 1,
-                get: () => {
-                    let a = new Float32Array(1);
-                    a[0] = scope.input.metalness as number;
-                    return a;
-                },
-            },
-            {
-                label: "Mesh FS roughness",
-                binding: 3,
-                size: 4 * 1,
-                get: () => {
-                    let a = new Float32Array(1);
-                    a[0] = scope.input.roughness as number;
-                    return a;
-                },
-            },
-            // {
-            //     binding: 4,
-            //     resource: this.sampler,
-            // },
-            // {
-            //     binding: 5,
-            //     resource: this.textures["texture"].createView(),
-            // },
+
         ];
         if (this.countOfTextures > 0) {
             phong.push({
-                binding: 4,
+                binding: 2,
                 resource: this.sampler,
             });
-            let binding = 5;
+            let binding = 3;
             for (let i in this.textures) {
                 const one = {
                     binding,

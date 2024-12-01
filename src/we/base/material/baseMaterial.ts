@@ -1,7 +1,8 @@
 import { uniformEntries } from "../command/baseCommand";
 import * as coreConst from "../const/coreConst"
 import { Root } from "../const/root";
-
+import partHead_GBuffer_Add_FS from "../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
+import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 
 export interface optionBaseMaterial {
     /**
@@ -82,18 +83,15 @@ export abstract class BaseMaterial extends Root {
     isDestroy() {
         return this._destroy;
     }
-    // getSampler() {
-    //     if (this.sampler == undefined) {
-    //         let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
-    //         if (this.scene.resources.sampler[weSamplerKind.linear]) {
-    //             this.sampler = this.scene.resources.sampler[weSamplerKind[sampler]];
-    //         }
-    //         else {
-    //             this.sampler = this.device.createSampler({
-    //                 magFilter: sampler,
-    //                 minFilter: sampler,
-    //             });
-    //         }
-    //     }
-    // }
+
+    /**增加FS中的输出的location的结构体：ST_GBuffer */
+    shaderCodeAdd_partOfLocationOfEntityID(code: string): string {
+        let shaderCodeAdded = partHead_GBuffer_Add_FS + code;
+        return shaderCodeAdded;
+    }
+    shaderCodeProcess(code: string): string {
+        let shaderCode = this.shaderCodeAdd_partOfLocationOfEntityID(code);
+        shaderCode = shaderCode.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
+        return shaderCode;
+    }
 }

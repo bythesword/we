@@ -58,7 +58,7 @@ export interface vsPart {
     entryPoint: string,
     /**GPU 的常数替换*/
     constants?: any,
-    buffers: vsAttributes[],
+    buffers?: vsAttributes[],
 }
 
 /**
@@ -349,31 +349,34 @@ export class DrawCommand extends BaseCommand {
         let label = this.input.label;
         let device = this.device;
         // this.verticesBuffer
-        let vsAttribute = this.input.vertex.buffers;
+
         let buffer: GPUVertexBufferLayout[] = [];
-        for (let perLocation of vsAttribute) {
-            //判断是否存在stepMode
-            let stepMode: GPUVertexStepMode;
-            if (perLocation.stepMode) stepMode = perLocation.stepMode;
-            else stepMode = "vertex";
+        if (this.input.vertex.buffers) {//vertex 数据是可以没有的，比如在VS code中写死的（quad）
+            let vsAttribute = this.input.vertex.buffers;
+            for (let perLocation of vsAttribute) {
+                //判断是否存在stepMode
+                let stepMode: GPUVertexStepMode;
+                if (perLocation.stepMode) stepMode = perLocation.stepMode;
+                else stepMode = "vertex";
 
-            //生成layout
-            const oneGPUVertexBufferLayout: GPUVertexBufferLayout = {
-                arrayStride: perLocation.arrayStride,
-                attributes: perLocation.attributes,
-                stepMode: stepMode,
-            };
-            //push 到buffer
-            buffer.push(oneGPUVertexBufferLayout);
+                //生成layout
+                const oneGPUVertexBufferLayout: GPUVertexBufferLayout = {
+                    arrayStride: perLocation.arrayStride,
+                    attributes: perLocation.attributes,
+                    stepMode: stepMode,
+                };
+                //push 到buffer
+                buffer.push(oneGPUVertexBufferLayout);
 
-            //bind 的 vertexbuffer是按照数组顺序的，location是按照写的位置，人工确保正确
-            if (perLocation.type == "GPUBuffer") {
-                this.verticesBuffer.push(perLocation.vertexArray as GPUBuffer);
-            }
-            else {
-                const vab = perLocation.vertexArray as Float32Array | Uint8Array | Uint32Array | Float64Array | Uint16Array;
-                const oneGPUBuffer = this.createverticesBuffer(vab, perLocation.type, this.label);
-                this.verticesBuffer.push(oneGPUBuffer);//这里是buffer[]的数组顺序，入栈
+                //bind 的 vertexbuffer是按照数组顺序的，location是按照写的位置，人工确保正确
+                if (perLocation.type == "GPUBuffer") {
+                    this.verticesBuffer.push(perLocation.vertexArray as GPUBuffer);
+                }
+                else {
+                    const vab = perLocation.vertexArray as Float32Array | Uint8Array | Uint32Array | Float64Array | Uint16Array;
+                    const oneGPUBuffer = this.createverticesBuffer(vab, perLocation.type, this.label);
+                    this.verticesBuffer.push(oneGPUBuffer);//这里是buffer[]的数组顺序，入栈
+                }
             }
         }
         let constantsVertex = this.input.vertex.constants;
@@ -480,7 +483,7 @@ export class DrawCommand extends BaseCommand {
         //     // this.renderPassDescriptor.depthStencilAttachment.depthStoreOp = "discard";
         // }
 
-        const commandEncoder = device.createCommandEncoder();
+        const commandEncoder = device.createCommandEncoder({ label: "Draw Command :commandEncoder" });
         const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
 

@@ -3,14 +3,10 @@ import { ArcballCameraControl } from "../../../../src/we/base/control/arcballCam
 import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
-import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
-import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
-import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
+import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene" 
+import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry" 
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
-
-import { PhongColorMaterial } from "../../../../src/we/base/material/Standard/phongColorMaterial"
-import { vec3 } from "wgpu-matrix"
+ 
 import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/lightsphongMaterial"
 import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
 

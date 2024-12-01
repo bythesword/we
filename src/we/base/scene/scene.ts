@@ -1,61 +1,44 @@
-declare global {
-    interface Window {
-        scene: any
-        DC: any
-        weGPUdevice: GPUDevice
-        weGPUadapter: GPUAdapter
-    }
-}
+declare global { interface Window { scene: any } }
 import wgsl_main from "../shader/system.wgsl?raw"
 import * as coreConst from "../const/coreConst"
-import {
-    Mat4,
-    mat4,
-    //  vec3 
-} from 'wgpu-matrix';
-
+import { Mat4, mat4, } from 'wgpu-matrix';
 import { Clock } from '../scene/clock';
 import { cameraRayValues } from "../camera/baseCamera";
-import { BaseScene, sceneJson, renderPassSetting } from './baseScene';
-
-
-
-import {
-    //  projectionOptions,
-    BaseCamera,
-} from "../camera/baseCamera"
-
+import { BaseScene, sceneJson } from './baseScene';
+import { BaseCamera } from "../camera/baseCamera"
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
-import { BaseStage, commmandType, stageGroup } from '../stage/baseStage';
+import { BaseStage, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseLight, lightStructSize } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
-
-
 /**
  *  canvas: string, canvas id;
- * 
- *  color?:color4F,JSON {red:1.0,green:1,blue:1,alpha:1}
  * 
  *  lightNumber?: number  最大光源数量(默认:32)
  */
 declare interface sceneInputJson extends sceneJson {
     /**canvas id */
     canvas: string,
-    // renderPassSetting?: renderPassSetting,
-    /**backgroudColor */
-    color?: coreConst.color4F,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
+    /**Debug  */
+    Debug?: WE_Debug,
 }
-
-
-
-
-
-/** system uniform 的结构 ，都是GPUBuffer，为更新uniform使用，
-*/
+export interface WE_Debug {
+    isDebug: boolean,
+    /**只在debug模式下才能开启，
+     * 是否开启GBuffer可视化 */
+    GBuffersVisualize?: GBuffersVisualize
+}
+/**GBuffers 可视化选项 */
+interface GBuffersVisualize {
+    /**是否开启可视化 */
+    enable: boolean,
+    /**详见：coreConst.GBuffersViewportAssemble-->name */
+    layout?: string,
+}
+/** system uniform 的结构 ，都是GPUBuffer，为更新uniform使用，*/
 export declare interface systemUniformBuffer {
     /**
      * size:3*4*4*4 byte 
@@ -67,59 +50,37 @@ export declare interface systemUniformBuffer {
     /**uint32 *2 */
     time?: GPUBuffer,
 }
-
-// export declare type commmandType = DrawCommand | ComputeCommand;
-
 /**actor 收集器/集合 */
 export interface actorGroup {
     [name: string]: BaseActor
     // [name in string]: BaseActor
 }
-
 /** stage 收集器/集合 */
 export interface stagesCollection {
     [name: string]: stageGroup
 }
 class Scene extends BaseScene {
-
     /** scene 的初始化参数 */
     declare input: sceneInputJson;
-
-    /**每帧的webGPU的command集合 */
-    command!: commmandType[];
-
     declare context: GPUCanvasContext;
     canvas!: HTMLCanvasElement;
     /**clock */
     clock: Clock;
-
     /** todo */
     MQ: any;
     /** todo */
     WW: any;
-
     /**cameras 默认摄像机 */
     defaultCamera: BaseCamera | undefined;
-
-
-
     /** stage 收集器  */
     stages!: stagesCollection;
     // stages!: BaseStage[];
     stagesOrders!: coreConst.stagesOrderByRender// number[];
     stageNameOfGroup!: coreConst.stageName;
-
-
     /**视场比例 */
-    aspect!: number;
-    // projectionMatrix!: Mat4;
-
-    // colorAttachment!: GPUTextureView;
-    // depthStencilAttachment!: GPUTextureView;
-
+    aspect!: number; 
     /** system uniform buffer 结构体，参加 interfance systemUniformBuffer */
     systemUniformBuffers!: systemUniformBuffer;
-
     /** actor group */
     actors!: actorGroup;
     /** default actor
@@ -128,19 +89,14 @@ class Scene extends BaseScene {
      */
     defaultActor!: BaseActor;
 
-    /**scene 的默认renderPassSetting 
-     * 有color和depth ，分别有2组
-     * 第一组是每一帧初始化时，clear的配置
-     * 第二组是load同一帧的之前内容，而不是采用clear的方式
-    */
-    renderPassSetting!: renderPassSetting;
-
-
     /**每帧循环用户自定义更新function */
-    userDefineUpdateArray!: updateCall[];
-
-    /** */
+    userDefineUpdateArray!: userDefineUpdateCall[];
+    /**资源类 */
     resources!: WeResource;
+    /**是否开启debug，以及功能 */
+    _debug!: WE_Debug;
+
+
     constructor(input: sceneInputJson) {
         super(input);
         this.userDefineUpdateArray = [];
@@ -153,77 +109,39 @@ class Scene extends BaseScene {
         else {
             this.name = "Scene";
         }
+        this._debug = {
+            isDebug: false,
+            GBuffersVisualize: {
+                enable: false,
+                layout: "top"
+            }
+        }
+        if (input.Debug) {
+            this._debug = input.Debug;
+        }
         this.systemUniformBuffers = {};
-
         this.clock = new Clock();
         this.input = input;
-
-        let backgroudColor = [0, 0, 0, 0];
-        if (input.color) {
-            backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
-        }
-
-
-        this.renderPassSetting = {
-            color: {
-                clearValue: backgroudColor,
-                loadOp: "clear",
-                storeOp: "store",
-            },
-            depth: {
-                depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-            },
-            colorSecond: {
-                // clearValue: [0, 0, 0, 0],
-                loadOp: "load",
-                storeOp: "store",
-            },
-            depthSecond: {
-                // depthClearValue: 1.0,
-                depthLoadOp: 'load',
-                depthStoreOp: 'store',
-            }
-        }
-
-        if (input.renderPassSetting) {
-            if (input.renderPassSetting.color) {
-                if (input.renderPassSetting.color.clearValue) this.renderPassSetting.color!.clearValue = input.renderPassSetting.color.clearValue;
-                if (input.renderPassSetting.color.loadOp) this.renderPassSetting.color!.loadOp = input.renderPassSetting.color.loadOp;
-                if (input.renderPassSetting.color.storeOp) this.renderPassSetting.color!.storeOp = input.renderPassSetting.color.storeOp;
-            }
-            if (input.renderPassSetting.depth) {
-                if (input.renderPassSetting.depth.depthClearValue) this.renderPassSetting.depth!.depthClearValue = input.renderPassSetting.depth.depthClearValue;
-                if (input.renderPassSetting.depth.depthLoadOp) this.renderPassSetting.depth!.depthLoadOp = input.renderPassSetting.depth.depthLoadOp;
-                if (input.renderPassSetting.depth.depthStoreOp) this.renderPassSetting.depth!.depthStoreOp = input.renderPassSetting.depth.depthStoreOp;
-            }
-        }
         if (input.ambientLight) {
             this.setAmbientLight(input.ambientLight);
         }
         else {
             this.setAmbientLight();
         }
-
-        // this._init();
         return this;
     }
-    _init() { }
     /**
      * start：20241020  limits: must requsted
      *  todo：最大值的设定，并同步到全局的setting中；只是设定，不做限制，
      *  todo：最大限制的TS到WGSL的write部分的同步功能
      * end
      */
-
     async init() {
         if (!("gpu" in navigator)) this.fatal("WebGPU not supported.");
 
         const adapter = await navigator.gpu.requestAdapter();
         if (!adapter) throw new Error("Couldn't request WebGPU adapter.");
         this.adapter = adapter;
-        window.weGPUadapter = adapter;
 
         const device = await adapter.requestDevice();
         if (!device) throw new Error("Couldn't request WebGPU device.");
@@ -249,91 +167,29 @@ class Scene extends BaseScene {
         });
 
         this.aspect = canvas.width / canvas.height;
-        // this.projectionMatrix = mat4.perspective((2 * Math.PI) / 5, this.aspect, 1, 100.0);
-        // const modelViewProjectionMatrix = mat4.create();
-
-        //深度buffer
-        this.depthTexture = device.createTexture({
-            size: [canvas.width, canvas.height],
-            format: this.depthDefaultFormat,            // format: 'depth24plus',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT,
-        });
-
-        //输出到texture，而不是canvas
-        this.colorTexture = this.device.createTexture({
-            size: [this.canvas.width, this.canvas.height],
-            format: this.presentationFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
-
-        });
-
         this.resources = new WeResource(this);
-
-        this.renderPassDescriptor = this.createRenderPassDescriptor();
         // this.updateSystemUniformBuffer();
-        this.initStages();
+        await this.initStages();
+        await this.initGBuffers(canvas.width, canvas.height);
+        //for raw uniform model
+        this.renderPassDescriptor = this.createRenderPassDescriptor();
         this.initActors();
         this.initPostProcess();
     }
 
-    /**
-     * 获取scene 默认的canvas的render pass 
-     * @returns GPURenderPassDescriptor
-     */
-    createRenderPassDescriptor() {
-        // this.colorAttachment = (this.context as GPUCanvasContext)
-        //     .getCurrentTexture()
-        //     .createView();
-        this.colorAttachment = this.colorTexture.createView();
-        this.depthStencilAttachment = this.depthTexture.createView();
-        const renderPassDescriptor: GPURenderPassDescriptor = {
-            colorAttachments: [
-                {
-                    view: this.colorAttachment, // Assigned later
-                    clearValue: this.renderPassSetting.color?.clearValue,// [0.5, 0.5, 0.5, 1.0],
-                    loadOp: this.renderPassSetting.color!.loadOp!,// 'clear',
-                    storeOp: this.renderPassSetting.color!.storeOp!,//"store"
-                },
-            ],
-            depthStencilAttachment: {
-                view: this.depthStencilAttachment,
-                depthClearValue: this.renderPassSetting.depth!.depthClearValue!,// 1.0,
-                // depthLoadOp: 'load',
-                depthLoadOp: this.renderPassSetting.depth!.depthLoadOp!,// 'clear',
-                depthStoreOp: this.renderPassSetting.depth!.depthStoreOp! //'store',
-            },
-        };
-        return renderPassDescriptor;
+    reInit() {
+
     }
+
+    /** for raw uniform model*/
     getRenderPassDescriptor() {
         return this.renderPassDescriptor;
     }
-    observer() {
-        // new ResizeObserver(entries => {
-        //     for (const entry of entries) {
-        //         const canvas = entry.target;
-        //         const width = entry.contentBoxSize[0].inlineSize;
-        //         const height = entry.contentBoxSize[0].blockSize;
-        //         canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
-        //         canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
-        //         // re-render
-        //         render();
-        //     }
-        // });
-    }
-
-
 
     /**
-     * start ：20241020
-     *      todo ：最大的uniform buffer的限制=12，需要将所有的uniform buffer放到 bindGroup 0 中，
-     *      todo: DCC中的uniform bind与slot需要统一改变，
-     *      todo：DCC的4个bindGroup的规划需要改变，0=uniform，不需要编号（需要TS进行WGSL的语法合成，自动增加编号）
-     *      todo：texture的bindGroup=1，pershaderStage最大16个，都在这里
-     *      todo：storage的bindGroup=2，初设，这个需要测试，看看是否需要与uniform合并到0，还是可以单独（从目前来看应该是共用1000，在连续的内存中，
-     *              如果是稀疏的map，应该是10个）
-     *      todo：raw保持目前，DCC产生两个不同的版本分支，一个是集成，一个是raw的
-     * end
+     * 说明：20241128，这个是创建bindGroup，其中entries中的buffer是在scene中创建GPUBuffer（或者说是指向了GPUBuffer），
+     * GPUBuffer在每帧的update()中已经更新，所以这里的buffer是不用进行更新。  
+     *  
      * uniform of system  bindGroup to  group  0 for pershader
      */
     createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline): GPUBindGroup {
@@ -360,26 +216,7 @@ class Scene extends BaseScene {
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
-    //作废，20241022，由于稀疏map和结构的问题，不在进行全局的uniform排列，而采用原来的layout bindGroup0 ，产生12个巨大的buffer
-    getSystemUnifromGroupForPerShader(): GPUBindGroupEntry[] {
-        let entries: GPUBindGroupEntry[] =
-            [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: this.systemUniformBuffers["MVP"]!,
-                    },
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: this.systemUniformBuffers["lights"]!,
-                    }
-                }
-            ];
-        return entries;
 
-    }
     getLightNumbers() {
         return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
     }
@@ -390,28 +227,14 @@ class Scene extends BaseScene {
      * 为每个DrawCommand，生成systemWGSL string，raw模式除外
      * @returns 
      */
-    getWGSLOfSystemShader(): string {
-        // let lightNumber = this.getLightNumbers();
-        // let lightNumberForSystem = lightNumber + 1;
-        // let lightsArray = `lights: array<ST_Light, ${lightNumberForSystem}>,`
-        // if (lightNumber == 0) {
-        //     lightsArray = 'lights: array<ST_Light, 1>';
-        // }
-        // let code = wgsl_main.toString();
-        //// code = code.replace("$lightNumber", lightNumber.toString());//作废 num写入了结构体的buffer中，通过uniform传递
-        // code = code.replace("$lightsArray", lightsArray.toString());
-
-        // let lightNumber = coreConst.lightNumber;
+    getWGSLOfSystemShader(): string {  
         let lightNumber = this._maxlightNumber.toString();
         let code = wgsl_main.toString();
         code = code.replace("$lightNumber", lightNumber);
         return code;
     }
 
-
-
-
-
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 循环入口
      */
@@ -428,6 +251,7 @@ class Scene extends BaseScene {
             await scope.oneFrameRender();
             await scope.pickup();
             await scope.postProcess();
+            await scope.gbuffersVisualize();
             await scope.updateUserDefine();
             requestAnimationFrame(run)
         }
@@ -464,7 +288,6 @@ class Scene extends BaseScene {
     * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
     * 这个需要确保每帧只更新一次
     */
-
     updateSystemUniformBuffer() {
         if (this.defaultCamera)
             this.systemUniformBuffers["MVP"] = this.getMVP();
@@ -472,16 +295,9 @@ class Scene extends BaseScene {
     }
 
     /**
-     * 在WGSL是一个struct ，参见“system.wgsl”中的 ST_Lights结构
-  
-    * struct ST_Lights {
-
-            lightNumber : u32,
-            Ambient : ST_AmbientLight,
-            $lightsArray
-            };
-   
-            * @returns 光源的GPUBuffer,大小=16 + 16 + lightNumber * 96,
+     * 在WGSL是一个struct ，参见“system.wgsl”中的 ST_Lights结构。
+     * 
+     * @returns 光源的GPUBuffer,大小=16 + 16 + lightNumber * 96,
      */
     getUniformOfSystemLights(): GPUBuffer {
         let size = lightStructSize;
@@ -513,7 +329,6 @@ class Scene extends BaseScene {
             });
             this._lastNumberOfLights = lightNumber;
         }
-
 
         //总arraybuffer
         let buffer = new ArrayBuffer(16 + 16 + lightNumber * size);
@@ -556,9 +371,9 @@ class Scene extends BaseScene {
         return lightsGPUBuffer;
     }
     /**
-     * 
-     * @param mvp 
-     * @returns 
+     * 获取单位MVP，如果有传入的MVP，则更新
+     * @param mvp Mat4[] | boolean = false 
+     * @returns GPUBuffer
      */
     getUnitMVP(mvp: Mat4[] | boolean = false): GPUBuffer {
         const uniformBufferSize = 4 * 4 * 4 * 4;//MVP 
@@ -627,6 +442,7 @@ class Scene extends BaseScene {
             return this.getUnitMVP();
     }
 
+    /**todo */
     updateBVH(cameraValues: cameraRayValues) {
 
     }
@@ -651,7 +467,8 @@ class Scene extends BaseScene {
                 } this.actors[i].update(deltaTime, startTime, lastTime);
             }
     }
-    /**实体更新 
+    /**todo
+     * 实体更新 
      * 
      * //20241119
      * 重复执行，这个entities在stage的update的for(root)中，执行了，暂时不需要
@@ -717,74 +534,16 @@ class Scene extends BaseScene {
     * sky、UI的合并与顺序
     * */
     async oneFrameRender() {
-        //清空command
-        this.command = [];
-        (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
-            this.colorAttachment;
-        // this.context.getCurrentTexture().createView();//ok,重新申明了this.context的类型
-        // (<GPUCanvasContext>this.context).getCurrentTexture().createView();//ok
-        for (let i in this.stagesOrders) {
-            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = coreConst.stagesOfSystem[perList];
-
-            {//聚合stage的command，包含透明和不透明两个stage ,
-                if (this.stages[name].opaque) {
-                    const perStageCommandOfOpaque = this.stages[name].opaque!.command;
-                    for (let command_i of perStageCommandOfOpaque) {
-                        this.command.push(command_i);
-                    }
-                }
-                if (this.stages[name].transparent) {
-                    const perStageCommandOfTransparent = this.stages[name].transparent!.command;
-                    for (let command_i of perStageCommandOfTransparent) {
-                        this.command.push(command_i);
-                    }
-                }
-            }
-        }
-
-        if (this.command.length > 0) {
-            for (let i in this.command) {
-                if (i == "0") {
-                    (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = this.renderPassSetting.color!.loadOp!;
-                    // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].clearValue = this.renderPassSetting.color!.clearValue!;
-                    this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = this.renderPassSetting.depth!.depthLoadOp!;
-                    (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
-                        this.colorAttachment;
-                    // (this.context as GPUCanvasContext)
-                    //     .getCurrentTexture()
-                    //     .createView();
-                }
-                else if (i == "1") {
-                    (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = this.renderPassSetting.colorSecond!.loadOp!;
-                    this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = this.renderPassSetting.depthSecond!.depthLoadOp!;
-                }
-                this.command[i].update();
-            }
-        }
+        this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.colorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
     }
+
 
     async pickup() { }
 
 
     async postProcess() {
-        const commandEncoder = this.device.createCommandEncoder();
-
-        commandEncoder.copyTextureToTexture(
-
-            {
-                texture: this.colorTexture
-            },
-            {
-                texture: (this.context as GPUCanvasContext).getCurrentTexture(),
-            },
-            [this.canvas.width, this.canvas.height]
-        );
-        const commandBuffer = commandEncoder.finish();
-        this.device.queue.submit([commandBuffer]);
-
-
-        // this.DCcopyToSurface.update();//时间线上冲突，
+        this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
 
     }
     /** 
@@ -808,7 +567,7 @@ class Scene extends BaseScene {
         }
     }
     /**增加用户自定义 */
-    addUserDefine(call: updateCall) {
+    addUserDefine(call: userDefineUpdateCall) {
         this.userDefineUpdateArray.push(call);
     }
     /**设置用户自定义call function的状态 */
@@ -831,31 +590,7 @@ class Scene extends BaseScene {
         return { name: "false", state: false };
     }
 
-    /**
-     * GPUTexture 之间的copy
-     * 
-     * A、B这个两个GPUTexture在一个frame ，不能同时是GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC，否则会产生同步错误
-     * 
-     * @param A :GPUTexture
-     * @param B :GPUTexture
-     * @param size :{ width: number, height: number }
-     */
-    copyTextureToTexture(A: GPUTexture, B: GPUTexture, size: { width: number, height: number }) {
-        const commandEncoder = this.device.createCommandEncoder();
 
-        commandEncoder.copyTextureToTexture(
-
-            {
-                texture: A
-            },
-            {
-                texture: B,
-            },
-            [size.width, size.height]
-        );
-        const commandBuffer = commandEncoder.finish();
-        this.device.queue.submit([commandBuffer]);
-    }
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -870,19 +605,11 @@ class Scene extends BaseScene {
      * 初始化 stages  环境
      * depth buffer 在此初始化，todo
     */
-    initStages() {
-        // this.stageNameOfGroup = coreConst.stagesOfSystem;
-        // let worldOpeaue: BaseStage = new BaseStage({ name: "World" });
-        // let worldTransparent: BaseStage = new BaseStage({ name: "worldTransparent" });
-        // this.stages = {
-        //     "World": {
-        //         isGroup: true,
-        //         opaque: worldOpeaue,
-        //         transparent: worldTransparent
-        //     }
-        // };
+    async initStages() { 
         let worldStage = new BaseStage({ name: "World", scene: this });
-        let worldStageTransparent = new BaseStage({ name: "WorldTransparent", transparent: true, scene: this });
+        await worldStage.init();
+        let worldStageTransparent = new BaseStage({ name: "World", transparent: true, scene: this });
+        await worldStageTransparent.init();
         this.stages = {};
         this.stages["World"] = {
             opaque: worldStage,
@@ -960,9 +687,36 @@ class Scene extends BaseScene {
         oneLight.setRootScene(this);
         this.lights.push(oneLight);
     }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //GBuffer
+    /**scene 初始化GBuffer，如果是debug模式，同时初始化可视化*/
+    async initGBuffers(width: number, height: number) {
+        super.initGBuffers(width, height);
+        if (this._debug && this._debug.isDebug && this._debug.GBuffersVisualize && this._debug.GBuffersVisualize.enable) {
 
+        }
+    }
+    async gbuffersVisualize() {
+
+    }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Observer 
+    observer() {
+        // new ResizeObserver(entries => {
+        //     for (const entry of entries) {
+        //         const canvas = entry.target;
+        //         const width = entry.contentBoxSize[0].inlineSize;
+        //         const height = entry.contentBoxSize[0].blockSize;
+        //         canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
+        //         canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
+        //         // re-render
+        //         render();
+        //     }
+        // });
+    }
 }
-export interface updateCall {
+/**用户自定义 update interface */
+export interface userDefineUpdateCall {
     /**不可以使用异步方式，会影响性能 */
     call: (scope: any) => {},
     name: string,

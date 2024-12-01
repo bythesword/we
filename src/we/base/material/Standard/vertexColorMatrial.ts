@@ -1,5 +1,9 @@
 import { uniformEntries } from "../../command/baseCommand";
+import { weSamplerKind } from "../../resource/weResource";
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
+import FSOfColor from "../../shader/material/simple/oneColorCube/oneColorCube.color.fs.wgsl?raw"
+import FSOfposition from "../../shader/material/simple/oneColorCube/oneColorCube.position.fs.wgsl?raw"
+
 
 export interface optionVertexColorMaterial extends optionBaseMaterial {
     type: "color" | "position",
@@ -19,7 +23,7 @@ export class VertexColorMaterial extends BaseMaterial {
         if (input) {
             this._type = input.type;
         }
-        
+
         this._already = true;
     }
     init() {
@@ -29,15 +33,9 @@ export class VertexColorMaterial extends BaseMaterial {
         if (this.input.code) {
             return this.input.code;
         }
-        let FSOfColor = `@fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
-            return vec4f(fsInput.color,1.0);
-          }          `;
-        let FSOfposition = `@fragment fn fs( fsInput : VertexShaderOutput) -> @location(0) vec4f {
-            return   fsInput.fsPosition ;
-          }          `;
-
-        // return FSOfposition;
-        return this._type == "color" ? FSOfColor : FSOfposition;
+ 
+        let code = this._type == "color" ? FSOfColor : FSOfposition;
+        return this.shaderCodeProcess(code);
     }
 
     destroy() {
@@ -46,7 +44,18 @@ export class VertexColorMaterial extends BaseMaterial {
 
     getUniform(): uniformEntries[] | false {
         // let  sampler=this.scene.resources.
- 
+        if (this.sampler == undefined) {
+            let sampler: GPUMipmapFilterMode = 'linear';
+            if (this.scene.resources.sampler[weSamplerKind.linear]) {
+                this.sampler = this.scene.resources.sampler[weSamplerKind[sampler]];
+            }
+            else {
+                this.sampler = this.device.createSampler({
+                    magFilter: sampler,
+                    minFilter: sampler,
+                });
+            }
+        }
         // throw new Error("Method not implemented.");
         if (this.input.textures) {
             let unifomrArray: uniformEntries[] = []

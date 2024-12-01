@@ -1,3 +1,4 @@
+//未使用，作废
 let light_number = U_lights.lightNumber;
 var light_i = 0;
 for(var i = 0; i < light_number; i++)
