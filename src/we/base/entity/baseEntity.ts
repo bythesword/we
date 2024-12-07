@@ -1,13 +1,14 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
 import { ShadowMaterial } from "../material/shadow/shadowMaterial";
-import { BaseStage, commmandType } from "../stage/baseStage";
+import { BaseStage } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
 import { Root } from "../const/root";
 
 import partAdd_st_entity_VS from "../shader/entities/part_add.st_entity.vs.wgsl?raw"
 import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.VertexShaderOutput.vs.wgsl?raw"
 import partReplace_VertexShaderOutput_VS from "../shader/entities/part_replace.VertexShaderOutput.vs.wgsl?raw"
+import { commmandType } from "../scene/baseScene";
 
 
 
@@ -203,6 +204,9 @@ export abstract class BaseEntity extends Root {
      * 20241120，增加了matrix buffer，因为实例化可能是一个或多个，最终输出是一个buffer
      */
     matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCC中进行字符串替换，每个子类单独进行
+    structUnifomrBuffer!: ArrayBuffer;//instance的uniform 数组数量，在createDCC中进行字符串替换，每个子类单独进行
+    entity_id: Uint32Array;
+    stage_id: Uint32Array;
     /**是否每帧更新 */
     updateMatrixPerFrame: boolean;
     visible!: boolean;
@@ -216,6 +220,7 @@ export abstract class BaseEntity extends Root {
     }
     set ID(id: entityID) {
         this._id = id;
+        // this.updateUniformBuffer(this.scene, 1, 1, 1);
     }
     parent: BaseEntity | undefined;
     stageID!: number
@@ -242,8 +247,8 @@ export abstract class BaseEntity extends Root {
     */
     flagUpdateForPerInstance!: boolean;
 
-    /**entiy 的ID等其他数据占位，这个需要与wgsl shader中同步更改 */
-    _entityIdSizeForWGSL = 4;//f32
+    /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
+    _entityIdSizeForWGSL = 4;//以u32（f32）计算
 
     constructor(input: optionBaseEntity) {
         super();
@@ -264,7 +269,8 @@ export abstract class BaseEntity extends Root {
         if (input.dynamicMesh) {
             this._dynamicMesh = input.dynamicMesh
         }
-        this.ID = 0;
+        this._id = 0;
+        this.stageID = 0;
         this._LOD = [];
         this._destroy = false;
         this._commmands = [];
@@ -275,17 +281,25 @@ export abstract class BaseEntity extends Root {
         this._rotation = vec3.create();
         this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        // this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
 
-        this.matrixWorldBuffer = new Float32Array(this._entityIdSizeForWGSL + 4 * 4 * this.numInstances);
-        let perMatrix = mat4.identity();
-        for (let i = 0; i < this.numInstances; i++) {
-            this.matrixWorldBuffer.set(perMatrix, this._entityIdSizeForWGSL + i * 16);
-        }
+
+        // this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
+        this.structUnifomrBuffer = new ArrayBuffer(4 * 4 * this.numInstances * 4 + this._entityIdSizeForWGSL * 4);
+
+        this.matrixWorldBuffer = new Float32Array(this.structUnifomrBuffer, 0, 4 * 4 * this.numInstances);
+        this.entity_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4, 1);
+        this.stage_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4, 1);
+
+
+        // this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
+        // let perMatrix = mat4.identity();
+        // for (let i = 0; i < this.numInstances; i++) {
+        //     this.matrixWorldBuffer.set(perMatrix, i * 16);
+        // }
         this.visible = true;
         this.children = [];
         this.name = ''
-        this.ID = new Date().getTime();
+        // this.ID = new Date().getTime();
         this.updateMatrixPerFrame = false;
 
         if (input.name) this.name = input.name;
@@ -462,17 +476,34 @@ export abstract class BaseEntity extends Root {
      * 单个示例可以在input.update（）进行更新
      */
     getUniformOfMatrix() {
-        return this.matrixWorldBuffer;
-        // return new Float32Array(this.matrixWorld);
+        // return this.matrixWorldBuffer;
+        return new Float32Array(this.structUnifomrBuffer);
     }
-    /**每帧更新入口
+    /**
      * 1、完成初始化，进行DCC更新
      * 2、未完成初始化，返回空数组
      */
+
+
+    /**每帧更新入口
+     * 
+     * 1、完成初始化，进行DCC更新
+     * 
+     * 2、未完成初始化，返回空数组
+     * 
+     * @param scene 
+     * @param deltaTime 
+     * @param startTime 
+     * @param lastTime 
+     * @param updateForce boolean，true=重新生成Draw Command
+     * @returns 
+     */
     update(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
         //初始化DCC
-        if (this._readyForGPU)
+        if (this._readyForGPU && this._id != 0)
+
             if (this._init === initStateEntity.unstart) {
+                // this.updateMatrix();
                 this.initDCC(scene);
             }
             //初始化是完成状态，同时checkStatus=true
@@ -481,27 +512,30 @@ export abstract class BaseEntity extends Root {
                     this.input.update(this, deltaTime, startTime, lastTime);
                 }
                 //动态物体 或 强制更新
-                if (this._dynamicPostion === true || updateForce === true) {
+                if (this._dynamicPostion === true) {
                     this.matrixWorld = this.updateMatrixWorld();
                 }
-                if (this._dynamicMesh === true || this._dynamicPostion === true || updateForce === true || this.input!.update !== undefined) {
+                if (updateForce === true) {
+
+                }
+                else if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
 
                     this.updateUniformBuffer(scene, deltaTime, startTime, lastTime);
                     this._commmands = this.updateDCC(scene, deltaTime, startTime, lastTime);
                     // return this._commmands;
                 }
-                //静态，直接返回commands
-                else
-                // if (this._dynamic === false)
+                else//静态，直接返回commands
                 {
-                    // return this._commmands;
+                    return this._commmands;
                 }
             }
             else if (this._init == initStateEntity.initializing) {
                 this.checkStatus();
             }
+
         // return [];
         // let commands = this.updateChilden(scene, deltaTime, startTime, lastTime);
+
         return this._commmands;
     }
     updateChilden(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
@@ -573,6 +607,68 @@ export abstract class BaseEntity extends Root {
             let perMatrix = mat4.identity();
             //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
             if (this.flagUpdateForPerInstance) {
+                perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
+            }
+            let perWorld = mat4.copy(this.matrixWorld);
+            perMatrix = mat4.multiply(perWorld, perMatrix);
+            if (this.input?.instancesPosition) {
+                mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
+            }
+            this.matrixWorldBuffer.set(perMatrix, i * 16);
+        }
+
+        this.entity_id[0] = this.ID;
+        this.stage_id[0] = this.getStageID();
+
+    }
+
+    updateUniformBuffer_old_changing(scene: any, deltaTime: number, startTime: number, lastTime: number): any {
+        for (let i = 0; i < this.numInstances; i++) {
+            let perMatrix = mat4.identity();
+            //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
+            if (this.flagUpdateForPerInstance) {
+                perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
+            }
+            let perWorld = mat4.copy(this.matrixWorld);
+            perMatrix = mat4.multiply(perWorld, perMatrix);
+            if (this.input?.instancesPosition) {
+                mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
+            }
+            this.matrixWorldBuffer.set(perMatrix, i * 16);
+        }
+        const ST_entityValues = new ArrayBuffer(80);
+        const ST_entityViews = {
+            MatrixWorld: new Float32Array(ST_entityValues, 0, 16),
+            entity_id: new Uint32Array(ST_entityValues, 64, 1),
+            stage_id: new Uint32Array(ST_entityValues, 68, 1),
+        };
+
+        ST_entityViews.entity_id[0] = this.ID;
+        ST_entityViews.stage_id[0] = this.getStageID();
+        // let baseInfoSetting = new Float32Array(this._entityIdSizeForWGSL);
+        // baseInfoSetting[0] = this.ID;
+        // baseInfoSetting[1] = this.getStageID();
+
+
+        // this.matrixWorldBuffer.set(baseInfoSetting, 0);
+    }
+
+    updateUniformBuffer_new(scene: any, deltaTime: number, startTime: number, lastTime: number): any {
+        const ST_entityValues = new ArrayBuffer(this._entityIdSizeForWGSL * 4 + 4 * 4 * this.numInstances * 4);
+        const ST_entityViews = {
+            entity_id: new Uint32Array(ST_entityValues, 0, 1),
+            stage_id: new Uint32Array(ST_entityValues, 4, 1),
+            MatrixWorld: new Float32Array(ST_entityValues, 16, 16),
+        };
+        ST_entityViews.entity_id[0] = this.ID;
+        ST_entityViews.stage_id[0] = this.getStageID();
+
+        this.matrixWorldBuffer = new Float32Array(ST_entityValues);
+
+        for (let i = 0; i < this.numInstances; i++) {
+            let perMatrix = mat4.identity();
+            //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
+            if (this.flagUpdateForPerInstance) {
                 perMatrix = this.matrixWorldBuffer.subarray(this._entityIdSizeForWGSL + i * 16, (i + 1) * 16);
             }
             let perWorld = mat4.copy(this.matrixWorld);
@@ -582,11 +678,7 @@ export abstract class BaseEntity extends Root {
             }
             this.matrixWorldBuffer.set(perMatrix, this._entityIdSizeForWGSL + i * 16);
         }
-        let baseInfoSetting = new Float32Array(this._entityIdSizeForWGSL);
-        baseInfoSetting[0] = this.ID;
-        baseInfoSetting[1] = this.getStageID();
-
-        this.matrixWorldBuffer.set(baseInfoSetting, 0);
+        this.matrixWorldBuffer = new Float32Array(ST_entityValues);
     }
     getID() {
         return { stageID: this.stageID, ID: this.ID };

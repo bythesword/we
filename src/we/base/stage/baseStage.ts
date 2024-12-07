@@ -6,7 +6,7 @@ import { BaseLight } from "../light/baseLight";
 import { BaseCamera } from "../camera/baseCamera";
 import * as coreConst from "../const/coreConst"
 import { Scene } from "../scene/scene";
-export type commmandType = DrawCommand | ComputeCommand;
+
 
 
 declare type lights = BaseLight[];
@@ -132,7 +132,11 @@ export class BaseStage extends BaseScene {
             this.transparent = input.transparent;
         }
         let name = input.name;
+        let addonName = "";
+        if (input.transparent)
+            addonName = "_transparent";
 
+        this.name = input.name + addonName;
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */
         for (let i in coreConst.stagesOfSystem) {
             if (name == coreConst.stagesOfSystem[i]) {
@@ -145,8 +149,8 @@ export class BaseStage extends BaseScene {
         //this.init();
     }
     async init() {
-        await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
-        this.renderPassDescriptor = this.createRenderPassDescriptor();
+        this.GBuffers = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
+        this.renderPassDescriptor = await this.createRenderPassDescriptor();
         if (this.deferRender)
             this.RPD_ForDeferOnePixelDepth = this.createRPD_ForDeferOnePixelDepth();
     }
@@ -159,7 +163,7 @@ export class BaseStage extends BaseScene {
      * 2、stage初始化defer render（单像素模式）使用
       */
     async initGBuffers(width: number, height: number) {
-        super.initGBuffers(width, height);
+        let GBuffers = await super.initGBuffers(width, height);
 
 
         /////////////gbuffer ，需要整合到BaseScene中
@@ -181,6 +185,7 @@ export class BaseStage extends BaseScene {
             });
 
         }
+        return GBuffers;
     }
     /**延迟单像素depth通道描述 */
     createRPD_ForDeferOnePixelDepth(): GPURenderPassDescriptor {
@@ -224,9 +229,9 @@ export class BaseStage extends BaseScene {
 
 
     /**stage的调用入口 */
-    update(deltaTime: number, startTime: number, lastTime: number) {
+    update(deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false) {
         if (this.cache === false) {//无缓存模式
-            this.updateOfRoot(deltaTime, startTime, lastTime);//更新command
+            this.updateOfRoot(deltaTime, startTime, lastTime, updateForce);//更新command
             if (this.deferRender) {
                 this.renderOfDepth(deltaTime, startTime, lastTime);
             }
@@ -280,7 +285,7 @@ export class BaseStage extends BaseScene {
         }
     }
     /**更新entities容器RooT的每个entity */
-    updateOfRoot(deltaTime: number, startTime: number, lastTime: number) {
+    updateOfRoot(deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false) {
         let scene;
         //Draw Command 适用谁的renderPassDescriptor
         // if (this.scene)
@@ -289,7 +294,7 @@ export class BaseStage extends BaseScene {
         scene = this;
         this.command = [];
         for (let i of this.root) {
-            let dcc = i.update(scene, deltaTime, startTime, lastTime);
+            let dcc = i.update(scene, deltaTime, startTime, lastTime, updateForce);
             for (let j of dcc)
                 this.command.push(j);
         }
@@ -311,16 +316,17 @@ export class BaseStage extends BaseScene {
     async add(one: BaseEntity) {
         await one.setRootENV(this.scene);
         this.root.push(one);
-        one.ID = this.root.length
+        
         one.stage = this;
         one.stageID = this.ID;
+        one.ID = this.root.length
     }
     get cache() {
         return this._cache;
     }
     set cache(enable: boolean) {
         this._cache = enable;
-    } 
+    }
     getWGSLOfSystemShader(): string {
         return this.scene!.getWGSLOfSystemShader();
 

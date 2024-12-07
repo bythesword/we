@@ -20,7 +20,7 @@ export interface stageName {
 /**默认stage层级与名称 */
 export var stagesOfSystem: stageName = [
     "Actor",//角色
-    "DynamicEntites",//水、树、草等
+    "DynamicEntities",//水、树、草等
     "World",//静态
     "Sky",//天空盒
     "UI",
@@ -28,7 +28,9 @@ export var stagesOfSystem: stageName = [
 export var defaultStage = 2;//stagesOfSystem[0];
 export var defaultStageName = stagesOfSystem[defaultStage]
 export type stagesOrderByRender = number[];
-export var defaultStageList: stagesOrderByRender = [defaultStage];
+// export var defaultStageList: stagesOrderByRender = [defaultStage];
+// export var defaultStageList: stagesOrderByRender = [2,3];
+export var defaultStageList: stagesOrderByRender = [0, 1, 2, 3, 4];
 export var lightNumber = 32;//这个需要同步到“system.wgsl”中的数量
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -96,7 +98,7 @@ export interface GBufferRenderPassDescriptor {
     label: string,
     format: GPUTextureFormat | "WEsystem" | "WEdepth",
     usage: number,
-    clearValue?:[]
+    clearValue?: []
 }
 /**GBuffers 的RenderPassDescriptor的集合的类型描述(type) */
 export type GBuffersRPD = {
@@ -161,21 +163,21 @@ export var GBuffersRPDAssemble: GBuffersRPD = {
     [GBufferName.depth]: {
         label: "color texture of colorAttachments",
         format: "WEdepth",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [GBufferName.entityID]: {
         label: "color texture of colorAttachments",
         format: "r32uint",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [GBufferName.normal]: {
         label: "color texture of colorAttachments",
         format: "WEsystem",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     },
     [GBufferName.uv]: {
         label: "color texture of colorAttachments",
         format: "WEsystem",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     }
 }

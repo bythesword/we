@@ -20,9 +20,9 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.5,
-    green: 0.5,
-    blue: 0.5,
+    red: 0.0,
+    green: 0.0,
+    blue: 1.0,
     alpha: 1
   }
 }
@@ -36,8 +36,8 @@ window.scene = scene;
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
-  far: 100,
+  near: 1,
+  far: 10,
   position: [0, 0, 3],
   lookAt: [0, 0, 0]
 }

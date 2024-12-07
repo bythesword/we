@@ -83,4 +83,5 @@ export class PerspectiveCamera extends BaseCamera {
         this.projectionMatrix = mat4.perspective(option.fov, option.aspect, option.near, option.far);
     }
 
+    set aspect(aspect:number){(this.option as optionPerspProjection).aspect=aspect}
 }

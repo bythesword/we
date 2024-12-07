@@ -41,8 +41,8 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.1,
   far: 2000,
-  position: [0, 0, 0.],
-  lookAt: [0, 0, 10.]
+  position: [0, 0, 10.],
+  lookAt: [0, 0, 0.]
 }
 //实例化摄像机
 let camera = new PerspectiveCamera(cameraOption);
@@ -73,8 +73,7 @@ scene.addCameraActor(actor, true)
 ////enities 初始化
 //box
 let boxGeometry = new OneColorCube();
-//极简测试材质，red
-let redMaterial = new VertexColorMaterial({ type: "position" });
+
 let cubeMaterial = new CubeSkyMaterial({
   cubeTexture: {
     texture: [

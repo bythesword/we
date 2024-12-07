@@ -36,8 +36,8 @@ window.scene = scene;
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
-  far: 100,
+  near:0.1,
+  far: 50,
   position: [0, 0, 16],
   lookAt: [0, 0, 0]
 }
@@ -127,7 +127,7 @@ let boxEntity = new Mesh(
             m4
           );
 
-          scope.matrixWorldBuffer.set(m4, scope._entityIdSizeForWGSL  + i * 16);
+          scope.matrixWorldBuffer.set(m4,  i * 16);
           i++;
         }
       }

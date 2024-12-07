@@ -3,11 +3,12 @@ import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
-import { commmandType } from "../../stage/baseStage";
+
 import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 //for wireframe
 import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
+import { commmandType } from "../../scene/baseScene";
 
 
 

@@ -33,7 +33,8 @@ let input: sceneInputJson = {
       blue: 1
     },
     intensity: 0.13
-  }
+  },
+  // reversedZ:true,
 }
 let scene = new Scene(input);
 await scene.init();
@@ -45,8 +46,8 @@ window.scene = scene;
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.1,
-  far: 100,
+  near: 1,
+  far: 10,
   position: [0, -3, 5],
   lookAt: [0, 0, 0]
 }

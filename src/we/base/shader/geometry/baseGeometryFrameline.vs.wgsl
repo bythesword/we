@@ -14,7 +14,7 @@
     vsOutput.worldPosition = vec4f(entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0)).xyz;
     let entity_id = entity.entity_id << 14;
     let stage_id = entity.stage_id << 29;
-    vsOutput.entityID = instanceIndex + entity_id + stage_id;
+    vsOutput.entityID =  entity.entity_id ;//instanceIndex + entity_id + stage_id;
 
 
 

@@ -38,8 +38,8 @@ await scene.init();
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
-  far: 100,
+  near: 1,
+  far: 4,
   position: [0, 0, 3],
   lookAt: [0, 0, 0]
 }

@@ -34,6 +34,9 @@ struct VertexShaderOutput_oneCube {
     vsOutput.cubeUV = normalize(vsOutput.worldPosition - defaultCameraPosition);
     let entity_id = entity.entity_id << 14;
     let stage_id = entity.stage_id << 29;
+    vsOutput.entityID = instanceIndex;
+    // vsOutput.entityID =  entity.entity_id;//ok
+    // vsOutput.entityID =  entity.entity_id<< 14;//ok
     vsOutput.entityID = instanceIndex + entity_id + stage_id;
     return vsOutput;
 }

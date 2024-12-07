@@ -149,23 +149,24 @@ export interface drawOptionOfCommand extends baseOptionOfCommand {
         mode: "draw" | "index",
         values: drawMode | drawModeIndexed,
     },
-    renderPass?: {
-        color?: {
-            clearValue?: GPUColor,
-            loadOp?: GPULoadOp,
-            storeOp?: GPUStoreOp,
-        },
-        depth?: {
-            depthClearValue?: number,
-            depthLoadOp?: GPULoadOp,
-            depthStoreOp?: GPUStoreOp,
-        }
-    },
+    // renderPass?: {
+    //     color?: {
+    //         clearValue?: GPUColor,
+    //         loadOp?: GPULoadOp,
+    //         storeOp?: GPUStoreOp,
+    //     },
+    //     depth?: {
+    //         depthClearValue?: number,
+    //         depthLoadOp?: GPULoadOp,
+    //         depthStoreOp?: GPUStoreOp,
+    //     }
+    // },
     /**viewport,从标准化设备坐标(NDC)线性映射到视区坐标。
      */
     viewport?: viewport,
-    // /**复制结果到纹理 */
-    // copyTexture?: GPUTexture,
+   
+    /**pipeline中的深度处理描述  GPUDepthStencilState */
+    depthStencilState?:GPUDepthStencilState,
 }
 /**
  *   默认是surface的全部,
@@ -235,8 +236,14 @@ export class DrawCommand extends BaseCommand {
         }
         else {
             this.renderPassDescriptor = this.scene.getRenderPassDescriptor();
+ 
+        }
+        if(options.depthStencilState){
+            this.depthStencil =options.depthStencilState
+        }
+        else {
             if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor)
-                this.depthStencil = this.scene.depthStencil;//scene extend baseScene
+            this.depthStencil = this.scene.depthStencil;//scene extend baseScene
         }
         //todo indexBuffer
         if (options.indexBuffer != undefined && this.input.draw.mode == "index") {

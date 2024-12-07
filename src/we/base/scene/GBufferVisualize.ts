@@ -51,51 +51,6 @@ export class GBuffersVisualize {
         else {
 
 
-            const oneTriangleVertexArray = [
-
-            ]; let options: drawOptionOfCommand = {
-                label: "scene quad",
-                scene: this,
-                vertex: {
-                    code: shader,
-                    entryPoint: "vs",
-                    buffers: [
-                        {
-                            vertexArray: oneTriangleVertexF32A,
-                            type: "Float32Array",
-                            arrayStride: 4 * 3,
-                            attributes: [
-                                {
-                                    shaderLocation: 0,
-                                    offset: 0,
-                                    format: 'float32x3',
-                                }
-                            ]
-                        }
-                    ]
-                },
-                fragment: {
-                    code: shader,
-                    entryPoint: "fs",
-                    targets: [{ format: scene.presentationFormat }]
-                },
-                uniforms: [
-                ],
-
-                draw: {
-                    mode: "index",
-                    values: {
-                        indexCount: 3,
-                        instanceCount: 3
-
-                    }
-                },
-                rawUniform: true,
-                // }
-            }
-
-            this.quadDrawCommands = new DrawCommand(options);
-            this.quadDrawCommands.submit()
         }
     }
 }

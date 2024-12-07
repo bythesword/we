@@ -4,10 +4,13 @@ import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntr
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
-import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
+import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
+import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
 import { mat4, vec3 } from "wgpu-matrix"
+import { CubeSkyMaterial } from "../../../../src/we/base/material/sky/cubeSkyMaterial"
+import { WASDCameraControl } from "../../../../src/we/base/control/wasdCameraControl"
+ 
 
 
 declare global {
@@ -17,31 +20,29 @@ declare global {
   }
 }
 let input: sceneInputJson = {
-  canvas: "renderZ",
+  canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.1,
-    green: 0.1,
-    blue: 0.1,
+    red: 0.5,
+    green: 0.5,
+    blue: 0.5,
     alpha: 1
-  },
-  reversedZ: true,
-  
+  }
 }
 let scene = new Scene(input);
 await scene.init();
 
-// window.scene = scene;
+window.scene = scene;
 
 
 //摄像机初始化参数
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 1,
-  far: 4,
-  position: [0, 0, 3],
-  lookAt: [0, 0, 0]
+  near: 0.1,
+  far: 2000,
+  position: [0, 0, 10.],
+  lookAt: [0, 0, 10.]
 }
 //实例化摄像机
 let camera = new PerspectiveCamera(cameraOption);
@@ -54,7 +55,8 @@ const controlOption: optionCamreaControl = {
   camera: camera,
 };
 //实例化摄像机控制器
-let control = new ArcballCameraControl(controlOption);
+let control = new WASDCameraControl(controlOption);
+// let control = new ArcballCameraControl(controlOption);
 
 //摄像机角色参数
 const ccOption: optionCameraActor = {
@@ -68,23 +70,51 @@ let actor = new CameraActor(ccOption)
 scene.addCameraActor(actor, true)
 
 
+////sky 初始化
+let skyGeometry = new OneColorCube();
+let cubeMaterial = new CubeSkyMaterial({
+  cubeTexture: {
+    texture: [
+      '/examples/resource/images/cubemap/posx.jpg',
+      '/examples/resource/images/cubemap/negx.jpg',
+      '/examples/resource/images/cubemap/posy.jpg',
+      '/examples/resource/images/cubemap/negy.jpg',
+      '/examples/resource/images/cubemap/posz.jpg',
+      '/examples/resource/images/cubemap/negz.jpg',
+    ],
+  }
+})
+let sky = new Mesh(
+  {
+    scale:[100,100,100],
+    geometry: skyGeometry,
+    material: cubeMaterial,
+    wireFrame: false,
+    dynamicPostion: true,
+    cullmode: "front",
+
+  }
+);
+scene.add(sky,"Sky")
+
+
 ////enities 初始化
 //box
-let boxGeometry = new BoxGeometry();
+let boxGeometry = new OneColorCube();
 //极简测试材质，red
-let redMaterial = new ColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
+let material = new VertexColorMaterial();
 //box实体
 let boxEntity = new Mesh(
   {
     geometry: boxGeometry,
-    material: redMaterial,
-    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
+    material: material,
+    wireFrame: false,
     dynamicPostion: true,
     update: (scope, deltaTime, startTime, lastTime) => {
       // console.log("12");
       scope.matrix = mat4.identity();
       // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
-      const now = Date.now() / 10000;
+      const now = Date.now() / 1000;
       // mat4.rotate(
       //   scope.matrix,
       //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
@@ -93,12 +123,11 @@ let boxEntity = new Mesh(
       // );
       scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
       return true;
-    }
+    },
   }
 );
 //增加实体到scene
 scene.add(boxEntity)
-
 
 //运行场景
 scene.run()

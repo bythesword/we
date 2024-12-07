@@ -2,8 +2,11 @@
 import { AmbientLight, optionAmbientLight } from '../light/ambientLight';
 import { BaseLight } from '../light/baseLight';
 import * as coreConst from "../const/coreConst"
-import { commmandType } from '../stage/baseStage';
+import { DrawCommand } from '../command/DrawCommand';
+import { ComputeCommand } from '../command/ComputeCommand';
+import { CopyCommandT2T } from '../command/copyCommandT2T';
 
+export type commmandType = DrawCommand | ComputeCommand | CopyCommandT2T;
 export declare interface sceneJson {
     /**canvas id */
     name?: string,
@@ -131,9 +134,9 @@ export abstract class BaseScene {
             this.depthDefaultFormat = input.depthDefaultFormat;
         }
         this.backgroudColor = [0, 0, 0, 0];
-        if (input.color) {
-            this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
-        }
+        // if (input.color) {
+        //     this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
+        // }
         this.deferRender = false;//为了测试方便,后期更改为:true,20241128
         if (input.deferRender) this.deferRender = true;
 
@@ -162,7 +165,7 @@ export abstract class BaseScene {
     abstract init(): any
 
     /** 前向渲染renderPassDescriptor(GPURenderPassDescriptor) */
-    createRenderPassDescriptor() {
+    async createRenderPassDescriptor() {
         let colorAttachments: GPURenderPassColorAttachment[] = [];
         this.colorAttachmentTargets = [];
         Object.entries(coreConst.GBuffersRPDAssemble).forEach(([key, value]) => {
@@ -177,9 +180,17 @@ export abstract class BaseScene {
                     };
                 }
                 else {
+                    // if (key == "entityID")
+                    //     one = {
+                    //         view: this.GBuffers[key].createView(),
+                    //         clearValue: [0, 0, 0, 0],
+                    //         loadOp: 'clear',
+                    //         storeOp: "store"
+                    //     };
+                    // else
                     one = {
                         view: this.GBuffers[key].createView(),
-                        //clearValue:   [0, 0, 0, 0],
+                        clearValue: [0, 0, 0, 0],
                         loadOp: 'clear',
                         storeOp: "store"
                     };
@@ -270,9 +281,12 @@ export abstract class BaseScene {
     abstract update(deltaTime: number, startTime: number, lastTime: number): any
     /**scene 、stage都是从baseScene基础，其核心渲染的全局wgsl可能不同 */
     abstract getWGSLOfSystemShader(): string
-    /**初始化GBuffer */
+    /**初始化GBuffer
+     * 
+     * 在baseScene中没有调用
+     */
     async initGBuffers(width: number, height: number) {
-        this.GBuffers = {};
+        let localGBuffers: coreConst.GBuffers = {};
         Object.entries(coreConst.GBuffersRPDAssemble).forEach(([key, value]) => {
             // console.log(`Key: ${key}, Value: ${value}`);
             let format: GPUTextureFormat;
@@ -291,14 +305,32 @@ export abstract class BaseScene {
                 usage: value.usage,
             });
 
-            this.GBuffers[key] = gbuffer;
-            if (key === "color") {
-                this.colorTexture = gbuffer;
-            }
-            else if (key === "depth") {
-                this.depthTexture = gbuffer;
-            }
+            localGBuffers[key] = gbuffer;
+            // if (key === "color") {
+            //     this.colorTexture = gbuffer;
+            // }
+            // else if (key === "depth") {
+            //     this.depthTexture = gbuffer;
+            // }
         });
+
+        // this.GBuffers = localGBuffers;
+        return localGBuffers;
+    }
+    async reInitGBuffers(width: number, height: number) {
+
+        let GBufferABC = this.GBuffers;
+        this.GBuffers = await this.initGBuffers(width, height);
+
+        this.renderPassDescriptor = await this.createRenderPassDescriptor();
+        // this.destoryGBuffers(GBufferABC);
+        return true;
+    }
+    destoryGBuffers(GBuffers: coreConst.GBuffers) {
+        this.command = [];
+        for (let i in GBuffers) {
+            this.GBuffers[i].destroy();
+        }
     }
     /**
      * 环境光设置，更新环境光

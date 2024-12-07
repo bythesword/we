@@ -126,6 +126,10 @@ export abstract class BaseCamera {
     }
     this.updateProjectionMatrix(option);//构造投影矩阵
   }
+  onResize(){
+    this.updateProjectionMatrix(this.option);//构造投影矩阵
+    this.update(this.position, this.back, true);//更新this.MVP[]矩阵
+  }
   // /** 获取up方向 */
   // get upDirection() {
   //   return this._upDirection;
@@ -258,4 +262,6 @@ export abstract class BaseCamera {
     vec3.copy(vec, this.position_);
   }
 
+
+  
 }

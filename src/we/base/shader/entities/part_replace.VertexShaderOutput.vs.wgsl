@@ -12,4 +12,5 @@
   let entity_id = entity.entity_id << 14;
   let stage_id = entity.stage_id << 29;
   vsOutput.entityID = instanceIndex + entity_id + stage_id;
+  // vsOutput.entityID = entity.entity_id;
 //end:part_replace.VertexShaderOutput.vs.wgsl
