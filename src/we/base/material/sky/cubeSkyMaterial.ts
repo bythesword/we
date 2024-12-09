@@ -67,7 +67,7 @@ export class CubeSkyMaterial extends BaseMaterial {
             aaa.push(response);
         });
         const imageBitmaps1 = Promise.all(aaa).then(imageBitmaps => {
-            console.log(imageBitmaps)
+            // console.log(imageBitmaps)
             this.skyTexture = this.device.createTexture({
                 dimension: '2d',
                 // Create a 2d array texture.

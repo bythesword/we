@@ -4,7 +4,7 @@ export interface optionPostprocessMangement {
 
 }
 
-export abstract class postProcessMangement {
+export abstract class PostProcessMangement {
 
 
 

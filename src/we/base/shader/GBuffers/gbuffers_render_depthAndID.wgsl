@@ -76,7 +76,7 @@ fn fs(@builtin(position) coord: vec4f) -> ST_GBuffer_depthAndID {
     if reversedZ {
         var value = 0.0;
         for (var i: u32 = 0; i < 4; i = i + 1) {
-            if depths[i] > value && IDS[i] != 0  {
+            if depths[i] > value && IDS[i] != 0 {
                 value = depths[i];
                 index_i = i;
             }
@@ -106,16 +106,25 @@ fn fs(@builtin(position) coord: vec4f) -> ST_GBuffer_depthAndID {
     // output.color = vec4f(f32(id2)/2., 0, 0, 1);//ok
     // output.color = vec4f(f32(IDS[maxIndex]>>14)/2., 0, 0, 1);//ok
 
-    let stageIDMask:u32 = (1 << 29) -1;//ok
-    let tt =IDS[index_i];//ok
+    let stageIDMask: u32 = (1 << 29) -1;//ok
+    let tt = IDS[index_i];//ok
     let entityID = tt & stageIDMask;//ok
     let realEntityID = entityID >> 14;//ok
-    output.color = vec4f(f32(realEntityID) / 2., 0, 0, 1);//ok
 
-    //output.color = c2;
-    //output.color = n2;
+    let ttt = IDS[index_i];//ok
+
+    var instanceID = ttt & 0x3fffu;
+    // var instanceID = ttt <<18 ;////ok
+    //  instanceID = instanceID >>18 ;////ok
+
+    let stageID = tt >> 29;//ok
+    // output.color = vec4f(0, 0, f32(instanceID) / 20, 1);//ok
+    output.color = vec4f(f32(realEntityID) / 2., f32(stageID + 1) / 16, f32(instanceID)/20., 1);//ok
+    // output.color = vec4f(0, f32(stageID + 1) / 16, 0, 1);//ok
+
+    // output.color = c2;
+    // output.color = n2;
    
-    // output.color = vec4f(f32( id2*10)/50, 0,0,1);//ok
     // output.color = vec4f(depths[index_i], depths[index_i], depths[index_i], 1);
 
     output.id = IDS[index_i];

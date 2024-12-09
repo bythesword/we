@@ -16,6 +16,7 @@ export interface optionGBPP extends optionSingleRender {
     GBuffers: GBuffers,
     // renderPassDescriptor: GPURenderPassDescriptor,
     parent: Scene,
+    copyTotarget: GPUTexture,
 }
 
 interface renderPassDescriptorAndTaget {
@@ -23,9 +24,12 @@ interface renderPassDescriptorAndTaget {
     colorAttachmentTargets: GPUColorTargetState[]
 }
 export class GBufferPostProcess extends SingleRender {
+    destroy(): void {
+        throw new Error("Method not implemented.");
+    }
     GBuffers: GBuffers;
     declare input: optionGBPP;
-    parent: Scene;
+   
     presentationFormat: GPUTextureFormat;
     depthDefaultFormat: GPUTextureFormat;
     // sampler: GPUSampler;
@@ -45,18 +49,19 @@ export class GBufferPostProcess extends SingleRender {
 
     constructor(input: optionGBPP) {
         super(input);
-        this.parent = input.parent;
+        // this.parent = input.parent;
         this.renderPassDescriptor = this.parent.renderPassDescriptor;
         this.GBuffers = input.GBuffers;
         this.presentationFormat = this.parent.presentationFormat;
         this.depthDefaultFormat = this.parent.depthDefaultFormat;
 
-        this.colorTexture = this.device.createTexture({
-            size: [this.surfaceSize.width, this.surfaceSize.height],
-            format: this.presentationFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-            ,
-        });
+        this.colorTexture = input.copyTotarget;
+        // this.colorTexture = this.device.createTexture({
+        //     size: [this.surfaceSize.width, this.surfaceSize.height],
+        //     format: this.presentationFormat,
+        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+        //     ,
+        // });
         this._temp_colorTexture_entityID = this.device.createTexture({
             size: [this.surfaceSize.width, this.surfaceSize.height],
             format: this.presentationFormat,
@@ -125,7 +130,7 @@ export class GBufferPostProcess extends SingleRender {
         this.commands.push(DC_Opaque);
 
 
-        let run_i=0;
+        let run_i = 0;
         for (let i of this.parent.stagesOrders) {
             let name = this.parent.stagesOfSystem[i];
             if (this.parent.stages[name].opaque && name != "UI"
@@ -167,7 +172,6 @@ export class GBufferPostProcess extends SingleRender {
                 this.commands.push(DC_Other);
             }
             // if(run_i++ ==2 ) break;
-
         }
 
         let copyToColorTexture = new CopyCommandT2T(
@@ -216,14 +220,24 @@ export class GBufferPostProcess extends SingleRender {
         let DC_Transparent = new DrawCommand(optionsTransparent);
         this.commands.push(DC_Transparent);
 
+        let copyGbufferColorToTarget = new CopyCommandT2T(
+            {
+                A: this.GBuffers["color"],
+                B: this.colorTexture,
+                size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
+                device: this.device
+            }
+        );
+        this.commands.push(copyGbufferColorToTarget);
+
     }
     createRenderPassDescriptorOfID(): renderPassDescriptorAndTaget {
-        let colorAttachmentTargets: GPUColorTargetState[]  = [
+        let colorAttachmentTargets: GPUColorTargetState[] = [
             //color
             { format: this.presentationFormat },
             // id
-            { format:"r32uint"},
-            
+            { format: "r32uint" },
+
             // { format: <GPUTextureFormat>GBuffersRPDAssemble["entityID"].format },
 
         ];
@@ -239,7 +253,7 @@ export class GBufferPostProcess extends SingleRender {
                 },
                 {
                     // view: this.GBuffers["color"].createView({ label: "post process RPD colorAttachments[0].view of  entityID" }),
-                     view: this.GBuffers["entityID"].createView({ label: "post process RPD colorAttachments[0].view of  entityID" }),
+                    view: this.GBuffers["entityID"].createView({ label: "post process RPD colorAttachments[0].view of  entityID" }),
                     // clearValue: [0,0,0,0],
                     loadOp: 'clear',
                     storeOp: "store"
@@ -448,19 +462,5 @@ export class GBufferPostProcess extends SingleRender {
     }
 
 
-    update() {
-        if (this.commands.length > 0) {
-            for (let i in this.commands) {
-                this.commands[i].update();
-            }
-        }
-    }
-
-    getTextures(): GPUTexture[] {
-        throw new Error("Method not implemented.");
-    }
-    getColorAttachmentTargets(): GPUColorTargetState[] {
-        throw new Error("Method not implemented.");
-    }
 
 }

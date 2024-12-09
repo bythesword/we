@@ -2,7 +2,7 @@ import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import {
   DrawCommand,
   drawOptionOfCommand,
-  indexBuffer,
+
 } from "../../../../src/we/base/command/DrawCommand"
 declare global {
   interface Window {

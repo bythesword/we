@@ -13,6 +13,19 @@ import { BaseEntity } from "../entity/baseEntity";
 import { BaseLight, lightStructSize } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
 import { GBufferPostProcess, optionGBPP } from "./GBufferPostProcess";
+import { PostProcessMangement } from "../postprocess/postprocessMangement";
+import { Pickup } from "./pickup";
+import { GBuffersVisualize } from "./GBufferVisualize";
+
+/**这个部分是为编辑器使用定义的*/
+export interface sceneStageInput {
+    /**定义stage列表 */
+    stages: coreConst.stageName,
+    /**定义stage 显示排序 */
+    stagesOrders: [],
+    /**默认stage名称 */
+    defaultStageName: string,
+}
 /**
  * canvas: string, canvas id;
  * 
@@ -28,33 +41,35 @@ export interface sceneInputJson extends sceneJson {
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
     /**Debug  */
-    Debug?: WE_Debug,
+    // Debug?: WE_Debug,
     /**自定义stage */
     stageSetting?: sceneStageInput
 }
-/**这个部分是为编辑器使用定义的*/
-export interface sceneStageInput {
-    /**定义stage列表 */
-    stages: coreConst.stageName,
-    /**定义stage 显示排序 */
-    stagesOrders: [],
-    /**默认stage名称 */
-    defaultStageName: string,
-}
 
-
-export interface WE_Debug {
-    isDebug: boolean,
-    /**只在debug模式下才能开启，
-     * 是否开启GBuffer可视化 */
-    GBuffersVisualize?: GBuffersVisualize
-}
-/**GBuffers 可视化选项 */
-interface GBuffersVisualize {
+/**scene 中配置是否使用GBuffer可视化的interface，
+ * ·
+ * showGBuffersVisualize()与run()循环配合使用 
+ * 
+ * setGBuffersVisualize()设置此interface的状态
+ * */
+export interface GBuffersVisualizeViewport {
     /**是否开启可视化 */
     enable: boolean,
-    /**详见：coreConst.GBuffersViewportAssemble-->name */
-    layout?: string,
+    /**两种模式的布局，single与非single */
+    layout?: {
+        /**
+         * layout有两种名称状态：
+         * 
+         * single模式下：使用coreConst.GBufferName的enum
+         * 
+         * 非single模式下：使用oreConst.GBuffersVisualizeLayoutAssemble-->name
+         */
+        name: string,
+        single: boolean,
+        // singleType?: ,
+    },
+    /**状态：boolan，layout布局是否更改过的状态,人工保障正确性 */
+    statueChange?: boolean,
 }
 /** system uniform 的结构 ，都是GPUBuffer，为更新uniform使用，*/
 export declare interface systemUniformBuffer {
@@ -89,8 +104,6 @@ class Scene extends BaseScene {
     /** todo */
     WW: any;
 
-
-
     /** stage 收集器  */
     stages!: stagesCollection;
     stagesOfSystem: coreConst.stageName;
@@ -98,7 +111,6 @@ class Scene extends BaseScene {
     // stages!: BaseStage[];
     stagesOrders!: coreConst.stagesOrderByRender// number[];
     stageNameOfGroup!: coreConst.stageName;
-
 
     /**cameras 默认摄像机 */
     defaultCamera: BaseCamera | undefined;
@@ -118,10 +130,6 @@ class Scene extends BaseScene {
     userDefineUpdateArray!: userDefineUpdateCall[];
     /**资源类 */
     resources!: WeResource;
-    /**是否开启debug，以及功能 */
-    _debug!: WE_Debug;
-
-
 
     /** */
     _realTimeRender!: boolean;
@@ -146,6 +154,11 @@ class Scene extends BaseScene {
     _updateForce!: boolean;
 
     GBufferPostprocess!: GBufferPostProcess;
+    GBuffersVisualize!: GBuffersVisualize;
+    postProcessManagement!: PostProcessMangement;
+    pickUp!: Pickup;
+    _GBuffersVisualize!: GBuffersVisualizeViewport;
+    sourceOfcopyToSurface!: GPUTexture;
 
     surfaceSize!: {
         now: {
@@ -189,16 +202,16 @@ class Scene extends BaseScene {
         else {
             this.name = "Scene";
         }
-        this._debug = {
-            isDebug: false,
-            GBuffersVisualize: {
-                enable: false,
-                layout: "top"
-            }
+        this._GBuffersVisualize = {
+            enable: false,
+            layout: {
+                //   layout:  "top",
+                single: false,
+                name: "default"
+            },
+            statueChange: true,//因为默认状态下，enable=false，如果使用（enable-->true），GBuffer开始时需要初始化，所以，statueChange=true
         }
-        if (input.Debug) {
-            this._debug = input.Debug;
-        }
+
         this.systemUniformBuffers = {};
         this.clock = new Clock();
         this.input = input;
@@ -254,7 +267,11 @@ class Scene extends BaseScene {
             alphaMode: 'premultiplied',//预乘透明度
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
-
+        this.sourceOfcopyToSurface = this.device.createTexture({
+            size: [canvas.width, canvas.height],
+            format: this.presentationFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+        });
         this.aspect = canvas.width / canvas.height;
         this.resources = new WeResource(this);
         // this.updateSystemUniformBuffer();
@@ -264,6 +281,7 @@ class Scene extends BaseScene {
         this.renderPassDescriptor = await this.createRenderPassDescriptor();
         this.initActors();
         this.initGBuffersPostProcess();
+        // this.initGBuffersVisualize()
         this.initPostProcess();
 
         this.observer();
@@ -331,24 +349,47 @@ class Scene extends BaseScene {
         let scope = this;
         this.clock.update();
         async function run() {
-            // let deltaTime = scope.clock.deltaTime;
-            if (scope.realTimeRender) {
-                if (scope._reSize === false) {
-                    // console.log("run:", scope._reSize);
+            if (scope.realTimeRender) {//是否开启实时更新
+                if (scope._reSize === false) {//是否resize中
+
+                    //时间更新
                     scope.clock.update();
                     const deltaTime = scope.clock.deltaTime;
                     const startTime = scope.clock.start;
                     const lastTime = scope.clock.last;
-                    await scope.update(deltaTime, startTime, lastTime);
+
+                    {//数据更新部分
+                        //更新默认actor（摄像机）
+                        if (scope.defaultActor)
+                            scope.defaultActor.update(deltaTime, startTime, lastTime);
+                        //更新system uniform
+                        scope.updateSystemUniformBuffer();
+                        {
+                            //todo，视锥剔除
+                            // 四个中间点，稍稍延迟
+                            // let rays = this.defaultCamera!.getCameraRays();
+                            // 四个中间点，稍稍延迟
+                            // this.updateBVH(rays)
+                        }
+                        //更新光源数据
+                        await scope.updateLights(deltaTime, startTime, lastTime);
+                        //camera 在此位置更新，entities需要camera的dir和视锥参数
+                        scope.updateActor(deltaTime, startTime, lastTime);
+                        //todo，20241207，目前是空的
+                        //更新实体状态，比如水，树，草等动态的
+                        scope.updateEntities(deltaTime, startTime, lastTime);
+                        //更新每个stage
+                        scope.updateStagesCommand(deltaTime, startTime, lastTime);
+                    }
                     await scope.oneFrameRender();
                     await scope.pickup();
                     await scope.postProcess();
-                    await scope.gbuffersVisualize();
                     await scope.updateUserDefine();
+                    await scope.showGBuffersVisualize();
                     await scope.copyToSurface();
-                    if (scope._updateForce === true) {
-                        scope._updateForce = false;
-                    }
+                    // if (scope._updateForce === true) {
+                    //     scope._updateForce = false;
+                    // }
                 }
                 else {
                     // await scope.reSize();
@@ -403,8 +444,8 @@ class Scene extends BaseScene {
             scope._reSize = false;
         });
     }
-    //todo async/await for everthing ,20241103
-    /**每帧更新入口
+    /**作废： 20241207,合并到run中，简化嵌套
+     * 每帧更新入口
      * 1、更新system uniform
      * 2、更新Acter
      * 3、更新实体 entity
@@ -658,25 +699,8 @@ class Scene extends BaseScene {
     }
 
 
-    /**
-     * 每帧绘制入口
-     * 1、清空scene.commmand
-     * 
-     * 2、循环所有stages
-     *      A、每个stage的root——>command[]
-     *          //这个可能需要分成透明、不透明进行渲染，有可能涉及到2个stage，todo
-     *      B、scene.command.push(percommand)
-     * 
-     * 3、执行scene的command
-     *      A、恢复loadOp的参数（一次）
-     *      B、创建view(一次)
-     *      C、更新loadOp的参数到load(一次)
-     *      D、执行command.update()
-     
-    * todo 
-    * stage 合并
-    * stage 深度测试
-    * stage 透明深度与合并
+    /**  stage 透明深度与合并
+    * 
     * sky、UI的合并与顺序
     * */
     async oneFrameRender() {
@@ -688,20 +712,20 @@ class Scene extends BaseScene {
 
     /** 初始化 后处理    */
     async postProcess() {
-        //直接测试：world -->scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-        //中转测试：world-->  scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
 
-        //end:copy to canvas
-        // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-        // this.copyTextureToTexture(this.GBufferPostprocess.colorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
     }
     /**每帧渲染的最后步骤 */
-    copyToSurface() {
-        this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-    }
+    async copyToSurface() {
+        this.copyTextureToTexture(this.sourceOfcopyToSurface, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+       
+        //直接测试：world -->scene
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
 
+        //中转测试：world-->  scene
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
+        // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+        
+    }
 
     /**
      * 用户自定义的更新
@@ -740,8 +764,78 @@ class Scene extends BaseScene {
     }
 
 
-
-
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //GBuffer
+    /**scene 初始化GBuffer，如果是debug模式，同时初始化可视化*/
+    async initGBuffers(width: number, height: number) {
+        let GBuffers = await super.initGBuffers(width, height);
+        return GBuffers;
+    }
+    /**显示GBuffer可视化 */
+    async showGBuffersVisualize() {
+        if (this._GBuffersVisualize.enable) {
+            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//有可视化，且状态改变（layout不同）
+                this.GBuffersVisualize.destroy();
+                this.GBuffersVisualize != undefined;
+            }
+            if (this.GBuffersVisualize == undefined) {
+                this.GBuffersVisualize = new GBuffersVisualize({
+                    parent: this,
+                    device: this.device,
+                    GBuffers: this.GBuffers,
+                    surfaceSize: {
+                        width: this.canvas.width,
+                        height: this.canvas.height,
+                    },
+                    layout: this._GBuffersVisualize,
+                    copyTotarget: this.sourceOfcopyToSurface
+                });
+                this._GBuffersVisualize.statueChange = false;//更新statue状态
+            }
+            this.GBuffersVisualize.update();
+        }
+        else {
+            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//关闭可视化，且layout也改变（这种应用少，即：关闭可视化，且改变布局）
+                this.GBuffersVisualize.destroy();
+                this.GBuffersVisualize != undefined;
+            }
+        }
+    }
+    /**设置 GBuffer 可视化，仅设置 */
+    setGBuffersVisualize(input: GBuffersVisualizeViewport | false) { //enable: boolean, layout: string = coreConst.GBuffersVisualizeLayoutDefaultName) {
+        if (input as boolean === false) {
+            this._GBuffersVisualize = { enable: false };
+        }
+        else if ((input as GBuffersVisualizeViewport).enable === true && (input as GBuffersVisualizeViewport).layout || (input as GBuffersVisualizeViewport).enable === false) {
+            let name = (input as GBuffersVisualizeViewport).layout!.name;
+            let isOK = false;
+            if ((input as GBuffersVisualizeViewport).layout!.single === true && name != "color") {
+                for (const key in coreConst.GBufferName) {
+                    if (key === name) {
+                        isOK = true;
+                    }
+                }
+                if (isOK) {
+                    this._GBuffersVisualize = (input as GBuffersVisualizeViewport);
+                    this._GBuffersVisualize.statueChange! = true;//无论是否更改了input，都是新的
+                    return;
+                }
+            }
+            else {
+                for (const key in coreConst.GBuffersVisualizeLayoutAssemble) {
+                    if (key === name) {
+                        isOK = true;
+                    }
+                }
+                if (isOK) {
+                    this._GBuffersVisualize = (input as GBuffersVisualizeViewport);
+                    this._GBuffersVisualize.statueChange! = true;//无论是否更改了input，都是新的
+                    return;
+                }
+            }
+        }
+        console.error("GBuffer可视化输入参数错误!");
+    }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**GBuffer的后处理，在scene中合并 */
@@ -753,7 +847,8 @@ class Scene extends BaseScene {
             surfaceSize: {
                 width: this.canvas.width,
                 height: this.canvas.height
-            }
+            },
+            copyTotarget: this.sourceOfcopyToSurface
         }
         this.GBufferPostprocess = new GBufferPostProcess(option);
     }
@@ -886,19 +981,7 @@ class Scene extends BaseScene {
         oneLight.setRootScene(this);
         this.lights.push(oneLight);
     }
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //GBuffer
-    /**scene 初始化GBuffer，如果是debug模式，同时初始化可视化*/
-    async initGBuffers(width: number, height: number) {
-        let GBuffers = await super.initGBuffers(width, height);
-        if (this._debug && this._debug.isDebug && this._debug.GBuffersVisualize && this._debug.GBuffersVisualize.enable) {
 
-        }
-        return GBuffers;
-    }
-    async gbuffersVisualize() {
-
-    }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Observer 
     observer() {
@@ -987,4 +1070,3 @@ export interface userDefineUpdateCall {
     state: boolean;
 }
 export { Scene };
-export type { sceneInputJson };

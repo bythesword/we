@@ -283,7 +283,7 @@ export abstract class BaseScene {
     abstract getWGSLOfSystemShader(): string
     /**初始化GBuffer
      * 
-     * 在baseScene中没有调用
+     * 在baseScene中没有调用,需要在scene或者stage进行显示初始化调用
      */
     async initGBuffers(width: number, height: number) {
         let localGBuffers: coreConst.GBuffers = {};

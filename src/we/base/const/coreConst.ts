@@ -63,19 +63,23 @@ export interface color3U {
 }
 export var shadowMapSize = 1024;
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
-//viewport
+//GBuffer
+
 /**这里的number是百分比，因为canvas的size会变化 */
-export interface viewPort {
+interface viewPort {
     x: number,
     y: number,
     width: number,
     height: number,
     fs?: string,
+    u32?: {
+        scale: number,//这个是给u32类型的缩小图用的
+        offsetX: number,//向右=负数，向左=正数
+        offsetY: number,//向下=负数，向上=正数
+    }
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//GBuffer
 /**固定的GBuffer名称 */
 export enum GBufferName {
     color = "color",
@@ -83,6 +87,91 @@ export enum GBufferName {
     entityID = "entityID",
     normal = "normal",
     uv = "uv",
+}
+
+
+/**GBuffer的 GPUTexture集合 */
+export interface GBuffers {
+    [name: string]: GPUTexture
+};
+
+/**GBuffers viewport集合的类型描述(type) */
+export type GBufferLayout = {
+    [name in GBufferName]: viewPort;
+};
+/**GBffers各种类型布局集合 */
+export interface GBuffersVisualizeLayout {
+    [name: string]: GBufferLayout
+}
+/** 实例化的GBffers 的布局类型的集合 */
+export var GBuffersVisualizeLayoutAssemble: GBuffersVisualizeLayout = {
+    default: {
+        [GBufferName.color]: {
+            x: 0.25 / 2,
+            y: 0.25,
+            width: 1 - 0.25,//是到多少pixel
+            height: 1 - 0.25
+        },
+        [GBufferName.depth]: {
+            x: 0.25,
+            y: 0,
+            width: 0.25,
+            height: 0.25
+        },
+        [GBufferName.entityID]: {
+            x: 0,
+            y: 0,
+            width: 0.25,
+            height: 0.25,
+            u32: {
+                scale: 4.0,
+                offsetX: 0.0,
+                offsetY: 0.0
+            }
+        },
+        [GBufferName.normal]: {
+            x: 0.5,
+            y: 0,
+            width: 0.25,
+            height: 0.25
+        },
+        [GBufferName.uv]: {
+            x: 0.75,
+            y: 0,
+            width: 0.25,
+            height: 0.25
+        }
+    }
+}
+/**默认的GBuffer 可视化布局名称 */
+export var GBuffersVisualizeLayoutDefaultName = "top";
+
+/**GBuffersVisualize的shader集合 */
+export interface shaderCodeOfGBuffersVisualize {
+    [name: string]: string
+}
+/**GBuffersVisualizeLayout布局的shader集合的接口*/
+export interface shaderCodeOfGBuffersVisualizeLayout {
+    [name: string]: shaderCodeOfGBuffersVisualize
+};
+
+import shaderCodeDepth from "../shader/GBuffersVisualize/depth.wgsl?raw";
+import shaderCodeEID from "../shader/GBuffersVisualize/entityID.wgsl?raw";
+import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";
+export var varOfshaderCodeOfGBuffersVisualizeLayout: shaderCodeOfGBuffersVisualizeLayout = {
+    "default": {
+        "color": shaderCodeVec4f,
+        "depth": shaderCodeDepth,
+        "entityID": shaderCodeEID,
+        "normal": shaderCodeVec4f,
+        "uv": shaderCodeVec4f
+    }
+}
+export var varOfshaderCodeSingleOfGBuffersVisualizeLayout: { [name: string]: string } = {
+    "depth": shaderCodeDepth,
+    "entityID": shaderCodeEID,
+    "normal": shaderCodeVec4f,
+    "uv": shaderCodeVec4f
 }
 /**GBuffer 的render Pass Descriptor ,对应GPURenderPassDescriptor
  * 
@@ -105,55 +194,10 @@ export type GBuffersRPD = {
     [name in GBufferName]: GBufferRenderPassDescriptor;
 };
 
-/**GBuffer的 GPUTexture集合 */
-export interface GBuffers {
-    [name: string]: GPUTexture
-};
-
-/**GBuffers viewport集合的类型描述(type) */
-export type GBufferLayout = {
-    [name in GBufferName]: viewPort;
-};
-/**GBffers各种类型布局集合 */
-export interface GBuffersViewport {
-    [name: string]: GBufferLayout
-}
-/** 实例化的GBffers 的布局类型的集合 */
-export var GBuffersViewportAssemble: GBuffersViewport = {
-    top: {
-        [GBufferName.color]: {
-            x: 0.25 / 2,
-            y: 0.25,
-            width: 1 - 0.25 / 2,
-            height: 1
-        },
-        [GBufferName.depth]: {
-            x: 0,
-            y: 0,
-            width: 0.25,
-            height: 0.25
-        },
-        [GBufferName.entityID]: {
-            x: 0.25,
-            y: 0,
-            width: 0.5,
-            height: 0.25
-        },
-        [GBufferName.normal]: {
-            x: 0.5,
-            y: 0,
-            width: 0.75,
-            height: 0.25
-        },
-        [GBufferName.uv]: {
-            x: 0.75,
-            y: 0,
-            width: 1,
-            height: 0.25
-        }
-    }
-}
-/** 实例化的 GBufferRenderPassDescriptor 的布局类型的集合 */
+/** 实例化的 GBufferRenderPassDescriptor 的集合
+ * 
+ * (GBuffer 合并使用的Render Pass Descriptor)
+ */
 export var GBuffersRPDAssemble: GBuffersRPD = {
     [GBufferName.color]: {
         label: "color texture of colorAttachments",
@@ -181,3 +225,5 @@ export var GBuffersRPDAssemble: GBuffersRPD = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     }
 }
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//

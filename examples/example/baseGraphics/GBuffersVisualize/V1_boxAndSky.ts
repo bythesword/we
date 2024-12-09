@@ -10,7 +10,8 @@ import { CubeSkyMaterial } from "../../../../src/we/base/material/sky/cubeSkyMat
 import { WASDCameraControl } from "../../../../src/we/base/control/wasdCameraControl"
 import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMaterial"
 import { SpotLight } from "../../../../src/we/base/light/SpotLight"
- 
+import { initScene } from "../../../../src/we/base/scene/initScene"
+
 
 
 declare global {
@@ -27,13 +28,21 @@ let input: sceneInputJson = {
     green: 0.5,
     blue: 0.5,
     alpha: 1
-  }
+  },
+  // reversedZ: true,
 }
-let scene = new Scene(input);
-await scene.init();
 
+
+let scene = await initScene(input);
 window.scene = scene;
 
+scene.setGBuffersVisualize({
+  enable: true,
+  layout: {
+    name: "default",
+    single: false,
+  }
+});
 
 //摄像机初始化参数
 const cameraOption: optionPerspProjection = {
@@ -41,7 +50,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.1,
   far: 2000,
-  position: [0, 0, 10.],
+  position: [0, 0, 3.],
   lookAt: [0, 0, 10.]
 }
 //实例化摄像机
@@ -86,8 +95,8 @@ let cubeMaterial = new CubeSkyMaterial({
 })
 let sky = new Mesh(
   {
-    name:"sky",
-    scale:[100,100,100],
+    name: "sky",
+    scale: [100, 100, 100],
     geometry: skyGeometry,
     material: cubeMaterial,
     wireFrame: false,
@@ -96,7 +105,7 @@ let sky = new Mesh(
 
   }
 );
-scene.add(sky,"Sky")
+scene.add(sky, "Sky")
 
 
 ////enities 初始化
@@ -115,12 +124,12 @@ let material = new PhongMaterial({
 //box实体
 let boxEntity = new Mesh(
   {
-    name:"box",
+    name: "box",
     geometry: boxGeometry,
     material: material,
     wireFrame: false,
     dynamicPostion: true,
-    position:[0,-7,0],
+    position: [0, 0, 0],
     update: (scope, deltaTime, startTime, lastTime) => {
       const now = Date.now() / 1000;
       scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
@@ -130,16 +139,15 @@ let boxEntity = new Mesh(
 );
 //增加实体到scene
 scene.add(boxEntity)
-let spotLight= new SpotLight(
+let spotLight = new SpotLight(
   {
     direction: [0.0, 0.0, -1.0],
-    position: [0,0, 12],
+    position: [0, 0, 12],
     intensity: 22.0,
-    angle: 29/180*Math.PI,//12.5
-    angleOut: 38/180*Math.PI //17.5
+    angle: 29 / 180 * Math.PI,//12.5
+    angleOut: 38 / 180 * Math.PI //17.5
   }
 );
 
 scene.addLight(spotLight);
 //运行场景
-scene.run()

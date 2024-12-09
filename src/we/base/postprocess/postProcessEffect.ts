@@ -3,7 +3,7 @@ export interface optionBasePostprocessEffect {
 
 }
 
-export abstract class postProcessEffect {
+export abstract class PostProcessEffect {
 
 
 

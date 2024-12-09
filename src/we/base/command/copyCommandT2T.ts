@@ -29,4 +29,7 @@ export class CopyCommandT2T {
         const commandBuffer = commandEncoder.finish();
         this.device.queue.submit([commandBuffer]);
     }
+    destroy(){
+        
+    }
 }

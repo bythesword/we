@@ -503,12 +503,14 @@ export abstract class BaseEntity extends Root {
         if (this._readyForGPU && this._id != 0)
 
             if (this._init === initStateEntity.unstart) {
-                // this.updateMatrix();
+                this.updateMatrix();//在这里必须更新一次，entityID，stageID，都是延迟到增加至stage之后才更新的。
                 this.initDCC(scene);
             }
             //初始化是完成状态，同时checkStatus=true
             else if (this._init === initStateEntity.finished && this.checkStatus()) {
                 if (this.input && this.input.update) {
+                    this.matrix = mat4.identity();
+                    this.updateMatrix();
                     this.input.update(this, deltaTime, startTime, lastTime);
                 }
                 //动态物体 或 强制更新
