@@ -744,8 +744,9 @@ class Scene extends BaseScene {
                 let mouse = (this.inputControl as CamreaControl).getPointerInput();
                 if (mouse)
                     if (mouse.buttons == 1 && mouse.x && mouse.y) {
-                        // console.log(mouse)
-                        return { x: mouse.x, y: mouse.y }
+                        const rect=this.canvas.getBoundingClientRect()
+                        //  console.log(mouse.x,mouse.y)
+                        return { x: mouse.x-rect.x, y: mouse.y-rect.y }
                     }
             }
         return false;

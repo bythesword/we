@@ -47,36 +47,34 @@ export class Pickup {
             const result = await this.copyTextureToBuffer(x, y);
 
             if (result) {
-                let stageID = result[0] >>> 29;
-                if (stageID === 0) {
-                    return false;
-                }
-                else {
-                    stageID = (stageID - 1) / 2;
-                    const realStageID = Math.floor(stageID);
-                    const stageName = stagesOfSystem[realStageID];
+                let stageID = result[0];
+                stageID = stageID >>> 29;
 
-                    let stageTransparent = false;
-                    if (stageID - Math.trunc(stageID) > 0) {
-                        stageTransparent = true;
-                    }
-                    // stage=stage>>>0;
-                    let entityIDMask = (1 << 29) - 1;
-                    let entity = result[0] & entityIDMask;
+                stageID = (stageID - 1) / 2;
+                const realStageID = Math.floor(stageID);
+                const stageName = stagesOfSystem[realStageID];
 
-                    entity = entity >> 14;
-                    let instance = result[0] & 0x3fff;
-                    let ids: pickupTargetOfIDs = {
-                        stage: {
-                            id: realStageID,
-                            name: stageName,
-                            transparent: stageTransparent
-                        },
-                        entity,
-                        instance
-                    }
-                    return ids;
+                let stageTransparent = false;
+                if (stageID - Math.trunc(stageID) > 0) {
+                    stageTransparent = true;
                 }
+                // stage=stage>>>0;
+                let entityIDMask = (1 << 29) - 1;
+                let entity = result[0] & entityIDMask;
+
+                entity = entity >> 14;
+                let instance = result[0] & 0x3fff;
+                let ids: pickupTargetOfIDs = {
+                    stage: {
+                        id: realStageID,
+                        name: stageName,
+                        transparent: stageTransparent
+                    },
+                    entity,
+                    instance
+                }
+                return ids;
+
 
             }
             else

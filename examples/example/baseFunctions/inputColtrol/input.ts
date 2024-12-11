@@ -21,22 +21,36 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 1.0,
-    green: 1.0,
+    red: 0.0,
+    green: 0.0,
     blue: 1.0,
     alpha: 1
   }
 }
-let outputDIV = document.getElementById("output")
+let outputKey = document.getElementById("outputKey")
+let outputPointer = document.getElementById("outputPointer")
 let pickup = async function (scope: any) {
-  let pickupInfo = await scope.getPickup();
-  if (pickupInfo) {
-    outputDIV!.innerHTML = `
-  stageName:${pickupInfo.stage.name};<br>
-  entityID:${pickupInfo.entity};<br>
-  intanceID:${pickupInfo.instance}
-  `;
+  let key = scope.getKeyInput();
+  let pointer = scope.getPointerInput();
+  if (key) {
+    outputKey!.innerHTML = `键盘输入：${key.key}  `;
+    // console.log(key)
   }
+  if (pointer) {
+    outputPointer!.innerHTML = `
+    pointer类型: ${pointer.pointerType} <br>
+    按键：       ${pointer.buttons} <br>
+    状态:        ${pointer.type}<br>
+    x:          ${pointer.x}<br>
+    y:          ${pointer.y}<br>
+    ctrl:       ${pointer.ctrlKey}<br>
+    shift:      ${pointer.shiftKey}<br>
+    alt :       ${pointer.altKey}<br>
+    `;
+
+    // console.log(pointer)
+  }
+
 };
 let scene = await initScene(input, pickup);
 window.scene = scene;
