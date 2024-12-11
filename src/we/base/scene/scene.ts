@@ -13,9 +13,11 @@ import { BaseEntity } from "../entity/baseEntity";
 import { BaseLight, lightStructSize } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
 import { GBufferPostProcess, optionGBPP } from "./GBufferPostProcess";
-import { PostProcessMangement } from "../postprocess/postprocessMangement";
-import { Pickup } from "./pickup";
+import { PostProcessMangement } from "../postprocess/postProcessMangement";
 import { GBuffersVisualize } from "./GBufferVisualize";
+import { optionPickup, Pickup, pickupTargetOfIDs } from "../pickup/pickup";
+import { InputControl, typeOfInputControl } from "../control/inputControl";
+import { CamreaControl } from "../control/cameracCntrol";
 
 /**这个部分是为编辑器使用定义的*/
 export interface sceneStageInput {
@@ -138,6 +140,7 @@ class Scene extends BaseScene {
     /**获取实时渲染状态 */
     get realTimeRender() { return this._realTimeRender }
 
+    inputControl!: InputControl | CamreaControl;
 
     /**resize Observer 标注位  */
     _reSize!: boolean;
@@ -283,6 +286,7 @@ class Scene extends BaseScene {
         this.initGBuffersPostProcess();
         // this.initGBuffersVisualize()
         this.initPostProcess();
+        this.initPickup()
 
         this.observer();
     }
@@ -345,7 +349,7 @@ class Scene extends BaseScene {
     /**
      * 循环入口
      */
-    run() {
+    run(userRun: coreConst.userPromiseFN) {
         let scope = this;
         this.clock.update();
         async function run() {
@@ -382,11 +386,13 @@ class Scene extends BaseScene {
                         scope.updateStagesCommand(deltaTime, startTime, lastTime);
                     }
                     await scope.oneFrameRender();
-                    await scope.pickup();
+                    // await scope.pickup();
                     await scope.postProcess();
                     await scope.updateUserDefine();
                     await scope.showGBuffersVisualize();
                     await scope.copyToSurface();
+                    if (userRun !== undefined)
+                        await userRun(scope);
                     // if (scope._updateForce === true) {
                     //     scope._updateForce = false;
                     // }
@@ -708,7 +714,59 @@ class Scene extends BaseScene {
     }
 
 
-    async pickup() { }
+    // async pickup() { }
+    initPickup() {
+        let option: optionPickup = {
+            device: this.device,
+            parent: this
+        };
+        this.pickUp = new Pickup(option);
+    }
+    /** 
+     * @returns KeyboardEvent https://developer.mozilla.org/zh-CN/docs/Web/API/KeyboardEvent
+     */
+    getKeyInput(): KeyboardEvent {
+        return (this.inputControl as CamreaControl).getKeyInput();
+    }
+    /** 
+     * @returns PointerEvent https://developer.mozilla.org/zh-CN/docs/Web/API/PointerEvent
+     */
+    getPointerInput(): PointerEvent {
+        return (this.inputControl as CamreaControl).getPointerInput();
+    }
+    /**获取鼠标点击后的surface中的xy
+     * 返回鼠标左键点击后的 x和y坐标,没有click,返回false
+     * @returns { x: number, y: number } | false
+     */
+    getInputControlPickupXY(): { x: number, y: number } | false {
+        if (this.inputControl)
+            if (this.inputControl.type == typeOfInputControl.Camera) {
+                let mouse = (this.inputControl as CamreaControl).getPointerInput();
+                if (mouse)
+                    if (mouse.buttons == 1 && mouse.x && mouse.y) {
+                        // console.log(mouse)
+                        return { x: mouse.x, y: mouse.y }
+                    }
+            }
+        return false;
+    }
+    /**获取鼠标左键点击后的pickup的物体
+     * @returns  pickupTargetOfIDs | false 
+     */
+    async getPickup(): Promise<false | pickupTargetOfIDs> {
+        let xy = this.getInputControlPickupXY();
+        if (xy) {
+            let target = await this.pickUp.getTargetID(xy.x, xy.y);
+            if (target) {
+                // console.log( target);
+                return target;
+            }
+
+            return false;
+        }
+        else
+            return false;
+    }
 
     /** 初始化 后处理    */
     async postProcess() {
@@ -717,14 +775,14 @@ class Scene extends BaseScene {
     /**每帧渲染的最后步骤 */
     async copyToSurface() {
         this.copyTextureToTexture(this.sourceOfcopyToSurface, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
-       
+
         //直接测试：world -->scene
         // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
 
         //中转测试：world-->  scene
         // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
         // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-        
+
     }
 
     /**

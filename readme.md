@@ -6,17 +6,18 @@
 * 以TypeScript为开发语言；
 * 在光栅化是以webGPU进行架构处理的，而且只支持webGPU的光栅化库；
 * 渲染引擎架构架构上，参考了UE、cesium的部分工作原理；
-* 在底层形成以command集合-->webGPU的command的流程；
+* 在底层形成以command集合（Draw Command、Compute Command、Copy Command）；
 * 在更新机制上形成以对象和类的update为更新入口的按需更新机制；
 * 在GPU的shader上支持Draw shader、Compute shader，以及多重shader串行输出一个Draw或Compute的command；（封装了webGPU原生的功能并集成与扩展）
 
 ## 更多功能
 
-* 渲染模式支持前向渲染和延迟渲，分成场景渲染和非场景渲染；![1733754854446](images/readme/1733754854446.png)
+* 渲染模式支持前向渲染和延迟渲，分成场景渲染和非场景渲染；
 * 延迟渲染可能会有两种方式：延迟单像素前向方式和前向颜色延迟光照渲染；
-* 渲染通道支持多GBuffer默认8个（32byte大小的附件）如：depth、normal、uv、entityID、stageID、instanceID等；
-* 支持多GBuffer的可视化可以通过console命令行进行调试；![1733754991171](images/readme/1733754991171.png)
-* 支持正常depth渲染模式和Reversed Z渲染（以提高Z轴精度）;![1733754879068](images/readme/1733754879068.png)
+* 渲染通道支持多GBuffer默认8个（32byte大小的单点数据量，可扩展到128大小Dawn核心的）如：depth、normal、uv、entityID、stageID、instanceID等；
+* 支持多GBuffer的可视化可以通过console命令行进行调试；
+* 支持基于GPU的GBuffer的拾取；
+* 支持正常depth渲染模式和Reversed Z渲染（以提高Z轴精度）;
 * 材质部分提供了简单材质Buli-Phong为基础的基础材质，和以PBR（进行中）为核心的物理材质。在PBR材质上是主要参考filament的文档进行的，并借鉴了UE的材质（材质编辑器）；
 * 在物体对象（entities）上将支持多种扩展形式，包括基础的点、线、面，几何体（mesh）、有限元仿真数据、各种模型文件、大地形、体素对象等；
 * 物体的空间组织上采用BVH和BOX3结合的方式；
@@ -30,6 +31,13 @@
 * 在后期处理及之后的渲染工作流中，会保存scene、stage的输出纹理，为cache渲染、TAA等流程使用；
 * 在Stage舞台目前初步设定五个：UI、sky、world、dynamic、actor。其中后三个分别有透明和不透明两个子舞台；
 * 短期的规划还有：SSGI、SSR、SSAO、IBL、GI with Reflective shadow maps(这个感觉babylon的挺好的)；
+
+## 运行示例
+
+* 渲染模式                   ![1733906607026](images/readme/1733906607026.png)
+* 反向Z                      ![1733906612284](images/readme/1733906612284.png)
+* GBuffer可视化         ![1733906617659](images/readme/1733906617659.png)
+* 拾取                        ![1733906622761](images/readme/1733906622761.png)
 
 ## Todo
 

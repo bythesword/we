@@ -8,6 +8,9 @@ import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
 import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
 import { mat4, vec3 } from "wgpu-matrix"
+import { DrawCommand, drawOptionOfCommand } from "../../../../src/we/base/command/DrawCommand"
+import { initScene } from "../../../../src/we/base/scene/initScene"
+import { userFN } from "../../../../src/we/base/const/coreConst"
 
 
 declare global {
@@ -16,20 +19,23 @@ declare global {
     DC: any
   }
 }
+
+const backgroudColor = 0.5;
 let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.1,
-    green: 0.1,
-    blue: 0.1,
+    red: backgroudColor,
+    green: backgroudColor,
+    blue: backgroudColor,
     alpha: 1
   }
 }
-let scene = new Scene(input);
-await scene.init();
-
+let scene = await initScene(input, function () { console.log("asf") });//ok
+// let scene = await initScene(input, () => { console.log("asf") });//ok
 window.scene = scene;
+
+
 
 
 //摄像机初始化参数
@@ -38,7 +44,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [0, 0, 3],
+  position: [0, 0, 5],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -65,35 +71,16 @@ let actor = new CameraActor(ccOption)
 //增加摄像机角色到scene
 scene.addCameraActor(actor, true)
 
+//用户自定义更新（每帧）
+scene.addUserDefine({
+  call: function (scope: any): any {
+    console.log(scope.clock.last);
+    return true;
+  },
+  name: "console print time",
+  state: true
+});
 
-////enities 初始化
-//box
-let boxGeometry = new OneColorCube();
-//极简测试材质，red
-let redMaterial = new VertexColorMaterial();
-//box实体
-let boxEntity = new Mesh(
-  {
-    geometry: boxGeometry,
-    material: redMaterial,
-    wireFrame: false,
-    dynamicPostion: true,
-    // update: (scope, deltaTime, startTime, lastTime) => {
-    //   // console.log("12");
-    //   scope.matrix = mat4.identity();
-    //   // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
-    //   const now = Date.now() / 1000;
-    //   // mat4.rotate(
-    //   //   scope.matrix,
-    //   //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-    //   //   1,
-    //   //   scope.matrix
-    //   // );
-    //   scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
-    //   return true;
-    // },
-  }
-);
-//增加实体到scene
-scene.add(boxEntity)
+
+
 

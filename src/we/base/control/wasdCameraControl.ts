@@ -1,12 +1,6 @@
-import {
-    // Mat3, mat3, Mat4, mat4, Quat, quat, utils, Vec2, vec2,
-    Vec3, vec3,
-    //   Vec4, vec4,
-} from 'wgpu-matrix';
+import { Vec3, vec3 } from 'wgpu-matrix';
 
-import {
-    CamreaControl, optionCamreaControl,
-} from "./cameracCntrol"
+import { CamreaControl, optionCamreaControl } from "./cameracCntrol"
 
 import * as MathFun from "../math/baseFunction"
 
@@ -63,8 +57,8 @@ export class WASDCameraControl extends CamreaControl {
         this.recalculateAngles(this.camera.back);
         // throw new Error('Method not implemented.');
     }
-    update( deltaTime: number,startTime:number,lastTime:number) {
-        let input = this.inputHandler();
+    update(deltaTime: number, startTime: number, lastTime: number) {
+        let input = this.inputHandler(this);
         const sign = (positive: boolean, negative: boolean) =>
             (positive ? 1 : 0) - (negative ? 1 : 0);
 
@@ -99,16 +93,16 @@ export class WASDCameraControl extends CamreaControl {
         this.velocity = MathFun.lerp(
             targetVelocity,
             this.velocity,
-            Math.pow(1 - this.frictionCoefficient, deltaTime )
+            Math.pow(1 - this.frictionCoefficient, deltaTime)
         );
         // Integrate velocity to calculate new position
         //新位置
-        position = vec3.addScaled(position, this.velocity, deltaTime );
+        position = vec3.addScaled(position, this.velocity, deltaTime);
         this.camera.updateByPositionYawPitch(position, this.yaw, this.pitch);
 
     }
     destroy() {
-        // throw new Error('Method not implemented.');
+        throw new Error('Method not implemented.');
     }
 
 }

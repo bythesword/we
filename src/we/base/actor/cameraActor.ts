@@ -1,13 +1,13 @@
-import { 
+import {
     vec3,
     Vec3
 } from "wgpu-matrix";
-import { BaseActor,  optionActor } from "./baseActor";
+import { BaseActor, optionActor } from "./baseActor";
 import {
     CamreaControl,
     // optionCamreaControl
 } from "../control/cameracCntrol";
-import { BaseCamera } from "../camera/baseCamera"; 
+import { BaseCamera } from "../camera/baseCamera";
 
 export interface optionCameraActor extends optionActor {
     lookAt?: Vec3,
@@ -22,7 +22,7 @@ export interface optionCameraActor extends optionActor {
 }
 
 export class CameraActor extends BaseActor {
- 
+
 
     declare input: optionCameraActor;
     _camera!: BaseCamera;
@@ -53,18 +53,20 @@ export class CameraActor extends BaseActor {
             this.control.camera = this.camera;
         }
 
-    } 
+    }
 
     setDefault(scope: any) {
-        scope.defaultCamera = this.camera;
+        // scope.defaultCamera = this.camera;
+        this.setDefaultActor(scope);
+        this.setDefaultCamera(scope);
     }
     initBindPool() {
 
     }
-    async update(deltaTime: number,startTime:number,lastTime:number) {
-        this.control.update(deltaTime,startTime,lastTime);
+    async update(deltaTime: number, startTime: number, lastTime: number) {
+        this.control.update(deltaTime, startTime, lastTime);
         if (this.input.update) {
-            this.input.update(this,deltaTime,startTime,lastTime);
+            this.input.update(this, deltaTime, startTime, lastTime);
         }
     }
 
@@ -74,11 +76,12 @@ export class CameraActor extends BaseActor {
     }
 
     setDefaultCamera(scope: any) {
-        scope.defaultCamera = this.camera;
+        // scope.defaultCamera = this.camera;
+        scope.setDefaultCamera(this.camera)
     }
     setDefaultActor(scope: any) {
         scope.defaultActor = this;
-        this.setDefaultCamera(scope);
+        scope.inputControl = this._control;
     }
     get position(): Vec3 {
         return this.camera.position;

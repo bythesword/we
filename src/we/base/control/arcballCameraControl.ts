@@ -51,7 +51,7 @@ export class ArcballCameraControl extends CamreaControl {
     }
     update( deltaTime: number,startTime:number,lastTime:number) {
         if (typeof this.camera !== 'boolean') {
-            let input = this.inputHandler();
+            let input = this.inputHandler(this);
 
             let position = this.camera.position;
             //计算当前距离，旋转距离不变
@@ -126,7 +126,7 @@ export class ArcballCameraControl extends CamreaControl {
         }
     }
     destroy() {
-        // throw new Error('Method not implemented.');
+        throw new Error('Method not implemented.');
     }
 
 }

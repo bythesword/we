@@ -1,9 +1,15 @@
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+export type userFN = (scope: any) => any;
+export type userPromiseFN = (scope: any) => Promise<any>;
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //单体对象的用户自定义的interface
 /** 用户自定义功能接口的update interface */
 export interface optionUpdate {
     /**自定义更新functon() */
-    update?: (scope: any, deltaTime: number, startTime: number, lastTime: number) => {},
+    update?: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {},
     // update?: (scope: any, deltaTime: number,startTime:number,lastTime:number) => {},
     // update?: (scope: any, deltaTime: number,startTime:number,lastTime:number) => Promise<any>,
 }

@@ -8,6 +8,7 @@ import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
 import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
 import { mat4, vec3 } from "wgpu-matrix"
+import { initScene } from "../../../../src/we/base/scene/initScene"
 
 
 declare global {
@@ -20,15 +21,25 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.1,
-    green: 0.1,
-    blue: 0.1,
+    red: 0.0,
+    green: 0.0,
+    blue: 1.0,
     alpha: 1
   }
 }
-let scene = new Scene(input);
-await scene.init();
+let outputDIV = document.getElementById("output")
+let pickup = async function (scope: any) {
+  let pickupInfo = await scope.getPickup();
+  if (pickupInfo) {
+    outputDIV!.innerHTML = `
+  stageName:${pickupInfo.stage.name};<br>
+  entityID:${pickupInfo.entity};<br>
+  intanceID:${pickupInfo.instance}
+  `;
+  }
 
+};
+let scene = await initScene(input, pickup);
 window.scene = scene;
 
 
@@ -36,9 +47,9 @@ window.scene = scene;
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
-  far: 100,
-  position: [0, 0, 3],
+  near: 1,
+  far: 10,
+  position: [0, 0, 5],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -69,31 +80,60 @@ scene.addCameraActor(actor, true)
 ////enities 初始化
 //box
 let boxGeometry = new OneColorCube();
-//极简测试材质，red
+//极简测试材质，
 let redMaterial = new VertexColorMaterial();
 //box实体
-let boxEntity = new Mesh(
+let boxEntity1 = new Mesh(
   {
     geometry: boxGeometry,
     material: redMaterial,
     wireFrame: false,
     dynamicPostion: true,
-    // update: (scope, deltaTime, startTime, lastTime) => {
-    //   // console.log("12");
-    //   scope.matrix = mat4.identity();
-    //   // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
-    //   const now = Date.now() / 1000;
-    //   // mat4.rotate(
-    //   //   scope.matrix,
-    //   //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-    //   //   1,
-    //   //   scope.matrix
-    //   // );
-    //   scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
-    //   return true;
-    // },
+    position: [-2, 0, 0],
+    update: (scope, deltaTime, startTime, lastTime) => {
+      // console.log("12");
+      scope.matrix = mat4.identity();
+      // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
+      const now = Date.now() / 1000;
+      // mat4.rotate(
+      //   scope.matrix,
+      //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      //   1,
+      //   scope.matrix
+      // );
+      scope.translation(scope.input.position);
+      scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
+
+      return true;
+    },
+  }
+);
+let boxEntity2 = new Mesh(
+  {
+    geometry: boxGeometry,
+    material: redMaterial,
+    wireFrame: false,
+    dynamicPostion: true,
+    position: [2, 0, 0],
+    update: (scope, deltaTime, startTime, lastTime) => {
+      // console.log("12");
+      scope.matrix = mat4.identity();
+      // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
+      const now = Date.now() / 1000;
+      // mat4.rotate(
+      //   scope.matrix,
+      //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      //   1,
+      //   scope.matrix
+      // );
+      scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);
+      scope.translation(scope.input.position);
+
+      return true;
+    },
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+scene.add(boxEntity1)
+scene.add(boxEntity2)
 

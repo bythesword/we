@@ -137,10 +137,12 @@ export class BaseStage extends BaseScene {
             addonName = "_transparent";
 
         this.name = input.name + addonName;
+
+        //这个是写死的，后期改成公共functon，需要同步更改pickup.ts getTargetID()中的内容
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */
         for (let i in coreConst.stagesOfSystem) {
             if (name == coreConst.stagesOfSystem[i]) {
-                this.ID = parseInt(i) * 2;//+ 1;
+                this.ID = parseInt(i) * 2+1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
                 if (input.transparent)
                     this.ID++;
                 break;

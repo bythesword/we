@@ -74,9 +74,11 @@
         <li> 场景更新机制:每帧
             <a href="./baseFunctions/update/sceneUpdatePerFrame.html"> scene 增加每帧的用户自定义更新，在console打印时间</a>
         </li>
+        <li> 场景更新机制:每帧
+            <a href="./baseFunctions/update/userRun.html"> scene run()中运行function</a>
+        </li>
 
 
-        <li> 使用视频输出</li>
         <h1> ====== 基础示例 =======</h1>
         </li>
         <li>
@@ -91,11 +93,9 @@
         <li>
             <a href="./baseGraphics/InstancedWoodBox.html"> instanced 木箱子 和spot light</a>
         </li>
-
         <li>
             <a href="./baseGraphics/FractalCube.html"> Fractal Cube,这个与webgpu sample的原理相同,但texture是通过postprocess取的</a>
         </li>
-
         <li>
             <a href="./baseGraphics/cubeSky.html"> cube天空盒子, 通过scale控制大小,wasd控制器</a>
         </li>
@@ -117,14 +117,25 @@
         </li>
 
         <li>
+            <h2>---- pickup----</h2>
+        </li>
+        <li> <a href="./baseGraphics/pickup/pickupBox.html"> 拾取一个stage 、多个实体</a> </li>
+        </li>
+        <li> <a href="./baseGraphics/pickup/InstancedCube.html"> 拾取一个stage 、一个实体 、多个instance</a> </li>
+        </li>
+        <li> <a href="./baseGraphics/pickup/boxAndSky.html"> 拾取多个stage</a> </li>
+        </li>
+
+        <li>
             <h2>---- 后期处理----</h2>
         </li>
         <li>
             <h2>----GBuffer 可视化----</h2>
         </li>
-        <li><a href="./baseGraphics/GBuffersVisualize/V1_boxAndSky.html">GBuffer 可视化  多视口default 模式</a></li>
-        <li><a href="./baseGraphics/GBuffersVisualize/V2_boxAndSky.html">GBuffer 可视化  single 模式</a></li>
-        <li><a href="./baseGraphics/GBuffersVisualize/rotatingCubeX2.html">GBuffer 可视化  single 模式:同一个stage的entity ID</a></li>
+        <li><a href="./baseGraphics/GBuffersVisualize/V1_boxAndSky.html">GBuffer 可视化 多视口default 模式</a></li>
+        <li><a href="./baseGraphics/GBuffersVisualize/V2_boxAndSky.html">GBuffer 可视化 single 模式</a></li>
+        <li><a href="./baseGraphics/GBuffersVisualize/rotatingCubeX2.html">GBuffer 可视化 single 模式:同一个stage的entity ID</a>
+        </li>
 
         <li>
             <h2>----web worker and OffscreenCanvas----</h2>
@@ -161,7 +172,7 @@
 
         <li><a href="./Graphics_Techniques/GBuffer_depth_1.html">GBuffer depth</a></li>
         <li><a href="./Graphics_Techniques/GBuffer_normal_1.html">GBuffer normal</a></li>
-    
+
     </ul>
 </body>
 

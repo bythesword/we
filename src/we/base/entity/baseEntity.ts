@@ -317,7 +317,7 @@ export abstract class BaseEntity extends Root {
         if (this._shadow.generate === true) {
             this._shadowMaterail = new ShadowMaterial();
         }
-        this.updateMatrix();
+        // this.updateMatrix();
 
     }
     /** */
@@ -441,6 +441,8 @@ export abstract class BaseEntity extends Root {
      * 其实是没有影响，线性工作在3x3矩阵，位置变换在[12,13,14]
      */
     updateMatrix(): any {
+        this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
         if (this.input?.matrix)
             mat4.copy(this.input.matrix, this.matrix);
         if (this.input?.scale)
