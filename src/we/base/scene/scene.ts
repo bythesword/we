@@ -1,4 +1,4 @@
-declare global { interface Window { scene: any } }
+// declare global { interface Window { scene: any } }
 import wgsl_main from "../shader/system.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
@@ -21,11 +21,28 @@ import { CamreaControl } from "../control/cameracCntrol";
 
 /**这个部分是为编辑器使用定义的*/
 export interface sceneStageInput {
-    /**定义stage列表 */
+    /**定义stage列表 
+      stages: stageName = [
+        "Actor",//角色
+        "DynamicEntities",//水、树、草等
+        "World",//静态
+        "Sky",//天空盒
+        "UI",
+        ];
+     * 
+    */
     stages: coreConst.stageName,
-    /**定义stage 显示排序 */
+    /**stage DeferRender  */
+    stagesOfDeferRender: boolean[]
+    /**定义stage 显示排序
+     * 
+     *  [0, 1, 2, 3, 4]
+     */
     stagesOrders: [],
-    /**默认stage名称 */
+    /**默认stage名称
+     * 
+     * stages[] 中的一个名称,exp:"World"
+     */
     defaultStageName: string,
 }
 /**
@@ -45,7 +62,8 @@ export interface sceneInputJson extends sceneJson {
     /**Debug  */
     // Debug?: WE_Debug,
     /**自定义stage */
-    stageSetting?: sceneStageInput
+    stageSetting?: sceneStageInput,
+
 }
 
 /**scene 中配置是否使用GBuffer可视化的interface，
@@ -175,6 +193,12 @@ class Scene extends BaseScene {
 
     }
 
+    /** for raw */
+    rawColorTexture!: GPUTexture;
+    /** for raw*/
+    rawDepthTexture!: GPUTexture;
+    /** for raw*/
+    rawColorAttachmentTargets!: GPUColorTargetState[];
 
     constructor(input: sceneInputJson) {
         super(input);
@@ -281,17 +305,50 @@ class Scene extends BaseScene {
         await this.initStages();
         this.GBuffers = await this.initGBuffers(canvas.width, canvas.height);
         //for raw uniform model
-        this.renderPassDescriptor = await this.createRenderPassDescriptor();
+        // this.renderPassDescriptor = await this.createRenderPassDescriptorForRAW();
         this.initActors();
         this.initGBuffersPostProcess();
         // this.initGBuffersVisualize()
         this.initPostProcess();
         this.initPickup()
-
+        this.initForRAW()
         this.observer();
     }
 
-
+    async initForRAW() {
+        this.rawColorTexture = this.device.createTexture({
+            size: [this.canvas.width, this.canvas.height],
+            format: this.presentationFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+        });
+        this.rawDepthTexture = this.device.createTexture({
+            size: [this.canvas.width, this.canvas.height],
+            format: this.depthDefaultFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+        });
+        this.rawColorAttachmentTargets = [
+            // color
+            { format: this.presentationFormat },
+        ];
+        this.renderPassDescriptor = {
+            label: "stage:forward render pass descriptor",
+            colorAttachments: [
+                {
+                    view: this.rawColorTexture.createView(),
+                    clearValue: this.backgroudColor,
+                    loadOp: 'clear',
+                    storeOp: "store"
+                }
+            ],
+            depthStencilAttachment: {
+                view: this.rawDepthTexture.createView(),
+                depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
+                // depthLoadOp: 'load',
+                depthLoadOp: 'clear',
+                depthStoreOp: 'store',
+            },
+        };
+    }
     /** for raw uniform model*/
     getRenderPassDescriptor() {
         return this.renderPassDescriptor;
@@ -327,7 +384,35 @@ class Scene extends BaseScene {
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
-
+    //todo:20241212 ,为透明提供system uniform
+    createSystemUnifromGroupForPerShaderForTransparent(pipeline: GPURenderPipeline): GPUBindGroup {
+        const bindLayout = pipeline.getBindGroupLayout(0);
+        let groupDesc: GPUBindGroupDescriptor = {
+            label: "global Group bind to 0",
+            layout: bindLayout,
+            entries:
+                [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.systemUniformBuffers["MVP"]!,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: this.systemUniformBuffers["lights"]!,
+                        }
+                    },
+                    {//todo:20241212 ,为透明提供system uniform
+                        binding: 2,
+                        resource: this.GBuffers["depth"].createView(),
+                    }
+                ],
+        }
+        const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
+        return bindGroup;
+    }
     getLightNumbers() {
         return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
     }
@@ -697,9 +782,10 @@ class Scene extends BaseScene {
                 if (this.stages[name].opaque) {
                     this.stages[name].opaque!.update(deltaTime, startTime, lastTime);
                 }
-                if (this.stages[name].transparent) {
-                    this.stages[name].transparent!.update(deltaTime, startTime, lastTime);
-                }
+                //20241212:透明render移动到GBufferPostprocess中进行油画法
+                // if (this.stages[name].transparent) {
+                //     this.stages[name].transparent!.update(deltaTime, startTime, lastTime);
+                // }
             }
         }
     }
@@ -744,9 +830,9 @@ class Scene extends BaseScene {
                 let mouse = (this.inputControl as CamreaControl).getPointerInput();
                 if (mouse)
                     if (mouse.buttons == 1 && mouse.x && mouse.y) {
-                        const rect=this.canvas.getBoundingClientRect()
+                        const rect = this.canvas.getBoundingClientRect()
                         //  console.log(mouse.x,mouse.y)
-                        return { x: mouse.x-rect.x, y: mouse.y-rect.y }
+                        return { x: mouse.x - rect.x, y: mouse.y - rect.y }
                     }
             }
         return false;
@@ -771,11 +857,13 @@ class Scene extends BaseScene {
 
     /** 初始化 后处理    */
     async postProcess() {
-
+        //  this.copyTextureToTexture(this.stages["World"]!.opaque!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
     }
     /**每帧渲染的最后步骤 */
     async copyToSurface() {
+
         this.copyTextureToTexture(this.sourceOfcopyToSurface, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+
 
         //直接测试：world -->scene
         // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
@@ -783,7 +871,10 @@ class Scene extends BaseScene {
         //中转测试：world-->  scene
         // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
         // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+    }
 
+    copyRawToSurface() {
+        this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
     }
 
     /**
@@ -929,22 +1020,28 @@ class Scene extends BaseScene {
      * depth buffer 在此初始化，todo
     */
     async initStages() {
-        // let worldStage = new BaseStage({ name: "World", scene: this });
-        // await worldStage.init();
-        // let worldStageTransparent = new BaseStage({ name: "World", transparent: true, scene: this });
-        // await worldStageTransparent.init();
+
         this.stages = {};
-        // this.stages["World"] = {
-        //     opaque: worldStage,
-        //     transparent: worldStageTransparent,
-        // };
-        // for (let i in coreConst.stagesOfSystem) {
         for (let i of this.stagesOrders) {
             let name = this.stagesOfSystem[i];
             if (name != "UI" && name != "Sky") {
-                let stageOpaque = new BaseStage({ name, scene: this });
+                let stageOpaque = new BaseStage({
+                    name,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
                 await stageOpaque.init();
-                let stageTransparent = new BaseStage({ name, transparent: true, scene: this });
+                let stageTransparent = new BaseStage({
+                    name, transparent: true,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
                 await stageTransparent.init();
                 this.stages[name] = {
                     opaque: stageOpaque,
@@ -952,7 +1049,14 @@ class Scene extends BaseScene {
                 };
             }
             else if (name == "Sky") {
-                let stageOpaque = new BaseStage({ name, scene: this });
+                let stageOpaque = new BaseStage({
+                    name,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
                 await stageOpaque.init();
                 this.stages[name] = {
                     opaque: stageOpaque,
@@ -960,7 +1064,14 @@ class Scene extends BaseScene {
                 };
             }
             else if (name == "UI") {
-                let stageTransparent = new BaseStage({ name, scene: this });
+                let stageTransparent = new BaseStage({
+                    name,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
                 await stageTransparent.init();
                 this.stages[name] = {
                     opaque: undefined,

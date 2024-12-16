@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>WE 3D</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      html, body {
+        margin: 0;      /* remove default margin */
+        height: 100%;   /* make body fill the browser window */
+        display: flex;
+        place-content: center center;
+        background-color: aquamarine;
+      }
+      canvas {
+        width: 600px;
+        height: 600px;
+        max-width: 100%;
+        display: block;
+      }
+    </style>
+    <script defer src="./test_VS_depth_only.ts" type="module"></script>
+  </head>
+  <body>
+    <canvas id="render"></canvas>
+  </body>
+</html>

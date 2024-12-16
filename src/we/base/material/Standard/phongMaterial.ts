@@ -3,6 +3,7 @@ import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 import { uniformEntries } from "../../command/baseCommand";
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
 import { weSamplerKind } from "../../resource/weResource";
+import { optionBaseMaterialStep2 } from "../baseMaterial";
 
 export type textureType = ImageBitmap | string | GPUTexture;
 /*
@@ -47,15 +48,15 @@ export class PhongMaterial extends PhongColorMaterial {
         //         minFilter: 'linear',
         //     });
         // }
-        if (input?.scene)
-            this.init();
-    }
-    async readyForGPU() {
-        await this.init();
-    }
 
-    async init() {
+        // if (input?.scene)
+        //     this.init();
+    }
+    // async readyForGPU() {
+    //     await this.init();
+    // }
 
+    async __init() {
         if (this.input?.texture) {
             let texture = this.input.texture;
             if (texture.texture) {
@@ -185,8 +186,10 @@ export class PhongMaterial extends PhongColorMaterial {
      * 
      * @returns  FS code
      */
-    getCodeFS() {
+    getCodeFS(startBinding: number) {
         let code = lightsFS;
+        let binding = startBinding;
+        
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
         code = code.replaceAll("$green", this.green.toString());
@@ -210,8 +213,10 @@ export class PhongMaterial extends PhongColorMaterial {
 
         //判断texture种类，增加对应贴图，增加一个采样（uniform中，binding 4）
         if (this.countOfTextures > 0) {
-            code += "@group(1) @binding(2) var u_Sampler : sampler; \n ";
-            let binding = 3;
+           
+            code += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;
+            // let binding = 3;
+            binding++;
             for (let i in this.textures) {
                 if (i == "specularTexture") {
                     flag_spec = true;
@@ -244,17 +249,19 @@ export class PhongMaterial extends PhongColorMaterial {
         else {
             code = code.replaceAll("$normal", normal);
         }
+        code += `@group(1) @binding(${binding}) var<uniform> u_bulinphong : bulin_phong; \n`
         return this.shaderCodeProcess(code);
     }
 
     destroy() {
         this._destroy = true;
     }
-    getUniform(): uniformEntries[] {
+    getUniform(startBinding: number): uniformEntries[] {
         let scope = this;
+        let binding = startBinding;
         if (this.sampler == undefined) {
             let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
-            if (this.scene.resources.sampler[weSamplerKind.linear]) {
+            if (this.scene.resources.sampler[weSamplerKind[sampler]]) {
                 this.sampler = this.scene.resources.sampler[weSamplerKind[sampler]];
             }
             else {
@@ -264,10 +271,26 @@ export class PhongMaterial extends PhongColorMaterial {
                 });
             }
         }
-        let phong: uniformEntries[] = [
+        let phong: uniformEntries[] = []
+        if (this.countOfTextures > 0) {
+            phong.push({
+                binding: binding++,
+                resource: this.sampler,
+            });
+            // let binding = 3;
+            for (let i in this.textures) {
+                const one = {
+                    binding,
+                    resource: this.textures[i].createView(),
+                };
+                phong.push(one);
+                binding++;
+            }
+        }
+        phong.push(
             {
                 label: "Mesh FS bulin phong",
-                binding: 1,
+                binding: binding++,
                 size: 4 * 3,
                 get: () => {
                     let a = new Float32Array(3);
@@ -277,23 +300,7 @@ export class PhongMaterial extends PhongColorMaterial {
                     return a;
                 },
             },
-
-        ];
-        if (this.countOfTextures > 0) {
-            phong.push({
-                binding: 2,
-                resource: this.sampler,
-            });
-            let binding = 3;
-            for (let i in this.textures) {
-                const one = {
-                    binding,
-                    resource: this.textures[i].createView(),
-                }
-                phong.push(one);
-                binding++;
-            }
-        }
+        );
         return phong;
     }
 

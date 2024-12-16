@@ -29,7 +29,7 @@ export class GBufferPostProcess extends SingleRender {
     }
     GBuffers: GBuffers;
     declare input: optionGBPP;
-   
+
     presentationFormat: GPUTextureFormat;
     depthDefaultFormat: GPUTextureFormat;
     // sampler: GPUSampler;
@@ -184,53 +184,67 @@ export class GBufferPostProcess extends SingleRender {
         );
         this.commands.push(copyToColorTexture);
 
-        //只有color，一个DC，stage在uniform中
-        let uniformsTransparent: unifromGroup[] = this.getTexturesOfUniformFromStageForTransparent();
-        let optionsTransparent: drawOptionOfCommand = {
-            label: "GBuffers render Transparent",
-            vertex: {
-                code: shaderTransparent,
-                entryPoint: "vs",
-            },
-            fragment: {
-                code: shaderTransparent,
-                entryPoint: "fs",
-                targets: this.colorAttachmentTargetsOfTransparent,
-                constants: {
-                    // far: far,
-                    // count_of_stage: 4,
-                    canvasSizeWidth: this.surfaceSize.width,
-                    canvasSizeHeight: this.surfaceSize.height,
-                    reversedZ: this._isReversedZ,
-                }
-            },
-            draw: {
-                mode: "draw",
-                values: values
-            },
-            scene: this.parent,
-            uniforms: uniformsTransparent,
-            primitive: {
-                topology: 'triangle-list',
-                cullMode: "back",
-            },
-            rawUniform: true,
-            renderPassDescriptor: this.renderPassDescriptorOfTransparent,
-        };
-        let DC_Transparent = new DrawCommand(optionsTransparent);
-        this.commands.push(DC_Transparent);
+        //20241212,todo:将透明层由合并改为比较depth的油画法
+        // //只有color，一个DC，stage在uniform中
+        // let uniformsTransparent: unifromGroup[] = this.getTexturesOfUniformFromStageForTransparent();
+        // let optionsTransparent: drawOptionOfCommand = {
+        //     label: "GBuffers render Transparent",
+        //     vertex: {
+        //         code: shaderTransparent,
+        //         entryPoint: "vs",
+        //     },
+        //     fragment: {
+        //         code: shaderTransparent,
+        //         entryPoint: "fs",
+        //         targets: this.colorAttachmentTargetsOfTransparent,
+        //         constants: {
+        //             // far: far,
+        //             // count_of_stage: 4,
+        //             canvasSizeWidth: this.surfaceSize.width,
+        //             canvasSizeHeight: this.surfaceSize.height,
+        //             reversedZ: this._isReversedZ,
+        //         }
+        //     },
+        //     draw: {
+        //         mode: "draw",
+        //         values: values
+        //     },
+        //     scene: this.parent,
+        //     uniforms: uniformsTransparent,
+        //     primitive: {
+        //         topology: 'triangle-list',
+        //         cullMode: "back",
+        //     },
+        //     rawUniform: true,
+        //     renderPassDescriptor: this.renderPassDescriptorOfTransparent,
+        // };
+        // let DC_Transparent = new DrawCommand(optionsTransparent);
+        // this.commands.push(DC_Transparent);
 
-        let copyGbufferColorToTarget = new CopyCommandT2T(
-            {
-                A: this.GBuffers["color"],
-                B: this.colorTexture,
-                size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-                device: this.device
-            }
-        );
-        this.commands.push(copyGbufferColorToTarget);
+        // let copyGbufferColorToTarget = new CopyCommandT2T(
+        //     {
+        //         A: this.GBuffers["color"],
+        //         B: this.colorTexture,
+        //         size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
+        //         device: this.device
+        //     }
+        // );
+        // this.commands.push(copyGbufferColorToTarget);
+        this.drawTransparent();
 
     }
+    //todo 20241212
+    drawTransparent() {
+        // //systerm uniform 需要增加 depth texture ,以进行比较
+        // for (let i in this.parent.stagesOrders) {
+        //     const perList = this.parent.stagesOrders[i];//number，stagesOfSystem的数组角标
+        //     const name = stagesOfSystem[perList];
+        //     if (this.parent.stages[name].transparent) {
+        //         this.parent.stages[name].transparent!.update(deltaTime, startTime, lastTime);
+        //     }
+        // }
+    }
+
     createRenderPassDescriptorOfID(): renderPassDescriptorAndTaget {
         let colorAttachmentTargets: GPUColorTargetState[] = [
             //color

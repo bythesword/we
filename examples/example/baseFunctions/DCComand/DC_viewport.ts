@@ -19,46 +19,34 @@ window.scene = scene;
 // scene.requestAnimationFrame();
 //这里color输出乘以了0.16,为了区别表现
 let shader = `
-struct OurVertexShaderOutput {
-  @builtin(position) position: vec4f,
-  @location(0) color: vec4f,
-};
-struct UniOurStruct {
-  color: vec4f,
-  offset: vec3f,
-};
+      struct OurVertexShaderOutput {
+        @builtin(position) position: vec4f,
+        @location(0) color: vec4f,
+      };
+     struct UniOurStruct {
+        color: vec4f,
+        offset: vec3f,
+      };
+ 
+      @group(0) @binding(0) var<uniform> ourStruct: UniOurStruct;
 
-@group(0) @binding(0) var<uniform> ourStruct: UniOurStruct;
+      @vertex fn vs(
+         @location(0) position : vec3f,
+         @location(1) color : vec4f,
+         @builtin(instance_index) instanceIndex : u32
+      ) -> OurVertexShaderOutput {
+        let a =instanceIndex;
+        var  n =   f32(a);
 
-@vertex fn vs(
-   @location(0) position : vec3f,
-   @location(1) color : vec4f,
-   @builtin(instance_index) instanceIndex : u32
-) -> OurVertexShaderOutput {
-  let a =instanceIndex;
-  var  n =   f32(a);
+        var vsOutput: OurVertexShaderOutput;
+        vsOutput.position = vec4f(position-ourStruct.offset*vec3f((n+1)*0.5),  1.0);
+        vsOutput.color = ourStruct.color+vec4f((n+1.)*0.15);
+        return vsOutput;
+      }
 
-  var vsOutput: OurVertexShaderOutput;
-  vsOutput.position = vec4f(position-ourStruct.offset*vec3f((n+1)*0.5),  1.0);
-  vsOutput.color = ourStruct.color+vec4f((n+1.)*0.15);
-  return vsOutput;
-}
-struct ST_GBuffer{
-  @builtin(frag_depth) depth : f32,
-  @location(0) color : vec4f,
-  @location(1) id : u32,
-  @location(2) normal : vec4f,
-  @location(3) uv : vec4f,
-}
-@fragment fn fs(@location(0) color: vec4f) -> ST_GBuffer {
-  var  output:ST_GBuffer;
-  output.color = color;
-  output.id = u32(1);
-  output.depth = f32(.0);
-  output.uv = vec4f(  1);
-  output.normal = vec4f(  1);
-  return output;
-}
+      @fragment fn fs(@location(0) color: vec4f) -> @location(0)  vec4f{
+        return color;
+      }
 `;
 const oneTriangleVertexArray = [
   0.0, 0.5, 0.9, 1, 0, 0, 1,
@@ -108,11 +96,7 @@ let options: drawOptionOfCommand = {
   fragment: {
     code: shader,
     entryPoint: "fs",
-    targets: [{ format: scene.presentationFormat },
-      // { format: scene.depthDefaultFormat },
-      { format: "r32uint" },
-      { format: scene.presentationFormat },
-      { format: scene.presentationFormat },]
+    targets: [{ format: scene.presentationFormat }]
   },
   uniforms: [
     {
@@ -166,4 +150,5 @@ let DC = new DrawCommand(options);
 
 window.DC = DC;
 DC.submit()
-scene.postProcess();
+
+scene.copyRawToSurface();

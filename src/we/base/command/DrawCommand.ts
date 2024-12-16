@@ -124,7 +124,7 @@ export interface drawModeIndexed {
 export interface drawOptionOfCommand extends baseOptionOfCommand {
     vertex: vsPart,
 
-    fragment: fsPart,
+    fragment?: fsPart,//20241215,若只进行VS输出depth，非必须
 
     primitive?: GPUPrimitiveState,
 
@@ -164,9 +164,9 @@ export interface drawOptionOfCommand extends baseOptionOfCommand {
     /**viewport,从标准化设备坐标(NDC)线性映射到视区坐标。
      */
     viewport?: viewport,
-   
+
     /**pipeline中的深度处理描述  GPUDepthStencilState */
-    depthStencilState?:GPUDepthStencilState,
+    depthStencilState?: GPUDepthStencilState,
 }
 /**
  *   默认是surface的全部,
@@ -236,14 +236,14 @@ export class DrawCommand extends BaseCommand {
         }
         else {
             this.renderPassDescriptor = this.scene.getRenderPassDescriptor();
- 
+
         }
-        if(options.depthStencilState){
-            this.depthStencil =options.depthStencilState
+        if (options.depthStencilState) {
+            this.depthStencil = options.depthStencilState
         }
         else {
             if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor)
-            this.depthStencil = this.scene.depthStencil;//scene extend baseScene
+                this.depthStencil = this.scene.depthStencil;//scene extend baseScene
         }
         //todo indexBuffer
         if (options.indexBuffer != undefined && this.input.draw.mode == "index") {
@@ -387,62 +387,97 @@ export class DrawCommand extends BaseCommand {
             }
         }
         let constantsVertex = this.input.vertex.constants;
-        let constantsFrag = this.input.fragment.constants;
         let descriptor: GPURenderPipelineDescriptor;
+        if (this.input.fragment) {
+            let constantsFrag = this.input.fragment.constants;
+            //这里合并system uniform 的bindgroup，VS与FS 部分
+            if (this.input.rawUniform) {
+                descriptor = {
+                    label: label,
+                    layout: this.pipelineLayout,
+                    vertex: {
+                        module: device.createShaderModule({
+                            code: this.input.vertex.code,
+                        }),
+                        entryPoint: this.input.vertex.entryPoint,
+                        buffers: buffer,
+                        constants: constantsVertex,
+                    },
+                    fragment: {
+                        module: device.createShaderModule({
+                            code: this.input.fragment.code,
+                        }),
+                        entryPoint: this.input.fragment.entryPoint,
+                        targets: this.input.fragment.targets,
+                        constants: constantsFrag,
+                    },
+                    primitive: this.primitive,
 
-        //这里合并system uniform 的bindgroup，VS与FS 部分
-        if (this.input.rawUniform) {
-            descriptor = {
-                label: label,
-                layout: this.pipelineLayout,
-                vertex: {
-                    module: device.createShaderModule({
-                        code: this.input.vertex.code,
-                    }),
-                    entryPoint: this.input.vertex.entryPoint,
-                    buffers: buffer,
-                    constants: constantsVertex,
-                },
-                fragment: {
-                    module: device.createShaderModule({
-                        code: this.input.fragment.code,
-                    }),
-                    entryPoint: this.input.fragment.entryPoint,
-                    targets: this.input.fragment.targets,
-                    constants: constantsFrag,
-                },
-                primitive: this.primitive,
+                };
+            }
+            else {
+                let wgslOfSystem = this.scene.getWGSLOfSystemShader();
+                let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
+                let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
+                descriptor = {
+                    label: label,
+                    layout: this.pipelineLayout,
+                    vertex: {
+                        module: device.createShaderModule({
+                            code: codeVS,
+                        }),
+                        entryPoint: this.input.vertex.entryPoint,
+                        buffers: buffer,
+                        constants: constantsVertex,
+                    },
+                    fragment: {
+                        module: device.createShaderModule({
+                            code: codeFS,
+                        }),
+                        entryPoint: this.input.fragment.entryPoint,
+                        targets: this.input.fragment.targets,
+                        constants: constantsFrag,
+                    },
+                    primitive: this.primitive,
 
-            };
+                };
+            }
         }
         else {
-            let wgslOfSystem = this.scene.getWGSLOfSystemShader();
-            let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
-            let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
-            descriptor = {
-                label: label,
-                layout: this.pipelineLayout,
-                vertex: {
-                    module: device.createShaderModule({
-                        code: codeVS,
-                    }),
-                    entryPoint: this.input.vertex.entryPoint,
-                    buffers: buffer,
-                    constants: constantsVertex,
-                },
-                fragment: {
-                    module: device.createShaderModule({
-                        code: codeFS,
-                    }),
-                    entryPoint: this.input.fragment.entryPoint,
-                    targets: this.input.fragment.targets,
-                    constants: constantsFrag,
-                },
-                primitive: this.primitive,
-
-            };
+            //只有VS 部分
+            if (this.input.rawUniform) {
+                descriptor = {
+                    label: label,
+                    layout: this.pipelineLayout,
+                    vertex: {
+                        module: device.createShaderModule({
+                            code: this.input.vertex.code,
+                        }),
+                        entryPoint: this.input.vertex.entryPoint,
+                        buffers: buffer,
+                        constants: constantsVertex,
+                    },
+                    primitive: this.primitive,
+                };
+            }
+            else {
+                let wgslOfSystem = this.scene.getWGSLOfSystemShader();
+                let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
+                descriptor = {
+                    label: label,
+                    layout: this.pipelineLayout,
+                    vertex: {
+                        module: device.createShaderModule({
+                            code: codeVS,
+                        }),
+                        entryPoint: this.input.vertex.entryPoint,
+                        buffers: buffer,
+                        constants: constantsVertex,
+                    },
+                    primitive: this.primitive,
+                };
+            }
         }
-
 
         if (this.depthStencil) {
             descriptor.depthStencil = this.depthStencil;

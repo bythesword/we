@@ -22,9 +22,7 @@ export interface optionPhongColorMaterial extends optionBaseMaterial {
  * phong 模型的颜色版本，无texture
  */
 export class PhongColorMaterial extends BaseMaterial {
-    init() {
-
-
+    __init() {
         // throw new Error("Method not implemented.");
     }
 
@@ -46,7 +44,7 @@ export class PhongColorMaterial extends BaseMaterial {
         this._already = true;
     }
 
-    getCodeFS() {
+    getCodeFS(startBinding:number) {
         let code = colorOnlyFS
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
@@ -59,12 +57,13 @@ export class PhongColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(): uniformEntries[] {
+    getUniform(startBinding:number): uniformEntries[] {
         let scope = this;
+        let binding=startBinding;
         let phong: uniformBufferPart[] = [
             {
                 label: "Mesh FS Shininess",
-                binding: 1,
+                binding: binding++,
                 size: 4 * 1,
                 get: () => {
                     let a = new Float32Array(1);
@@ -74,7 +73,7 @@ export class PhongColorMaterial extends BaseMaterial {
             },
             {
                 label: "Mesh FS metalness",
-                binding: 2,
+                binding: binding++,
                 size: 4 * 1,
                 get: () => {
                     let a = new Float32Array(1);
@@ -84,7 +83,7 @@ export class PhongColorMaterial extends BaseMaterial {
             },
             {
                 label: "Mesh FS roughness",
-                binding: 3,
+                binding: binding++,
                 size: 4 * 1,
                 get: () => {
                     let a = new Float32Array(1);

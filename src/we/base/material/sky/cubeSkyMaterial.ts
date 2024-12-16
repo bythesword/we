@@ -17,6 +17,7 @@ interface textures {
 
 export class CubeSkyMaterial extends BaseMaterial {
 
+
     declare input: optionCubeSkyMaterial;
     textures!: textures
     /** cube 天空盒材质，2d array texture */
@@ -44,14 +45,14 @@ export class CubeSkyMaterial extends BaseMaterial {
         //     minFilter: input.samplerFilter ? input.samplerFilter : 'linear',
         // });
 
-        if (input.scene)
-            this.init();
+        // if (input.scene)
+        //     this.init();
     }
-    async readyForGPU() {
-        await this.init();
-    }
+    // async readyForGPU() {
+    //     await this.init();
+    // }
 
-    async init() {
+    async __init() {
         let scope = this;
         let imgSrcs = this.input.cubeTexture.texture;
         let aaa: any[] = [];
@@ -147,16 +148,21 @@ export class CubeSkyMaterial extends BaseMaterial {
         }
     };
 
-    getCodeFS() {
+    getCodeFS(startBinding: number) {
+        let binding = startBinding;
 
-        // return cubeSky;
-        return this.shaderCodeProcess(cubeSky);
+        let one = ` @group(1) @binding(${binding}) var mySampler : sampler;`;
+        binding++;
+        let two = `@group(1) @binding(${binding}) var myTexture : texture_cube < f32>;`
+        let code = one + two + cubeSky;
+        return this.shaderCodeProcess(code);
     }
 
     destroy() {
         this._destroy = true;
     }
-    getUniform(): uniformEntries[] {
+    getUniform(startBinding: number): uniformEntries[] {
+        let binding = startBinding;
         let scope = this;
         if (this.sampler == undefined) {
             let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
@@ -173,11 +179,11 @@ export class CubeSkyMaterial extends BaseMaterial {
         let phong: uniformEntries[] = [
 
             {
-                binding: 1,
+                binding: binding++,
                 resource: this.sampler,
             },
             {
-                binding: 2,
+                binding: binding++,
                 resource: this.skyTexture.createView({
                     dimension: 'cube',
                 }),

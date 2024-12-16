@@ -1,5 +1,5 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
+import { BaseEntity, initStateEntity, optionBaseEntity, renderCommands } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
@@ -8,7 +8,7 @@ import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 //for wireframe
 import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
-import { commmandType } from "../../scene/baseScene";
+
 
 
 
@@ -63,15 +63,7 @@ export class Mesh extends BaseEntity {
         this._geometry = input.geometry;
         this._material = input.material;
 
-        this._init = initStateEntity.unstart;
-        this.init()
-        this._init = initStateEntity.unstart;
-    }
-    /**覆写 Root的function,因为材料类需要GPUDevice */
-    async readyForGPU() {
-        await this._material.setRootENV(this.scene);
-    }
-    init() {
+        // this._init = initStateEntity.unstart;
 
         this._wireframeColor = { red: 0, green: 0, blue: 0, alpha: 1 };
         if ((this.input as optionMeshEntity).wireFrame === false) {//默认有线框
@@ -83,23 +75,28 @@ export class Mesh extends BaseEntity {
 
         if ((this.input as optionMeshEntity).wireFrameColor) {
             this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as coreConst.color4F;
-            let abc = 1;
         }
 
-        // throw new Error("Method not implemented.");
-
+        this._init = initStateEntity.unstart;
     }
-
-    // updateUniformBuffer(_scene: any, deltaTime: number, startTime: number, lastTime: number) {
-
-    // }
-    updateDCC(_scene: any, deltaTime: number, startTime: number, lastTime: number): commmandType[] {
-        // throw new Error("Method not implemented.");
-        return this._commmands;
+    /**覆写 Root的function,因为材料类需要GPUDevice */
+    async readyForGPU() {
+        await this._material.init({
+            scene: this.scene,
+            deferRenderColor: this.deferRenderColor,
+            deferRenderDepth: this.deferRenderDepth,
+            reversedZ: this.reversedZ
+        });
+        // await this._material.setRootENV(this.scene);
     }
     destroy() {
-        // throw new Error("Method not implemented.");
-        for (let i of this._commmands) {
+        for (let i of this._commmands.forward) {
+            i.destroy();
+        }
+        for (let i of this._commmands.depth) {
+            i.destroy();
+        }
+        for (let i of this._commmands.color) {
             i.destroy();
         }
     }
@@ -117,6 +114,8 @@ export class Mesh extends BaseEntity {
     initDCC(scene: any) {
         let already = this.checkStatus();
         if (already) {
+            this._init = initStateEntity.initializing;
+            if (this.deferRenderDepth) this._init =  this.createDCCDeferRenderDepth(scene);
             this._init = this.createDCC(scene);
             this.generateBox();
         }
@@ -127,16 +126,40 @@ export class Mesh extends BaseEntity {
      * @returns 完成标志位：initStateEntity.finished
      */
     createDCC(scene: any): initStateEntity {
-
         let scope = this;
         /////////////////////box  
         let shader;
+        let binding = 0;
+        let constants = {};
+        let uniforms: unifromGroup[] = [];
         if (this._wireFrameOnly === false) {
+            uniforms.push(
+                {
+                    layout: 1,
+                    entries: [
+                        {
+                            label: "Mesh matrixWorld",
+                            binding: binding++,
+                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                            get: () => { return scope.getUniformOfMatrix() },
+                        }
+                    ]
+                });
+            if (this.deferRenderDepth) {
+                uniforms[0].entries.push({
+                    binding: binding++,
+                    resource: this.stage!.depthTextureOnly.createView()
+                });
+                // constants = {
+                //     canvasSizeWidth: this.stage!.scene.canvas.width,
+                //     canvasSizeHeight: this.stage!.scene.canvas.height,
+                // }
+            }
             if (this.input?.shaderCode) {
                 shader = this.input.shaderCode;
             }
             else {
-                let shaderFS = this._material.getCodeFS();
+                let shaderFS = this._material.getCodeFS(binding);
                 let shaderVS = this._geometry.getCodeVS();
                 shader = shaderVS + shaderFS;
                 shader = this.shaderCodeProcess(shader);
@@ -151,20 +174,8 @@ export class Mesh extends BaseEntity {
                 instanceCount: this.numInstances,
             };
             // let options: drawOptionOfCommand;
-            let uniformFS = this._material.getUniform();
-            let uniforms: unifromGroup[] = [
-                {
-                    layout: 1,
-                    entries: [
-                        {
-                            label: "Mesh matrixWorld",
-                            binding: 0,
-                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
-                            get: () => { return scope.getUniformOfMatrix() },
-                        }
-                    ]
-                },
-            ];
+            let uniformFS = this._material.getUniform(binding);
+
             if (uniformFS !== false) {
                 for (let i of uniformFS as uniformEntries[])
                     uniforms[0].entries.push(i);
@@ -180,7 +191,8 @@ export class Mesh extends BaseEntity {
                 fragment: {
                     code: shader,
                     entryPoint: "fs",
-                    targets: this.getFragmentTargets()
+                    targets: this.getFragmentTargets(),
+                    constants: constants
                     //[{ format: scene.presentationFormat }]
                 },
                 primitive: {
@@ -200,7 +212,7 @@ export class Mesh extends BaseEntity {
             };
 
             let DC = new DrawCommand(options);
-            this._commmands.push(DC);
+            this._commmands.forward.push(DC);
         }
 
         /////////////////////////////// wire frame
@@ -209,8 +221,8 @@ export class Mesh extends BaseEntity {
             wireFrameShaderCodeVS = this.shaderCodeProcess(wireFrameShaderCodeVS);
 
             let wireFrameShaderCodeFS = this._geometry.getWireFrameShdaerCodeFS(this._wireframeColor);//获取线框的shader code ，传入线框颜色
-            wireFrameShaderCodeFS=partHead_GBuffer_Add_FS +wireFrameShaderCodeFS;
-            wireFrameShaderCodeFS=wireFrameShaderCodeFS.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
+            wireFrameShaderCodeFS = partHead_GBuffer_Add_FS + wireFrameShaderCodeFS;
+            wireFrameShaderCodeFS = wireFrameShaderCodeFS.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
             let wireFrameShaderCode = wireFrameShaderCodeVS + wireFrameShaderCodeFS;
 
             let wireFrameVsa = this._geometry.getAttribute();
@@ -263,11 +275,116 @@ export class Mesh extends BaseEntity {
 
             }
             let wireFrameDC = new DrawCommand(wireFrameOptions);
-            this._commmands.push(wireFrameDC);
+            this._commmands.forward.push(wireFrameDC);
         }
         return initStateEntity.finished;
     }
 
+    updateDCC(_scene: any, deltaTime: number, startTime: number, lastTime: number): renderCommands {
+        return this._commmands;
+    }
+    createDCCDeferRenderDepth(scene: any): initStateEntity {
+        let scope = this;
+        /////////////////////box  
+        let shader = this._geometry.getCodeVS();
+        shader = this.shaderCodeProcess(shader);
 
 
+        let vsa = this._geometry.getAttribute();
+        let indexBuffer = this._geometry.getIndeices();
+        let counts = this._geometry.getDrawCount();
+
+        let values: drawModeIndexed = {
+            indexCount: counts,
+            instanceCount: this.numInstances,
+        };
+
+        let uniforms: unifromGroup[] = [
+            {
+                layout: 1,
+                entries: [
+                    {
+                        label: "Mesh matrixWorld",
+                        binding: 0,
+                        size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                        get: () => { return scope.getUniformOfMatrix() },
+                    }
+                ]
+            },
+        ];
+        // const uniformBufferBindGroupLayout0 = this.device.createBindGroupLayout({
+        //     entries: [
+        //       {
+        //         binding: 0,
+        //         visibility: GPUShaderStage.VERTEX,
+        //         buffer: {
+        //           type: 'uniform',
+        //         },
+        //       },
+        //       {
+        //         binding: 1,
+        //         visibility: GPUShaderStage.VERTEX,
+        //         buffer: {
+        //           type: 'uniform',
+        //         },
+        //       },
+        //     ],
+        //   });
+
+        // const uniformBufferBindGroupLayout1= this.device.createBindGroupLayout({
+        //     entries: [
+        //       {
+        //         binding: 0,
+        //         visibility: GPUShaderStage.VERTEX,
+        //         buffer: {
+        //           type: 'uniform',
+        //         },
+        //       },
+        //     ],
+        //   });
+        // let layout: GPUPipelineLayout = this.device.createPipelineLayout({
+        //     bindGroupLayouts: [
+        //         uniformBufferBindGroupLayout0,
+        //         uniformBufferBindGroupLayout1,
+        //     ],
+        // });
+
+
+
+        let options: drawOptionOfCommand = {
+            label: "Mesh for deferRender depth" + this.name,
+            scene: scene,
+            vertex: {
+                code: shader,
+                entryPoint: "vs",
+                buffers: vsa
+            },
+            primitive: {
+                topology: 'triangle-list',
+                cullMode: this._cullMode,
+            },
+            uniforms: uniforms,
+            // rawUniform: true,
+            draw: {
+                mode: "index",
+                values: values,
+
+            },
+            indexBuffer: indexBuffer as indexBuffer,
+
+            renderPassDescriptor: this.stage!.getRenderPassDescriptor_ForDeferDepth(),
+            // depthStencilState: {
+            //     depthWriteEnabled: true,
+            //     depthCompare: 'less',
+            //     format: 'depth32float',
+            // },
+            // layout,
+
+        };
+
+        let DC = new DrawCommand(options);
+        this._commmands.depth.push(DC);
+
+        return initStateEntity.initializing;
+    }
 }

@@ -6,9 +6,14 @@ export abstract class Root {
     device!: GPUDevice;
     scene!: Scene;
     canvas!: HTMLCanvasElement;
-    stage!: BaseStage;
+    stage: BaseStage | undefined;
+    stageTransparent: BaseStage | undefined;
 
     _readyForGPU!: boolean;
+
+    _id!: number;
+    set ID(id) { this._id = id; }
+    get ID() { return this._id; }
 
     async setRootScene(scene: any) {
         this.scene = scene;
@@ -16,12 +21,12 @@ export abstract class Root {
     async setRootcanvas(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
     }
-    async setRootENV(scene: Scene ) {
+    async setRootENV(scene: Scene) {
         this.device = scene.device;
         this.canvas = scene.canvas;
-        this.scene = scene; 
+        this.scene = scene;
         this._readyForGPU = true;
-        this.readyForGPU();
+        await this.readyForGPU();
 
     }
     async setRootDevice(device: GPUDevice) {

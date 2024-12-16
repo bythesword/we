@@ -23,7 +23,8 @@ struct VertexShaderOutput_oneCube {
 @builtin(vertex_index) vertexIndex : u32
 ) -> VertexShaderOutput_oneCube {
     var vsOutput : VertexShaderOutput_oneCube;
-    vsOutput.position = projectionMatrix * viewMatrix * modelMatrix * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
+    vsOutput.position =matrix_z *  projectionMatrix * viewMatrix * modelMatrix * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
+
     vsOutput.uv = uv;
 
 
@@ -34,9 +35,6 @@ struct VertexShaderOutput_oneCube {
     vsOutput.cubeUV = normalize(vsOutput.worldPosition - defaultCameraPosition);
     let entity_id = entity.entity_id << 14;
     let stage_id = entity.stage_id << 29;
-    vsOutput.entityID = instanceIndex;
-    // vsOutput.entityID =  entity.entity_id;//ok
-    // vsOutput.entityID =  entity.entity_id<< 14;//ok
     vsOutput.entityID = instanceIndex + entity_id + stage_id;
     return vsOutput;
 }

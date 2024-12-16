@@ -1,8 +1,10 @@
 import { uniformEntries } from "../command/baseCommand";
 import * as coreConst from "../const/coreConst"
 import { Root } from "../const/root";
+import { Scene } from "../scene/scene";
 import partHead_GBuffer_Add_FS from "../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
+import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.fs.wgsl?raw"
 
 export interface optionBaseMaterial {
     /**
@@ -32,6 +34,13 @@ export interface optionBaseMaterial {
     /**指定的fragment code */
     code?: string
 }
+/**三段式初始化的第二步：init */
+export interface optionBaseMaterialStep2 {
+    scene: Scene,
+    deferRenderDepth: boolean,
+    deferRenderColor: boolean,
+    reversedZ: boolean,
+}
 
 export abstract class BaseMaterial extends Root {
     red!: number;
@@ -45,6 +54,9 @@ export abstract class BaseMaterial extends Root {
      * 如果更改为为true，在材质不工作
     */
     _already: boolean;
+    deferRenderDepth!: boolean;
+    deferRenderColor!: boolean;
+    reversedZ!: boolean;
 
 
     constructor(input?: optionBaseMaterial) {
@@ -67,10 +79,17 @@ export abstract class BaseMaterial extends Root {
             this.input = {};
         this._already = false;
     }
-    abstract init(): any;
-    abstract getCodeFS(): string;
+    async init(values: optionBaseMaterialStep2) {
+        this.deferRenderDepth = values.deferRenderDepth;
+        this.deferRenderColor = values.deferRenderColor;
+        this.reversedZ = values.reversedZ;
+        await this.setRootENV(values.scene);
+        await this.__init();
+    }
+    abstract __init(): any;
+    abstract getCodeFS(startBinding: number): string;
     abstract destroy(): any
-    abstract getUniform(): uniformEntries[] | false
+    abstract getUniform(startBinding: number): uniformEntries[] | false
 
     getReady() {
         if (this._readyForGPU && this._already) {
@@ -92,6 +111,12 @@ export abstract class BaseMaterial extends Root {
     shaderCodeProcess(code: string): string {
         let shaderCode = this.shaderCodeAdd_partOfLocationOfEntityID(code);
         shaderCode = shaderCode.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
+        if (this.deferRenderDepth) {
+            shaderCode = shaderCode.replaceAll("$deferRender_Depth", defer_depth_replace_FS.toString());     
+        }
+        else{
+            shaderCode = shaderCode.replaceAll("$deferRender_Depth","");
+        }
         return shaderCode;
     }
 }

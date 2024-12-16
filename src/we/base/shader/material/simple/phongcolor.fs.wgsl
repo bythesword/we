@@ -4,6 +4,7 @@
 @group(1) @binding(3) var<uniform> u_roughness : f32;
 
 @fragment fn fs(fsInput : VertexShaderOutput) -> @location(0) vec4f {
+    $deferRender_Depth
     var materialColor = vec4f($red, $green, $blue, $alpha);
 
     let lightIntensity = 2.0;

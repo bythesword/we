@@ -3,7 +3,8 @@ struct VertexOutput {
   //@location(0) uv : vec2f,
 }
 override far : f32 = 1.0;
-@vertexfn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f
+@vertex
+fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f
 {
   var output : VertexOutput;
   const pos = array(

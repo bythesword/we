@@ -25,7 +25,10 @@ export declare interface sceneJson {
      * 
      * 202411月,现阶段是:默认=false,为了开发测试方便
      */
-    deferRender?: boolean,
+    deferRender?: {
+        enable: boolean
+        type: "depth" | "color"
+    }
     /**backgroudColor ,默认是[0,0,0,0]*/
     color?: coreConst.color4F,
 }
@@ -36,7 +39,7 @@ export abstract class BaseScene {
     name!: string;
     /** scene 的初始化参数 */
     input: sceneJson;
-    deferRender!: boolean;
+
     /**webgpu adapter 
        * 派生的Scene获取GPU相关参数；
        * 其他的非Scene的派生可以通过set设置，使用Scene的GPU相关参数
@@ -51,16 +54,18 @@ export abstract class BaseScene {
     /** 渲染对象: 默认的渲染对象输出：GPUCanvasContext;    */
     context!: GPUCanvasContext | GPUTexture;
 
-    backgroudColor!: number[];
+    backgroudColor: number[];
     /**每帧的webGPU的command集合   
      * 每个stage的command集合 
     * 一个实体可以由多个command，分布在不同的stage，比如透明，不透明
     */
-    command!: commmandType[];
+    commands: commmandType[];
+    commandsDepth: commmandType[];
+    commandsColor: commmandType[];
     /////////////////////////////////////////////////////////////
     // about lights
     /** lights array */
-    lights!: BaseLight[];
+    lights: BaseLight[];
     ambientLight!: AmbientLight;
     /**当前scene|stage中起作用的光源索引 */
     lightsIndex!: [];
@@ -92,24 +97,13 @@ export abstract class BaseScene {
     /**是否使用反向Z的标志位 */
     _isReversedZ!: boolean;
 
+    deferRender!: boolean;
+    deferRenderDepth: boolean;
+    deferRenderColor: boolean;
+
     //////////////////////////////////////////////////////////
     //基础 render Pass Descriptor 和about GBuffer 
-    /** 充分应用webGPU的texture的理念
-     * 
-     * 每个stage都是一组texture
-     * 
-     * scene，合并stage的texture，可以对stage进行缓存，即不变，就用上一张texture
-     * 
-     * 缓存用（比如world的缓存，镜头不动）
-     * */
-    colorTexture!: GPUTexture;
-    /** 深度缓存,stage必须
-     * 
-     * 与其他stage合并texture或shader使用
-     * 
-     * 透明和不透明都需要；
-     */
-    depthTexture!: GPUTexture;
+
     /**颜色通道输出的纹理格式
      *  presentationFormat*/
     presentationFormat!: GPUTextureFormat;
@@ -128,7 +122,9 @@ export abstract class BaseScene {
 
     constructor(input: sceneJson) {
         this.input = input;
-        this.command = [];
+        this.commands = [];
+        this.commandsDepth = [];
+        this.commandsColor = [];
         this.depthDefaultFormat = 'depth32float';
         if (input.depthDefaultFormat) {
             this.depthDefaultFormat = input.depthDefaultFormat;
@@ -137,8 +133,17 @@ export abstract class BaseScene {
         // if (input.color) {
         //     this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
         // }
-        this.deferRender = false;//为了测试方便,后期更改为:true,20241128
-        if (input.deferRender) this.deferRender = true;
+        this.deferRenderDepth = false;//为了测试方便,后期更改为:true,20241128
+        this.deferRenderColor = false;//为了测试方便,后期更改为:true,20241128
+        if (input.deferRender && input.deferRender.enable == true) {
+            this.deferRender = true;
+            if (input.deferRender.type == "depth")
+                this.deferRenderDepth = true;
+            else if (input.deferRender.type == "color")
+                this.deferRenderColor = true;
+        }
+
+
 
         this._maxlightNumber = coreConst.lightNumber;
         this._lastNumberOfLights = 0;
@@ -327,7 +332,7 @@ export abstract class BaseScene {
         return true;
     }
     destoryGBuffers(GBuffers: coreConst.GBuffers) {
-        this.command = [];
+        this.commands = [];
         for (let i in GBuffers) {
             this.GBuffers[i].destroy();
         }

@@ -39,10 +39,10 @@ export interface optionBaseStage extends sceneJson {
     name: string,
     enable?: boolean,
     visible?: boolean,
-    depthTest?: boolean,
+    // depthTest?: boolean,
     transparent?: boolean,
     // scene: BaseScene;
-    scene: Scene;
+    scene: Scene,
 }
 
 /**
@@ -56,7 +56,7 @@ export class BaseStage extends BaseScene {
 
 
     root: BaseEntity[];
-
+    idOfRoot:number;
 
     // start todo ,20241020,不同的stage可能存在不同light的可见情况，不同的环境光，比如：室外，室内，
     // light ,camera 的数组为空，或为undefined，则使用全局（Scene）的。
@@ -99,12 +99,15 @@ export class BaseStage extends BaseScene {
     colorTextureViews!: GPUTextureView[];
 
     /**延迟单像素渲染：第一遍的深度渲染通道描述 */
-    RPD_ForDeferOnePixelDepth!: GPURenderPassDescriptor
+    RPD_ForDeferDepth!: GPURenderPassDescriptor;
+
+
 
 
     /**   @param input optionBaseStage     */
     constructor(input: optionBaseStage) {
         super(input.scene.input);//采用与scene相同的初始化参数,主要考虑的ReversedZ
+        this.idOfRoot=1;
         this.device = input.scene!.device;
         this.scene = input.scene;
         this.presentationFormat = this.scene.presentationFormat;
@@ -118,6 +121,7 @@ export class BaseStage extends BaseScene {
         this.visible = true;
         this.depthTest = true;
         this.transparent = false;
+        this.deferRender = input.deferRender!.enable;
 
         if (input.enable != undefined && input.enable === false) {
             this.enable = input.enable;
@@ -125,9 +129,9 @@ export class BaseStage extends BaseScene {
         if (input.visible != undefined && input.visible === false) {
             this.visible = input.visible;
         }
-        if (input.depthTest != undefined && input.depthTest === false) {
-            this.depthTest = input.depthTest;
-        }
+        // if (input.depthTest != undefined && input.depthTest === false) {
+        //     this.depthTest = input.depthTest;
+        // }
         if (input.transparent != undefined && input.transparent === true) {
             this.transparent = input.transparent;
         }
@@ -142,7 +146,7 @@ export class BaseStage extends BaseScene {
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */
         for (let i in coreConst.stagesOfSystem) {
             if (name == coreConst.stagesOfSystem[i]) {
-                this.ID = parseInt(i) * 2+1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
+                this.ID = parseInt(i) * 2 + 1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
                 if (input.transparent)
                     this.ID++;
                 break;
@@ -151,10 +155,24 @@ export class BaseStage extends BaseScene {
         //this.init();
     }
     async init() {
-        this.GBuffers = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
-        this.renderPassDescriptor = await this.createRenderPassDescriptor();
-        if (this.deferRender)
-            this.RPD_ForDeferOnePixelDepth = this.createRPD_ForDeferOnePixelDepth();
+        if (!this.transparent) {
+            this.GBuffers = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
+            this.renderPassDescriptor = await this.createRenderPassDescriptor();
+
+            if (this.deferRenderDepth)
+                this.RPD_ForDeferDepth = this.createRPD_ForDeferDepth();
+        }
+        //todo 
+        else {
+            this.renderPassDescriptor = await this.createRenderPassDescriptorForTransparent();
+        }
+    }
+    /**透明stage使用 */
+    async createRenderPassDescriptorForTransparent(): Promise<GPURenderPassDescriptor> {
+        let rpd: GPURenderPassDescriptor;
+
+
+        return rpd;
     }
     /**stage是初始化GBuffer使用
      * 
@@ -170,6 +188,7 @@ export class BaseStage extends BaseScene {
 
         /////////////gbuffer ，需要整合到BaseScene中
         //输出到texture，而不是canvas
+        //todo:20241212,目前来看this.colorTextureForID是没有使用的，后期排除，删除
         this.colorTextureForID = this.device.createTexture({
             label: "stage:color attachemnet for entity id",
             size: [width, height],
@@ -177,20 +196,20 @@ export class BaseStage extends BaseScene {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
 
         });
-        if (this.deferRender) {
+        if (this.deferRenderDepth) {
             //深度buffer
             this.depthTextureOnly = this.device.createTexture({
                 label: "stage:depth attachemnet of one pixel defer",
                 size: [width, height],
                 format: this.depthDefaultFormat,            // format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT,
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
             });
 
         }
         return GBuffers;
     }
     /**延迟单像素depth通道描述 */
-    createRPD_ForDeferOnePixelDepth(): GPURenderPassDescriptor {
+    createRPD_ForDeferDepth(): GPURenderPassDescriptor {
         // this.depthStencilAttachment = this.depthTexture.createView();
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [],
@@ -210,14 +229,43 @@ export class BaseStage extends BaseScene {
     getRenderPassDescriptor(): GPURenderPassDescriptor {
         return this.renderPassDescriptor;
     }
-    getRenderPassDescriptor_ForDeferOnePixelDepth(): GPURenderPassDescriptor {
-        return this.RPD_ForDeferOnePixelDepth;
+    getRenderPassDescriptor_ForDeferDepth(): GPURenderPassDescriptor {
+        return this.RPD_ForDeferDepth;
     }
     updateSystemUniformBuffer() {
         return this.scene.updateSystemUniformBuffer();
     }
     createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline): GPUBindGroup {
         return this.scene.createSystemUnifromGroupForPerShader(pipeline);
+    }
+    //todo:20241212 ,为透明提供system uniform
+    createSystemUnifromGroupForPerShaderForDeferRenderDepth(pipeline: GPURenderPipeline): GPUBindGroup {
+        const bindLayout = pipeline.getBindGroupLayout(0);
+        let groupDesc: GPUBindGroupDescriptor = {
+            label: "global Group bind to 0 ,for depth deferRender ,add binding 2 depth texture",
+            layout: bindLayout,
+            entries:
+                [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.scene.systemUniformBuffers["MVP"]!,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: this.scene.systemUniformBuffers["lights"]!,
+                        }
+                    },
+                    {//todo:20241212 ,为透明提供system uniform
+                        binding: 2,
+                        resource: this.depthTextureOnly.createView(),
+                    }
+                ],
+        }
+        const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
+        return bindGroup;
     }
     getMVP(): GPUBuffer {
         return this.scene.getMVP();
@@ -234,14 +282,14 @@ export class BaseStage extends BaseScene {
     update(deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false) {
         if (this.cache === false) {//无缓存模式
             this.updateOfRoot(deltaTime, startTime, lastTime, updateForce);//更新command
-            if (this.deferRender) {
+            if (this.deferRenderDepth) {
                 this.renderOfDepth(deltaTime, startTime, lastTime);
             }
             this.renderOfForward(deltaTime, startTime, lastTime);//进行前向渲染，在这个stage中
             this.copyForTAA();
         }
     }
-    //todo
+    //todo,stage 中的TAA，可以减少与非本stage的干扰
     copyForTAA() { }
     /**
      * render延迟单像素渲染的第一遍depth
@@ -250,7 +298,18 @@ export class BaseStage extends BaseScene {
      * @param lastTime 
      */
     renderOfDepth(deltaTime: number, startTime: number, lastTime: number) {
-
+        if (this.commandsDepth.length > 0) {
+            //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
+            for (let i in this.commandsDepth) {
+                if (i == "0") {
+                    this.RPD_ForDeferDepth.depthStencilAttachment!.depthLoadOp = "clear";
+                }
+                else if (i == "1") {
+                    this.RPD_ForDeferDepth.depthStencilAttachment!.depthLoadOp = "load";
+                }
+                this.commandsDepth[i].update();
+            }
+        }
     }
     /**
      * 前向渲染或是延迟单像素渲染的第二遍
@@ -259,9 +318,9 @@ export class BaseStage extends BaseScene {
      * @param lastTime 
      */
     renderOfForward(deltaTime: number, startTime: number, lastTime: number) {
-        if (this.command.length > 0) {
+        if (this.commands.length > 0) {
             //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
-            for (let i in this.command) {
+            for (let i in this.commands) {
                 if (i == "0") {
                     for (let i in this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[]) {
                         let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[i];
@@ -282,7 +341,7 @@ export class BaseStage extends BaseScene {
                     //(<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
                     this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "load";
                 }
-                this.command[i].update();
+                this.commands[i].update();
             }
         }
     }
@@ -294,11 +353,19 @@ export class BaseStage extends BaseScene {
         //     scene = this.scene;
         // else
         scene = this;
-        this.command = [];
+        this.commands = [];
+        this.commandsDepth = [];
+        this.commandsColor = [];
         for (let i of this.root) {
             let dcc = i.update(scene, deltaTime, startTime, lastTime, updateForce);
-            for (let j of dcc)
-                this.command.push(j);
+            for (let j of dcc.forward) {
+                this.commands.push(j);
+            }
+            if (this.deferRenderDepth) {
+                for (let j of dcc.depth) {
+                    this.commandsDepth.push(j);
+                }
+            }
         }
     }
 
@@ -316,12 +383,20 @@ export class BaseStage extends BaseScene {
      * @param one :BaseEntity
      */
     async add(one: BaseEntity) {
-        await one.setRootENV(this.scene);
+        // one.stage = this;
+        // one.stageTransparent = this.scene.stages[this.name].transparent;
+        // one.stageID = this.ID;
+        // await one.setRootENV(this.scene);
+        // this.root.push(one);
+        // one.ID = this.root.length
+        await one.init({
+            stage: this,
+            ID: this.idOfRoot++,
+            reversedZ: this.scene._isReversedZ,
+            deferRenderDepth: this.deferRenderDepth,
+            deferRenderColor: this.deferRenderColor
+        })
         this.root.push(one);
-        
-        one.stage = this;
-        one.stageID = this.ID;
-        one.ID = this.root.length
     }
     get cache() {
         return this._cache;

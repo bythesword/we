@@ -2,18 +2,16 @@ import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
  
 export class ColorMaterial extends BaseMaterial {
-    init() {
-       // throw new Error("Method not implemented.");
+    __init() {
+        // throw new Error("Method not implemented.");
     }
-
-
 
     constructor(input?: optionBaseMaterial) {
         super(input);
         this._already=true;
     }
 
-    getCodeFS() {
+    getCodeFS(startBinding:number) {
         let code = colorOnlyFS
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
@@ -28,7 +26,7 @@ export class ColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(): false {
+    getUniform(startBinding:number): false {
         // throw new Error("Method not implemented.");
         return false;
     }

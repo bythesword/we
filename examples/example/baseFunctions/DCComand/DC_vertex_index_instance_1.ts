@@ -43,21 +43,9 @@ let shader = `
         vsOutput.color = ourStruct.color+vec4f((n+1.)*0.15);
         return vsOutput;
       }
-      struct ST_GBuffer{
-        @builtin(frag_depth) depth : f32,
-        @location(0) color : vec4f,
-        @location(1) id : u32,
-        @location(2) normal : vec4f,
-        @location(3) uv : vec4f,
-    }
-      @fragment fn fs(@location(0) color: vec4f) -> ST_GBuffer {
-        var  output:ST_GBuffer;
-        output.color = color;
-        output.id = u32(1);
-        output.depth = f32(.0);
-        output.uv = vec4f(  1);
-        output.normal = vec4f(  1);
-        return output;
+
+      @fragment fn fs(@location(0) color: vec4f) -> @location(0)  vec4f{
+        return color;
       }
 `;
 const oneTriangleVertexArray = [
@@ -110,10 +98,6 @@ let options: drawOptionOfCommand = {
     entryPoint: "fs",
     targets: [
       { format: scene.presentationFormat },
-      // { format: scene.depthDefaultFormat },
-      { format: "r32uint" },
-      { format: scene.presentationFormat },
-      { format: scene.presentationFormat },
     ]
   },
   uniforms: [
@@ -160,4 +144,4 @@ let DC = new DrawCommand(options);
 
 window.DC = DC;
 DC.submit()
-scene.postProcess();
+scene.copyRawToSurface();

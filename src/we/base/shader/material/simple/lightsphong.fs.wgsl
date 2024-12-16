@@ -1,8 +1,9 @@
 
 //start :lightsphong.fs.wgsl
-@group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;
+// @group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;//20241215 转移到TS中
 
 @fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+    $deferRender_Depth
     let shininess = u_bulinphong.shininess;
     let metalness = u_bulinphong.metalness;
     let roughness = u_bulinphong.roughness;

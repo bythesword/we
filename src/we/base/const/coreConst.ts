@@ -29,14 +29,21 @@ export var stagesOfSystem: stageName = [
     "DynamicEntities",//水、树、草等
     "World",//静态
     "Sky",//天空盒
-    "UI",
+    "UI",//UI
+];
+export var stagesOfSystemDeferRender :boolean[] = [
+    true,//角色
+    true,//水、树、草等
+    true,//静态
+    false,//天空盒
+    false,//UI
 ];
 export var defaultStage = 2;//stagesOfSystem[0];
 export var defaultStageName = stagesOfSystem[defaultStage]
 export type stagesOrderByRender = number[];
 // export var defaultStageList: stagesOrderByRender = [defaultStage];
 // export var defaultStageList: stagesOrderByRender = [2,3];
-export var defaultStageList: stagesOrderByRender = [0, 1, 2, 3, 4];
+export var defaultStageList: stagesOrderByRender = [0, 1, 2, 3];
 export var lightNumber = 32;//这个需要同步到“system.wgsl”中的数量
 
 ////////////////////////////////////////////////////////////////////////////////////////

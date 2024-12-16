@@ -13,6 +13,9 @@ export interface optionVertexColorMaterial extends optionBaseMaterial {
  * 展示用材质
  */
 export class VertexColorMaterial extends BaseMaterial {
+    __init() {
+        // throw new Error("Method not implemented.");
+    }
     declare input: optionVertexColorMaterial;
     _type: String;
     sampler!: GPUSampler;
@@ -26,10 +29,8 @@ export class VertexColorMaterial extends BaseMaterial {
 
         this._already = true;
     }
-    init() {
-        // throw new Error("Method not implemented.");
-    }
-    getCodeFS() {
+
+    getCodeFS(startBinding:number) {
         if (this.input.code) {
             return this.input.code;
         }
@@ -42,8 +43,9 @@ export class VertexColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(): uniformEntries[] | false {
+    getUniform(startBinding:number): uniformEntries[] | false {
         // let  sampler=this.scene.resources.
+        let binding = startBinding;
         if (this.sampler == undefined) {
             let sampler: GPUMipmapFilterMode = 'linear';
             if (this.scene.resources.sampler[weSamplerKind.linear]) {
@@ -60,11 +62,11 @@ export class VertexColorMaterial extends BaseMaterial {
         if (this.input.textures) {
             let unifomrArray: uniformEntries[] = []
             unifomrArray.push({
-                binding: 1,
+                binding: binding++,
                 resource: this.sampler,
             });
             unifomrArray.push({
-                binding: 2,
+                binding: binding++,
                 resource: this.input.textures.createView(),
             });
 

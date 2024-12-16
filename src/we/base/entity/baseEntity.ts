@@ -10,7 +10,11 @@ import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.Ver
 import partReplace_VertexShaderOutput_VS from "../shader/entities/part_replace.VertexShaderOutput.vs.wgsl?raw"
 import { commmandType } from "../scene/baseScene";
 
-
+export interface renderCommands {
+    forward: commmandType[],
+    depth: commmandType[],
+    color: commmandType[],
+}
 
 export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
 export interface geometryBufferOfEntity {
@@ -97,10 +101,7 @@ export interface optionShadowEntity {
     /**是否产生阴影     */
     generate?: boolean,
 }
-/**
- * input参数
- * 
- */
+/**三段式初始化的第一步： input参数 */
 export interface optionBaseEntity extends coreConst.optionUpdate {
     /**
  * 两种情况：
@@ -163,6 +164,14 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
     /**自定义shader代码，包括VS和FS */
     shaderCode?: string,
 }
+/**三段式初始化的第二步：init */
+export interface optionBaseEntityStep2 {
+    stage: BaseStage,
+    ID: number,
+    deferRenderDepth: boolean,
+    deferRenderColor: boolean,
+    reversedZ: boolean,
+}
 
 export abstract class BaseEntity extends Root {
 
@@ -185,7 +194,7 @@ export abstract class BaseEntity extends Root {
     _LOD!: LOD[];//todo
     _shadow!: optionShadowEntity;
     _shadowMaterail!: ShadowMaterial;
-    _commmands: commmandType[];
+    _commmands: renderCommands;//commmandType[];
     _vertexAndMaterialGroup!: entityContentGroup;
     _position!: Vec3;
     _scale!: Vec3;
@@ -205,7 +214,9 @@ export abstract class BaseEntity extends Root {
      */
     matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCC中进行字符串替换，每个子类单独进行
     structUnifomrBuffer!: ArrayBuffer;//instance的uniform 数组数量，在createDCC中进行字符串替换，每个子类单独进行
+    /**for shader  */
     entity_id: Uint32Array;
+    /**for shader */
     stage_id: Uint32Array;
     /**是否每帧更新 */
     updateMatrixPerFrame: boolean;
@@ -213,17 +224,20 @@ export abstract class BaseEntity extends Root {
     enable!: boolean;
     children!: BaseEntity[];
     name!: string;
-    /**在stage中的ID，默认=0，如果_id=0，则与ID相关的功能失效 */
-    _id!: entityID;
-    get ID() {
-        return this._id;
-    }
-    set ID(id: entityID) {
-        this._id = id;
-        // this.updateUniformBuffer(this.scene, 1, 1, 1);
-    }
+
+    // _id!: entityID;
+    // get ID() {
+    //     return this._id;
+    // }
+    // set ID(id: entityID) {
+    //     this._id = id;
+    //     // this.updateUniformBuffer(this.scene, 1, 1, 1);
+    // }
+
     parent: BaseEntity | undefined;
-    stageID!: number
+    /** stageID*/
+    stageID!: number;
+
 
     /**透明属性
      * 默认=false，
@@ -250,6 +264,11 @@ export abstract class BaseEntity extends Root {
     /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
     _entityIdSizeForWGSL = 4;//以u32（f32）计算
 
+
+    reversedZ!: boolean;
+    deferRenderDepth!: boolean;
+    deferRenderColor!: boolean;
+
     constructor(input: optionBaseEntity) {
         super();
         this._init = initStateEntity.constructing;
@@ -269,11 +288,15 @@ export abstract class BaseEntity extends Root {
         if (input.dynamicMesh) {
             this._dynamicMesh = input.dynamicMesh
         }
-        this._id = 0;
+        this._id = 0;//在stage中的ID，默认=0，如果_id=0，则与ID相关的功能失效 
         this.stageID = 0;
         this._LOD = [];
         this._destroy = false;
-        this._commmands = [];
+        this._commmands = {
+            forward: [],
+            depth: [],
+            color: []
+        };
         this._vertexAndMaterialGroup = {};
         this.enable = true;
         this._position = vec3.create();
@@ -321,7 +344,17 @@ export abstract class BaseEntity extends Root {
 
     }
     /** */
-    abstract init(): any
+    async init(values: optionBaseEntityStep2) {
+        this.stage = values.stage;
+        this.stageID = values.stage.ID;
+        this.reversedZ = values.reversedZ;
+        this.deferRenderDepth = values.deferRenderDepth;
+        this.deferRenderColor = values.deferRenderColor;
+        this.stageTransparent = values.stage.scene.stages[values.stage.name].transparent;
+        await this.setRootENV(values.stage.scene);
+        this.ID = values.ID;//这个在最后，update需要判断ID是否存在，以开始更新
+
+    }
 
 
     initDCC(scene: any) {
@@ -341,6 +374,7 @@ export abstract class BaseEntity extends Root {
      * 
      */
     abstract createDCC(scene: any): initStateEntity
+    abstract createDCCDeferRenderDepth(scene: any): initStateEntity
 
 
 
@@ -500,7 +534,7 @@ export abstract class BaseEntity extends Root {
      * @param updateForce boolean，true=重新生成Draw Command
      * @returns 
      */
-    update(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
+    update(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false, ForOnePixelDeferRender: boolean = false): renderCommands {
         //初始化DCC
         if (this._readyForGPU && this._id != 0)
 
@@ -525,6 +559,7 @@ export abstract class BaseEntity extends Root {
                 else if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
 
                     this.updateUniformBuffer(scene, deltaTime, startTime, lastTime);
+                    // this._commmandsForOnePixelDeferRender = this.updateDCCForOnePixelDeferRender(scene, deltaTime, startTime, lastTime);
                     this._commmands = this.updateDCC(scene, deltaTime, startTime, lastTime);
                     // return this._commmands;
                 }
@@ -542,8 +577,8 @@ export abstract class BaseEntity extends Root {
 
         return this._commmands;
     }
-    updateChilden(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
 
+    updateChilden(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
         return [];
     }
     /**
@@ -626,64 +661,7 @@ export abstract class BaseEntity extends Root {
 
     }
 
-    updateUniformBuffer_old_changing(scene: any, deltaTime: number, startTime: number, lastTime: number): any {
-        for (let i = 0; i < this.numInstances; i++) {
-            let perMatrix = mat4.identity();
-            //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
-            if (this.flagUpdateForPerInstance) {
-                perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
-            }
-            let perWorld = mat4.copy(this.matrixWorld);
-            perMatrix = mat4.multiply(perWorld, perMatrix);
-            if (this.input?.instancesPosition) {
-                mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
-            }
-            this.matrixWorldBuffer.set(perMatrix, i * 16);
-        }
-        const ST_entityValues = new ArrayBuffer(80);
-        const ST_entityViews = {
-            MatrixWorld: new Float32Array(ST_entityValues, 0, 16),
-            entity_id: new Uint32Array(ST_entityValues, 64, 1),
-            stage_id: new Uint32Array(ST_entityValues, 68, 1),
-        };
 
-        ST_entityViews.entity_id[0] = this.ID;
-        ST_entityViews.stage_id[0] = this.getStageID();
-        // let baseInfoSetting = new Float32Array(this._entityIdSizeForWGSL);
-        // baseInfoSetting[0] = this.ID;
-        // baseInfoSetting[1] = this.getStageID();
-
-
-        // this.matrixWorldBuffer.set(baseInfoSetting, 0);
-    }
-
-    updateUniformBuffer_new(scene: any, deltaTime: number, startTime: number, lastTime: number): any {
-        const ST_entityValues = new ArrayBuffer(this._entityIdSizeForWGSL * 4 + 4 * 4 * this.numInstances * 4);
-        const ST_entityViews = {
-            entity_id: new Uint32Array(ST_entityValues, 0, 1),
-            stage_id: new Uint32Array(ST_entityValues, 4, 1),
-            MatrixWorld: new Float32Array(ST_entityValues, 16, 16),
-        };
-        ST_entityViews.entity_id[0] = this.ID;
-        ST_entityViews.stage_id[0] = this.getStageID();
-
-        this.matrixWorldBuffer = new Float32Array(ST_entityValues);
-
-        for (let i = 0; i < this.numInstances; i++) {
-            let perMatrix = mat4.identity();
-            //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
-            if (this.flagUpdateForPerInstance) {
-                perMatrix = this.matrixWorldBuffer.subarray(this._entityIdSizeForWGSL + i * 16, (i + 1) * 16);
-            }
-            let perWorld = mat4.copy(this.matrixWorld);
-            perMatrix = mat4.multiply(perWorld, perMatrix);
-            if (this.input?.instancesPosition) {
-                mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
-            }
-            this.matrixWorldBuffer.set(perMatrix, this._entityIdSizeForWGSL + i * 16);
-        }
-        this.matrixWorldBuffer = new Float32Array(ST_entityValues);
-    }
     getID() {
         return { stageID: this.stageID, ID: this.ID };
     }
@@ -702,7 +680,7 @@ export abstract class BaseEntity extends Root {
      * 2、如果没有更新直接返回DCC的数组
      * 
      */
-    abstract updateDCC(scene: any, deltaTime: number, startTime: number, lastTime: number): commmandType[];
+    abstract updateDCC(scene: any, deltaTime: number, startTime: number, lastTime: number): renderCommands;
 
     /**
      * 循环注销children
@@ -738,11 +716,25 @@ export abstract class BaseEntity extends Root {
         return shaderCodeReplaced;
     }
 
-    /**合并shaderCodeAddPartForVS_ST_entity.shaderCodeReplaceFor_instance两个功能
+    /**判断是否有deferRender depth，并增加@group(1)@binding(1)、material的binding顺延
+     * 
+     * 增加结构体 ST_entity
+     * 
+     * 判断是否有deferRender depth，并增加@group(1)@binding(1)、material的binding顺延
+     * 
+     * 增加结构体 VertexShaderOutput
+     * 
+     * 替换$instacnce ,实例化数量
+     * 
+     * 替换$vsOutput的输出内容
      * 
      */
     shaderCodeProcess(shaderCode: string): string {
-        let code = partAdd_st_entity_VS + shaderCode;//增加结构体 ST_entity
+        let deferRender = "";
+        if (this.deferRenderDepth) {
+            deferRender = `@group(1) @binding(1) var u_DeferDepth : texture_depth_2d; \n `;
+        }
+        let code = partAdd_st_entity_VS + deferRender + shaderCode;//增加结构体 ST_entity
         code = partAdd_st_VertexShaderOutput_VS + code;//增加结构体 VertexShaderOutput
         code = code.replaceAll("$instacnce", this.numInstances.toString());//替换$instacnce ,实例化数量
         code = code.replaceAll("$vsOutput", partReplace_VertexShaderOutput_VS.toString());//替换$vsOutput的输出内容
@@ -755,6 +747,6 @@ export abstract class BaseEntity extends Root {
      * @returns GPUColorTargetState[]
      */
     getFragmentTargets(): GPUColorTargetState[] {
-        return this.stage.colorAttachmentTargets;
+        return this.stage!.colorAttachmentTargets;
     }
 }
