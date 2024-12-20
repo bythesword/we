@@ -1,3 +1,8 @@
+/**
+ * 非场景渲染模式抽象类
+ * 
+ * GBuffer的合并、GBuffer可视化、后处理、pickup等
+ */
 import { commmandType } from "./baseScene";
 import { Scene } from "./scene";
 
@@ -35,7 +40,7 @@ export abstract class SingleRender {
         this.commands = [];
 
     }
-    update() {
+    render() {
         if (this.commands.length > 0) {
             for (let i in this.commands) {
                 this.commands[i].update();

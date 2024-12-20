@@ -119,7 +119,7 @@ export class BaseStage extends BaseScene {
         this.root = [];
         this.enable = true;
         this.visible = true;
-        this.depthTest = true;
+        // this.depthTest = true;
         this.transparent = false;
         this.deferRender = input.deferRender!.enable;
 
@@ -279,16 +279,17 @@ export class BaseStage extends BaseScene {
 
 
     /**stage的调用入口 */
-    update(deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false) {
+    render() {
         if (this.cache === false) {//无缓存模式
-            this.updateOfRoot(deltaTime, startTime, lastTime, updateForce);//更新command
             if (this.deferRenderDepth) {
-                this.renderOfDepth(deltaTime, startTime, lastTime);
+                this.renderOfDepth();
             }
-            this.renderOfForward(deltaTime, startTime, lastTime);//进行前向渲染，在这个stage中
+            this.renderOfForward();//进行前向渲染，在这个stage中
             this.copyForTAA();
         }
     }
+
+
     //todo,stage 中的TAA，可以减少与非本stage的干扰
     copyForTAA() { }
     /**
@@ -297,7 +298,7 @@ export class BaseStage extends BaseScene {
      * @param startTime 
      * @param lastTime 
      */
-    renderOfDepth(deltaTime: number, startTime: number, lastTime: number) {
+    renderOfDepth() {
         if (this.commandsDepth.length > 0) {
             //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
             for (let i in this.commandsDepth) {
@@ -317,7 +318,7 @@ export class BaseStage extends BaseScene {
      * @param startTime 
      * @param lastTime 
      */
-    renderOfForward(deltaTime: number, startTime: number, lastTime: number) {
+    renderOfForward() {
         if (this.commands.length > 0) {
             //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
             for (let i in this.commands) {
@@ -346,7 +347,7 @@ export class BaseStage extends BaseScene {
         }
     }
     /**更新entities容器RooT的每个entity */
-    updateOfRoot(deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false) {
+    update(deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false) {
         let scene;
         //Draw Command 适用谁的renderPassDescriptor
         // if (this.scene)

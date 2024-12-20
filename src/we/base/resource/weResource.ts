@@ -42,10 +42,12 @@ export class WeResource extends Root {
     createSampler() {
         this.sampler = {
             0: this.device.createSampler({
+                label:"WE scene resource sampler : nearest",
                 magFilter: 'nearest',
                 minFilter: 'nearest',
             }),
             1: this.device.createSampler({
+                label:"WE scene resource sampler : linear",
                 magFilter: 'linear',
                 minFilter: 'linear',
             }),

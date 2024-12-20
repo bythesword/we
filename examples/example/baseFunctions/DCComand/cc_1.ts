@@ -84,7 +84,7 @@ const globalReadBuffer = scene.device.createBuffer({ size, usage });
 
 let options: computeOptionOfCommand = {
   label: "a compter test 1",
-  scene: scene,
+  parent: scene,
   dispatchCount: dispatchCount,
   // uniforms: [],
   uniforms: [

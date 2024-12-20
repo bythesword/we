@@ -1,13 +1,11 @@
 import { DrawCommand, drawMode, drawOptionOfCommand } from "../command/DrawCommand";
 import { unifromGroup } from "../command/baseCommand";
 import { GBuffers, GBuffersRPDAssemble, stagesOfSystem } from "../const/coreConst";
-import { BaseStage } from "../stage/baseStage";
 import { Scene } from "./scene";
 import { SingleRender, optionSingleRender } from "./singleRender";
 
-import shaderDepthAndID from "../shader/GBuffers/gbuffers_render_depthAndID.wgsl?raw"
-import shaderOpaque from "../shader/GBuffers/gbuffers_render_other.wgsl?raw"
-import shaderTransparent from "../shader/GBuffers/gbuffers_render_transparent.wgsl?raw"
+import shaderDepthAndID from "../shader/GBuffers/gbuffers_render_depthAndID.wgsl?raw";
+import shaderOpaque from "../shader/GBuffers/gbuffers_render_other.wgsl?raw";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 
 shaderOpaque
@@ -112,7 +110,7 @@ export class GBufferPostProcess extends SingleRender {
                 mode: "draw",
                 values: values
             },
-            scene: this.parent,
+            parent: this.parent,
             uniforms: uniformsOpaque,
             primitive: {
                 topology: 'triangle-list',
@@ -159,7 +157,7 @@ export class GBufferPostProcess extends SingleRender {
                         mode: "draw",
                         values: values
                     },
-                    scene: this.parent,
+                    parent: this.parent,
                     uniforms: uniformsOther,
                     primitive: {
                         topology: 'triangle-list',

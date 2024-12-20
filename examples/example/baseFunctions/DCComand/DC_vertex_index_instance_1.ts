@@ -69,7 +69,7 @@ const rand = (min: number = 0, max: number = 1) => {
 
 let options: drawOptionOfCommand = {
   label: "a triangle",
-  scene: scene,
+  parent: scene,
   vertex: {
     code: shader,
     entryPoint: "vs",

@@ -1,13 +1,4 @@
-import {
-    BaseCommand,
-    // uniformBufferPart,
-    // unifromGroup,
-    // uniformBuffer,
-    uniformBufferAll,
-    // uniformEntries,
-    // localUniformGroups,
-    baseOptionOfCommand,
-} from './baseCommand';
+import { BaseCommand, uniformBufferAll, baseOptionOfCommand, } from './baseCommand';
 
 
 export interface computePart {
@@ -121,7 +112,7 @@ export class ComputeCommand extends BaseCommand {
         else {//system uniform 
             //创建
             if (this.uniformGroups[0] == undefined) {
-                this.uniformGroups[0] = this.scene.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
+                this.uniformGroups[0] = this.parent.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
             }
 
         }

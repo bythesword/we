@@ -18,33 +18,43 @@ import { GBuffersVisualize } from "./GBufferVisualize";
 import { optionPickup, Pickup, pickupTargetOfIDs } from "../pickup/pickup";
 import { InputControl, typeOfInputControl } from "../control/inputControl";
 import { CamreaControl } from "../control/cameracCntrol";
+import { PostProcessEffect } from "../postprocess/postProcessEffect";
 
-/**这个部分是为编辑器使用定义的*/
+/**
+ * stageStatus是快速初始化stage状态用的
+ * 
+ * sceneStageInit: 这个部分是为编辑器使用定义的
+ * */
 export interface sceneStageInput {
-    /**定义stage列表 
-      stages: stageName = [
-        "Actor",//角色
-        "DynamicEntities",//水、树、草等
-        "World",//静态
-        "Sky",//天空盒
-        "UI",
-        ];
-     * 
-    */
-    stages: coreConst.stageName,
-    /**stage DeferRender  */
-    stagesOfDeferRender: boolean[]
-    /**定义stage 显示排序
-     * 
-     *  [0, 1, 2, 3, 4]
-     */
-    stagesOrders: [],
-    /**默认stage名称
-     * 
-     * stages[] 中的一个名称,exp:"World"
-     */
-    defaultStageName: string,
+
+    stageStatus: "all" | "scene" | "world",
+    sceneStageInit?: {
+        /**定义stage列表 
+          stages: stageName = [
+            "Actor",//角色
+            "DynamicEntities",//水、树、草等
+            "World",//静态
+            "Sky",//天空盒
+            "UI",
+            ];
+         * 
+        */
+        stages: coreConst.stageName,
+        /**stage DeferRender  */
+        stagesOfDeferRender: boolean[]
+        /**定义stage 显示排序
+         * 
+         *  [0, 1, 2, 3, 4]
+         */
+        stagesOrders: [],
+        /**默认stage名称
+         * 
+         * stages[] 中的一个名称,exp:"World"
+         */
+        defaultStageName: string,
+    }
 }
+interface updateObjectOfRootOfScene { update: coreConst.userFN }
 /**
  * canvas: string, canvas id;
  * 
@@ -62,8 +72,7 @@ export interface sceneInputJson extends sceneJson {
     /**Debug  */
     // Debug?: WE_Debug,
     /**自定义stage */
-    stageSetting?: sceneStageInput,
-
+    stageSetting?: sceneStageInput
 }
 
 /**scene 中配置是否使用GBuffer可视化的interface，
@@ -113,6 +122,7 @@ export interface stagesCollection {
     [name: string]: stageGroup
 }
 class Scene extends BaseScene {
+    ////////////////////////////////////////////////////////////////////////////////
     /** scene 的初始化参数 */
     declare input: sceneInputJson;
     declare context: GPUCanvasContext;
@@ -123,7 +133,7 @@ class Scene extends BaseScene {
     MQ: any;
     /** todo */
     WW: any;
-
+    ////////////////////////////////////////////////////////////////////////////////
     /** stage 收集器  */
     stages!: stagesCollection;
     stagesOfSystem: coreConst.stageName;
@@ -132,34 +142,46 @@ class Scene extends BaseScene {
     stagesOrders!: coreConst.stagesOrderByRender// number[];
     stageNameOfGroup!: coreConst.stageName;
 
+    ////////////////////////////////////////////////////////////////////////////////
     /**cameras 默认摄像机 */
     defaultCamera: BaseCamera | undefined;
     /**视场比例 */
     aspect!: number;
     /** system uniform buffer 结构体，参加 interfance systemUniformBuffer */
     systemUniformBuffers!: systemUniformBuffer;
+
+    ////////////////////////////////////////////////////////////////////////////////
     /** actor group */
     actors!: actorGroup;
+    /**单独更新的在root中的更新对象 */
+    root: updateObjectOfRootOfScene[];
+
+
     /** default actor
      *  一般的场景是CameraActor
      *  也可以是人物Actor
      */
     defaultActor!: BaseActor;
 
+    ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray!: userDefineUpdateCall[];
     /**资源类 */
     resources!: WeResource;
 
-    /** */
+    ////////////////////////////////////////////////////////////////////////////////
+    /** 是否进行实时渲染*/
     _realTimeRender!: boolean;
     /**更改是否实时渲染设置 */
     set realTimeRender(value: boolean) { this._realTimeRender = value; }
     /**获取实时渲染状态 */
     get realTimeRender() { return this._realTimeRender }
 
+    ////////////////////////////////////////////////////////////////////////////////
     inputControl!: InputControl | CamreaControl;
 
+
+    ////////////////////////////////////////////////////////////////////////////////
     /**resize Observer 标注位  */
     _reSize!: boolean;
 
@@ -173,14 +195,6 @@ class Scene extends BaseScene {
      * 
      */
     _updateForce!: boolean;
-
-    GBufferPostprocess!: GBufferPostProcess;
-    GBuffersVisualize!: GBuffersVisualize;
-    postProcessManagement!: PostProcessMangement;
-    pickUp!: Pickup;
-    _GBuffersVisualize!: GBuffersVisualizeViewport;
-    sourceOfcopyToSurface!: GPUTexture;
-
     surfaceSize!: {
         now: {
             width: number,
@@ -190,9 +204,23 @@ class Scene extends BaseScene {
             width: number,
             height: number,
         },
-
     }
 
+    ////////////////////////////////////////////////////////////////////////////////
+    /** 进行GBuffer合并的对象 */
+    GBufferPostprocess!: GBufferPostProcess;
+    /**GBuffer 可视化对象 */
+    GBuffersVisualize!: GBuffersVisualize;
+    /**后处理管理器 */
+    postProcessManagement!: PostProcessMangement;
+    /**GBuffer&GPU 的拾取管理器 */
+    pickUp!: Pickup;
+    /**GBuffer 可视化的配置interface  */
+    _GBuffersVisualize!: GBuffersVisualizeViewport;
+    /**最终copy到surface的最后一个GPUTexture */
+    sourceOfcopyToSurface!: GPUTexture;
+
+    ////////////////////////////////////////////////////////////////////////////////
     /** for raw */
     rawColorTexture!: GPUTexture;
     /** for raw*/
@@ -200,17 +228,23 @@ class Scene extends BaseScene {
     /** for raw*/
     rawColorAttachmentTargets!: GPUColorTargetState[];
 
+    ////////////////////////////////////////////////////////////////////////////////
+    // function
+    ////////////////////////////////////////////////////////////////////////////////
     constructor(input: sceneInputJson) {
         super(input);
-
+        this.root = [];
         this.stagesOfSystem = coreConst.stagesOfSystem;
         this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage]
         this.stagesOrders = coreConst.defaultStageList;
         //这个部分是为编辑器使用定义的
-        if (input.stageSetting) {
-            this.stagesOfSystem = input.stageSetting.stages;
-            this.defaultStageName = input.stageSetting.defaultStageName;
-            this.stagesOrders = input.stageSetting.stagesOrders;
+        if (input.stageSetting && input.stageSetting.sceneStageInit) {
+            this.stagesOfSystem = input.stageSetting.sceneStageInit.stages;
+            this.defaultStageName = input.stageSetting.sceneStageInit.defaultStageName;
+            this.stagesOrders = input.stageSetting.sceneStageInit.stagesOrders;
+        }
+        else if (input.stageSetting && input.stageSetting.stageStatus) {
+            //todo :20241217
         }
         if (input.color) {
             this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
@@ -250,6 +284,8 @@ class Scene extends BaseScene {
         }
         return this;
     }
+    ////////////////////////////////////////////////////////////////////////////////
+    //init
     /**
      * start：20241020  limits: must requsted
      *  todo：最大值的设定，并同步到全局的setting中；只是设定，不做限制，
@@ -308,13 +344,20 @@ class Scene extends BaseScene {
         // this.renderPassDescriptor = await this.createRenderPassDescriptorForRAW();
         this.initActors();
         this.initGBuffersPostProcess();
-        // this.initGBuffersVisualize()
+
         this.initPostProcess();
         this.initPickup()
         this.initForRAW()
         this.observer();
     }
-
+    // async pickup() { }
+    initPickup() {
+        let option: optionPickup = {
+            device: this.device,
+            parent: this
+        };
+        this.pickUp = new Pickup(option);
+    }
     async initForRAW() {
         this.rawColorTexture = this.device.createTexture({
             size: [this.canvas.width, this.canvas.height],
@@ -349,6 +392,110 @@ class Scene extends BaseScene {
             },
         };
     }
+
+    //GBuffer
+    /**scene 初始化GBuffer，如果是debug模式，同时初始化可视化*/
+    async initGBuffers(width: number, height: number) {
+        let GBuffers = await super.initGBuffers(width, height);
+        return GBuffers;
+    }
+
+    /**GBuffer的后处理，在scene中合并 */
+    initGBuffersPostProcess() {
+        let option: optionGBPP = {
+            GBuffers: this.GBuffers,
+            parent: this,
+            device: this.device,
+            surfaceSize: {
+                width: this.canvas.width,
+                height: this.canvas.height
+            },
+            copyTotarget: this.sourceOfcopyToSurface
+        }
+        this.GBufferPostprocess = new GBufferPostProcess(option);
+    }
+    /**init post process management */
+    initPostProcess() {
+        this.postProcessManagement = new PostProcessMangement({
+            parent: this,
+            copyTotarget: this.sourceOfcopyToSurface,
+        });
+    }
+
+    /**初始化 Actor 环境 
+       * todo：20240809
+      */
+    initActors() {
+        this.actors = {};
+    }
+    /**
+     * demo only，todo，20240809
+     * 初始化 stages  环境
+     * depth buffer 在此初始化，todo
+    */
+    async initStages() {
+
+        this.stages = {};
+        for (let i of this.stagesOrders) {
+            let name = this.stagesOfSystem[i];
+            if (name != "UI" && name != "Sky") {
+                let stageOpaque = new BaseStage({
+                    name,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
+                await stageOpaque.init();
+                let stageTransparent = new BaseStage({
+                    name, transparent: true,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
+                await stageTransparent.init();
+                this.stages[name] = {
+                    opaque: stageOpaque,
+                    transparent: stageTransparent,
+                };
+            }
+            else if (name == "Sky") {
+                let stageOpaque = new BaseStage({
+                    name,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
+                await stageOpaque.init();
+                this.stages[name] = {
+                    opaque: stageOpaque,
+                    transparent: undefined,
+                };
+            }
+            else if (name == "UI") {
+                let stageTransparent = new BaseStage({
+                    name,
+                    scene: this,
+                    deferRender: {
+                        enable: this.deferRender,
+                        type: this.deferRenderDepth ? "depth" : "color"
+                    }
+                });
+                await stageTransparent.init();
+                this.stages[name] = {
+                    opaque: undefined,
+                    transparent: stageTransparent,
+                };
+            }
+        }
+    }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //GPU 
     /** for raw uniform model*/
     getRenderPassDescriptor() {
         return this.renderPassDescriptor;
@@ -413,6 +560,9 @@ class Scene extends BaseScene {
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //uniform 
     getLightNumbers() {
         return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
     }
@@ -440,41 +590,13 @@ class Scene extends BaseScene {
         async function run() {
             if (scope.realTimeRender) {//是否开启实时更新
                 if (scope._reSize === false) {//是否resize中
-
                     //时间更新
                     scope.clock.update();
                     const deltaTime = scope.clock.deltaTime;
                     const startTime = scope.clock.start;
                     const lastTime = scope.clock.last;
-
-                    {//数据更新部分
-                        //更新默认actor（摄像机）
-                        if (scope.defaultActor)
-                            scope.defaultActor.update(deltaTime, startTime, lastTime);
-                        //更新system uniform
-                        scope.updateSystemUniformBuffer();
-                        {
-                            //todo，视锥剔除
-                            // 四个中间点，稍稍延迟
-                            // let rays = this.defaultCamera!.getCameraRays();
-                            // 四个中间点，稍稍延迟
-                            // this.updateBVH(rays)
-                        }
-                        //更新光源数据
-                        await scope.updateLights(deltaTime, startTime, lastTime);
-                        //camera 在此位置更新，entities需要camera的dir和视锥参数
-                        scope.updateActor(deltaTime, startTime, lastTime);
-                        //todo，20241207，目前是空的
-                        //更新实体状态，比如水，树，草等动态的
-                        scope.updateEntities(deltaTime, startTime, lastTime);
-                        //更新每个stage
-                        scope.updateStagesCommand(deltaTime, startTime, lastTime);
-                    }
+                    await scope.update(deltaTime, startTime, lastTime);
                     await scope.oneFrameRender();
-                    // await scope.pickup();
-                    await scope.postProcess();
-                    await scope.updateUserDefine();
-                    await scope.showGBuffersVisualize();
                     await scope.copyToSurface();
                     if (userRun !== undefined)
                         await userRun(scope);
@@ -492,49 +614,8 @@ class Scene extends BaseScene {
         }
         requestAnimationFrame(run)
     }
-    //20241204
-    //同步有问题，GBuffe全部重构后，报错
-    async reSize() {
-        let scope = this;
-        console.log("scene::reSize()", scope._reSize);
-        const width = scope.surfaceSize.now.width;
-        const height = scope.surfaceSize.now.height;
-        scope.surfaceSize.old.width = width;
-        scope.surfaceSize.old.height = height;
-        if (scope.defaultCamera && "aspect" in scope.defaultCamera.option) {
-            let aspect = width / height;
-            scope.aspect = aspect;
-            scope.defaultCamera.option.aspect = aspect;
-            scope.defaultCamera.onResize();
-        }
-        let allStage = [];
-        const scene = new Promise(async (resolve, reject) => {
-            await resolve(scope.reInitGBuffers(width, height))
-        });
-        allStage.push(scene);
-        for (let i in scope.stagesOrders) {
-            const perList = scope.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = coreConst.stagesOfSystem[perList];
 
-            {//每个stageGroup进行update，包含透明和不透明两个stage 
-                if (scope.stages[name].opaque) {
-                    const stage = new Promise(async (resolve, reject) => {
-                        await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
-                    });
-                    allStage.push(stage);
-                }
-                if (scope.stages[name].transparent) {
-                    const stage = new Promise(async (resolve, reject) => {
-                        await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
-                    });
-                    allStage.push(stage);
-                }
-            }
-        }
-        await Promise.all(allStage).then(() => {
-            scope._reSize = false;
-        });
-    }
+
     /**作废： 20241207,合并到run中，简化嵌套
      * 每帧更新入口
      * 1、更新system uniform
@@ -545,7 +626,6 @@ class Scene extends BaseScene {
         if (this.defaultActor)
             this.defaultActor.update(deltaTime, startTime, lastTime);
         this.updateSystemUniformBuffer();
-
         //todo
         // 四个中间点，稍稍延迟
         // let rays = this.defaultCamera!.getCameraRays();
@@ -555,6 +635,40 @@ class Scene extends BaseScene {
         this.updateActor(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
         this.updateEntities(deltaTime, startTime, lastTime);//更新实体状态，比如水，树，草等动态的
         this.updateStagesCommand(deltaTime, startTime, lastTime);
+        await this.updateUserDefine();
+        await this.updatePostProcess(deltaTime, startTime, lastTime);
+    }
+
+    /**  stage 透明深度与合并
+    * 
+    * sky、UI的合并与顺序
+    * */
+    async oneFrameRender() {
+        this.renderSceneCommands();//render scene commands
+        this.renderStagesCommand();//render  stages commands
+        this.GBufferPostprocess.render();   //合并GBuffer
+        this.postProcessManagement.render();  //进行后处理
+        await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
+    }
+    renderStagesCommand() {
+        for (let i in this.stagesOrders) {
+            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
+            const name = coreConst.stagesOfSystem[perList];
+            {//每个stageGroup进行update，包含透明和不透明两个stage 
+                if (this.stages[name].opaque) {
+                    this.stages[name].opaque!.render();
+                }
+                //20241212:透明render移动到GBufferPostprocess中进行油画法
+                // if (this.stages[name].transparent) {
+                //     this.stages[name].transparent!.update(deltaTime, startTime, lastTime);
+                // }
+            }
+        }
+    }
+    renderSceneCommands() {
+        for (let one of this.commands) {
+            one.update();
+        }
     }
     async updateLights(deltaTime: number, startTime: number, lastTime: number) {
         for (let i of this.lights) {
@@ -706,7 +820,6 @@ class Scene extends BaseScene {
         return MVP;
     }
 
-
     /**
      * 获取MVP矩阵
      * @returns MVP(16*4)
@@ -774,6 +887,13 @@ class Scene extends BaseScene {
      * @param deltaTime 
      */
     updateStagesCommand(deltaTime: number, startTime: number, lastTime: number) {
+        //scene的root更新，特殊的，非baseentity的
+        this.commands = [];
+        for (let one of this.root) {
+            for (let commandInOne of one.update(this))
+                this.commands.push(commandInOne);
+        }
+        //更新stage
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
             const name = coreConst.stagesOfSystem[perList];
@@ -789,25 +909,96 @@ class Scene extends BaseScene {
             }
         }
     }
+    /** 初始化 后处理    */
+    async updatePostProcess(deltaTime: number, startTime: number, lastTime: number) {
+        this.postProcessManagement.update(deltaTime, startTime, lastTime);
+        //  this.copyTextureToTexture(this.stages["World"]!.opaque!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
+    }
+    /**显示GBuffer可视化 */
+    async showGBuffersVisualize() {
+        if (this._GBuffersVisualize.enable) {
+            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//有可视化，且状态改变（layout不同）
+                this.GBuffersVisualize.destroy();
+                this.GBuffersVisualize != undefined;
+            }
+            if (this.GBuffersVisualize == undefined) {
+                this.GBuffersVisualize = new GBuffersVisualize({
+                    parent: this,
+                    device: this.device,
+                    GBuffers: this.GBuffers,
+                    surfaceSize: {
+                        width: this.canvas.width,
+                        height: this.canvas.height,
+                    },
+                    layout: this._GBuffersVisualize,
+                    copyTotarget: this.sourceOfcopyToSurface
+                });
+                this._GBuffersVisualize.statueChange = false;//更新statue状态
+            }
+            this.GBuffersVisualize.render();
+        }
+        else {
+            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//关闭可视化，且layout也改变（这种应用少，即：关闭可视化，且改变布局）
+                this.GBuffersVisualize.destroy();
+                this.GBuffersVisualize != undefined;
+            }
+        }
+    }
+    /**设置 GBuffer 可视化，仅设置 */
+    setGBuffersVisualize(input: GBuffersVisualizeViewport | false) { //enable: boolean, layout: string = coreConst.GBuffersVisualizeLayoutDefaultName) {
+        if (input as boolean === false) {
+            this._GBuffersVisualize = { enable: false };
+        }
+        else if ((input as GBuffersVisualizeViewport).enable === true && (input as GBuffersVisualizeViewport).layout || (input as GBuffersVisualizeViewport).enable === false) {
+            let name = (input as GBuffersVisualizeViewport).layout!.name;
+            let isOK = false;
+            if ((input as GBuffersVisualizeViewport).layout!.single === true && name != "color") {
+                for (const key in coreConst.GBufferName) {
+                    if (key === name) {
+                        isOK = true;
+                    }
+                }
+                if (isOK) {
+                    this._GBuffersVisualize = (input as GBuffersVisualizeViewport);
+                    this._GBuffersVisualize.statueChange! = true;//无论是否更改了input，都是新的
+                    return;
+                }
+            }
+            else {
+                for (const key in coreConst.GBuffersVisualizeLayoutAssemble) {
+                    if (key === name) {
+                        isOK = true;
+                    }
+                }
+                if (isOK) {
+                    this._GBuffersVisualize = (input as GBuffersVisualizeViewport);
+                    this._GBuffersVisualize.statueChange! = true;//无论是否更改了input，都是新的
+                    return;
+                }
+            }
+        }
+        console.error("GBuffer可视化输入参数错误!");
+    }
+    /**每帧渲染的最后步骤 */
+    async copyToSurface() {
+        this.copyTextureToTexture(this.sourceOfcopyToSurface, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
 
 
-    /**  stage 透明深度与合并
-    * 
-    * sky、UI的合并与顺序
-    * */
-    async oneFrameRender() {
-        this.GBufferPostprocess.update();
+        //直接测试：world -->scene
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+
+        //中转测试：world-->  scene
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
+        // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
     }
 
-
-    // async pickup() { }
-    initPickup() {
-        let option: optionPickup = {
-            device: this.device,
-            parent: this
-        };
-        this.pickUp = new Pickup(option);
+    copyRawToSurface() {
+        this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
     }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //input
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /** 
      * @returns KeyboardEvent https://developer.mozilla.org/zh-CN/docs/Web/API/KeyboardEvent
      */
@@ -855,28 +1046,9 @@ class Scene extends BaseScene {
             return false;
     }
 
-    /** 初始化 后处理    */
-    async postProcess() {
-        //  this.copyTextureToTexture(this.stages["World"]!.opaque!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
-    }
-    /**每帧渲染的最后步骤 */
-    async copyToSurface() {
-
-        this.copyTextureToTexture(this.sourceOfcopyToSurface, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
-
-
-        //直接测试：world -->scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-
-        //中转测试：world-->  scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
-        // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-    }
-
-    copyRawToSurface() {
-        this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
-    }
-
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //用户自定义的更新
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 用户自定义的更新
      * 比如：
@@ -902,6 +1074,7 @@ class Scene extends BaseScene {
             }
         }
     }
+
     /**获取用户字自定义 call function的状态 */
     getUserDfineStateByName(name: string, state: boolean): { name: string, state: boolean } {
         for (let i of this.userDefineUpdateArray) {
@@ -915,173 +1088,12 @@ class Scene extends BaseScene {
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //GBuffer
-    /**scene 初始化GBuffer，如果是debug模式，同时初始化可视化*/
-    async initGBuffers(width: number, height: number) {
-        let GBuffers = await super.initGBuffers(width, height);
-        return GBuffers;
-    }
-    /**显示GBuffer可视化 */
-    async showGBuffersVisualize() {
-        if (this._GBuffersVisualize.enable) {
-            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//有可视化，且状态改变（layout不同）
-                this.GBuffersVisualize.destroy();
-                this.GBuffersVisualize != undefined;
-            }
-            if (this.GBuffersVisualize == undefined) {
-                this.GBuffersVisualize = new GBuffersVisualize({
-                    parent: this,
-                    device: this.device,
-                    GBuffers: this.GBuffers,
-                    surfaceSize: {
-                        width: this.canvas.width,
-                        height: this.canvas.height,
-                    },
-                    layout: this._GBuffersVisualize,
-                    copyTotarget: this.sourceOfcopyToSurface
-                });
-                this._GBuffersVisualize.statueChange = false;//更新statue状态
-            }
-            this.GBuffersVisualize.update();
-        }
-        else {
-            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//关闭可视化，且layout也改变（这种应用少，即：关闭可视化，且改变布局）
-                this.GBuffersVisualize.destroy();
-                this.GBuffersVisualize != undefined;
-            }
-        }
-    }
-    /**设置 GBuffer 可视化，仅设置 */
-    setGBuffersVisualize(input: GBuffersVisualizeViewport | false) { //enable: boolean, layout: string = coreConst.GBuffersVisualizeLayoutDefaultName) {
-        if (input as boolean === false) {
-            this._GBuffersVisualize = { enable: false };
-        }
-        else if ((input as GBuffersVisualizeViewport).enable === true && (input as GBuffersVisualizeViewport).layout || (input as GBuffersVisualizeViewport).enable === false) {
-            let name = (input as GBuffersVisualizeViewport).layout!.name;
-            let isOK = false;
-            if ((input as GBuffersVisualizeViewport).layout!.single === true && name != "color") {
-                for (const key in coreConst.GBufferName) {
-                    if (key === name) {
-                        isOK = true;
-                    }
-                }
-                if (isOK) {
-                    this._GBuffersVisualize = (input as GBuffersVisualizeViewport);
-                    this._GBuffersVisualize.statueChange! = true;//无论是否更改了input，都是新的
-                    return;
-                }
-            }
-            else {
-                for (const key in coreConst.GBuffersVisualizeLayoutAssemble) {
-                    if (key === name) {
-                        isOK = true;
-                    }
-                }
-                if (isOK) {
-                    this._GBuffersVisualize = (input as GBuffersVisualizeViewport);
-                    this._GBuffersVisualize.statueChange! = true;//无论是否更改了input，都是新的
-                    return;
-                }
-            }
-        }
-        console.error("GBuffer可视化输入参数错误!");
-    }
+    // add function
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**GBuffer的后处理，在scene中合并 */
-    initGBuffersPostProcess() {
-        let option: optionGBPP = {
-            GBuffers: this.GBuffers,
-            parent: this,
-            device: this.device,
-            surfaceSize: {
-                width: this.canvas.width,
-                height: this.canvas.height
-            },
-            copyTotarget: this.sourceOfcopyToSurface
-        }
-        this.GBufferPostprocess = new GBufferPostProcess(option);
-    }
-    /**init post process management */
-    initPostProcess() {
-
+    addToScene(one: updateObjectOfRootOfScene) {
+        this.root.push(one);
     }
 
-
-    /**初始化 Actor 环境 
-       * todo：20240809
-      */
-    initActors() {
-        this.actors = {};
-    }
-    /**
-     * demo only，todo，20240809
-     * 初始化 stages  环境
-     * depth buffer 在此初始化，todo
-    */
-    async initStages() {
-
-        this.stages = {};
-        for (let i of this.stagesOrders) {
-            let name = this.stagesOfSystem[i];
-            if (name != "UI" && name != "Sky") {
-                let stageOpaque = new BaseStage({
-                    name,
-                    scene: this,
-                    deferRender: {
-                        enable: this.deferRender,
-                        type: this.deferRenderDepth ? "depth" : "color"
-                    }
-                });
-                await stageOpaque.init();
-                let stageTransparent = new BaseStage({
-                    name, transparent: true,
-                    scene: this,
-                    deferRender: {
-                        enable: this.deferRender,
-                        type: this.deferRenderDepth ? "depth" : "color"
-                    }
-                });
-                await stageTransparent.init();
-                this.stages[name] = {
-                    opaque: stageOpaque,
-                    transparent: stageTransparent,
-                };
-            }
-            else if (name == "Sky") {
-                let stageOpaque = new BaseStage({
-                    name,
-                    scene: this,
-                    deferRender: {
-                        enable: this.deferRender,
-                        type: this.deferRenderDepth ? "depth" : "color"
-                    }
-                });
-                await stageOpaque.init();
-                this.stages[name] = {
-                    opaque: stageOpaque,
-                    transparent: undefined,
-                };
-            }
-            else if (name == "UI") {
-                let stageTransparent = new BaseStage({
-                    name,
-                    scene: this,
-                    deferRender: {
-                        enable: this.deferRender,
-                        type: this.deferRenderDepth ? "depth" : "color"
-                    }
-                });
-                await stageTransparent.init();
-                this.stages[name] = {
-                    opaque: undefined,
-                    transparent: stageTransparent,
-                };
-            }
-        }
-
-
-    }
     add = this.addToStage;
     /**
      *  将实体附加到stage
@@ -1102,8 +1114,8 @@ class Scene extends BaseScene {
             else
                 console.log(stage, "透明，不存在");
         }
-
     }
+
     setDefaultCamera(camera: BaseCamera) {
         this.defaultCamera = camera;
     }
@@ -1151,9 +1163,56 @@ class Scene extends BaseScene {
         oneLight.setRootScene(this);
         this.lights.push(oneLight);
     }
+    addPostProcess(one: PostProcessEffect) {
+        this.postProcessManagement.add(one);
+    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Observer 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //20241204
+    //同步有问题，GBuffe全部重构后，报错
+    async reSize() {
+        let scope = this;
+        console.log("scene::reSize()", scope._reSize);
+        const width = scope.surfaceSize.now.width;
+        const height = scope.surfaceSize.now.height;
+        scope.surfaceSize.old.width = width;
+        scope.surfaceSize.old.height = height;
+        if (scope.defaultCamera && "aspect" in scope.defaultCamera.option) {
+            let aspect = width / height;
+            scope.aspect = aspect;
+            scope.defaultCamera.option.aspect = aspect;
+            scope.defaultCamera.onResize();
+        }
+        let allStage = [];
+        const scene = new Promise(async (resolve, reject) => {
+            await resolve(scope.reInitGBuffers(width, height))
+        });
+        allStage.push(scene);
+        for (let i in scope.stagesOrders) {
+            const perList = scope.stagesOrders[i];//number，stagesOfSystem的数组角标
+            const name = coreConst.stagesOfSystem[perList];
+
+            {//每个stageGroup进行update，包含透明和不透明两个stage 
+                if (scope.stages[name].opaque) {
+                    const stage = new Promise(async (resolve, reject) => {
+                        await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
+                    });
+                    allStage.push(stage);
+                }
+                if (scope.stages[name].transparent) {
+                    const stage = new Promise(async (resolve, reject) => {
+                        await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
+                    });
+                    allStage.push(stage);
+                }
+            }
+        }
+        await Promise.all(allStage).then(() => {
+            scope._reSize = false;
+        });
+    }
     observer() {
         let scope = this;
         const resizeObserver = new ResizeObserver(entries => {

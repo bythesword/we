@@ -235,7 +235,7 @@ export class DrawCommand extends BaseCommand {
             this.renderPassDescriptor = options.renderPassDescriptor;
         }
         else {
-            this.renderPassDescriptor = this.scene.getRenderPassDescriptor();
+            this.renderPassDescriptor = this.parent.getRenderPassDescriptor();
 
         }
         if (options.depthStencilState) {
@@ -243,7 +243,7 @@ export class DrawCommand extends BaseCommand {
         }
         else {
             if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor)
-                this.depthStencil = this.scene.depthStencil;//scene extend baseScene
+                this.depthStencil = this.parent.depthStencil;//scene extend baseScene
         }
         //todo indexBuffer
         if (options.indexBuffer != undefined && this.input.draw.mode == "index") {
@@ -416,7 +416,7 @@ export class DrawCommand extends BaseCommand {
                 };
             }
             else {
-                let wgslOfSystem = this.scene.getWGSLOfSystemShader();
+                let wgslOfSystem = this.parent.getWGSLOfSystemShader();
                 let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
                 let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
                 descriptor = {
@@ -461,7 +461,7 @@ export class DrawCommand extends BaseCommand {
                 };
             }
             else {
-                let wgslOfSystem = this.scene.getWGSLOfSystemShader();
+                let wgslOfSystem = this.parent.getWGSLOfSystemShader();
                 let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
                 descriptor = {
                     label: label,
@@ -487,7 +487,7 @@ export class DrawCommand extends BaseCommand {
     }
 
     /**
-     * 目前使用scene的colorAttachments,
+     * 目前使用parent的colorAttachments,
      * todo ，增加texture
      */
     submit() {
@@ -499,7 +499,7 @@ export class DrawCommand extends BaseCommand {
         else {//system uniform 
             //创建
             if (this.uniformGroups[0] == undefined) {
-                this.uniformGroups[0] = this.scene.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
+                this.uniformGroups[0] = this.parent.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
             }
 
         }

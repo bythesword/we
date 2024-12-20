@@ -1,5 +1,5 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, initStateEntity, optionBaseEntity, renderCommands } from "../baseEntity";
+import { BaseEntity, boundingBox, boundingSphere, initStateEntity, optionBaseEntity, renderCommands } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
@@ -43,7 +43,17 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
-
+    //todo :20241219
+    generateBox(): boundingBox {
+        // throw new Error("Method not implemented.");
+        return {
+            min:[0,0,0],
+            max:[0,0,0],
+        }
+    }
+    generateSphere(): boundingSphere {
+        throw new Error("Method not implemented.");
+    }
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
@@ -82,7 +92,7 @@ export class Mesh extends BaseEntity {
     /**覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
         await this._material.init({
-            scene: this.scene,
+            scene: this.scene,//为获取在scene中注册的resource
             deferRenderColor: this.deferRenderColor,
             deferRenderDepth: this.deferRenderDepth,
             reversedZ: this.reversedZ
@@ -90,13 +100,13 @@ export class Mesh extends BaseEntity {
         // await this._material.setRootENV(this.scene);
     }
     destroy() {
-        for (let i of this._commmands.forward) {
+        for (let i of this.commmands.forward) {
             i.destroy();
         }
-        for (let i of this._commmands.depth) {
+        for (let i of this.commmands.depth) {
             i.destroy();
         }
-        for (let i of this._commmands.color) {
+        for (let i of this.commmands.color) {
             i.destroy();
         }
     }
@@ -109,23 +119,23 @@ export class Mesh extends BaseEntity {
      * 
      * 目的：判断是否完成准备工作，如果完成执行createDCC()
      * 
-     * @param scene 
+     * @param parent 
      */
-    initDCC(scene: any) {
+    initDCC(parent: any) {
         let already = this.checkStatus();
         if (already) {
             this._init = initStateEntity.initializing;
-            if (this.deferRenderDepth) this._init =  this.createDCCDeferRenderDepth(scene);
-            this._init = this.createDCC(scene);
+            if (this.deferRenderDepth) this._init =  this.createDCCDeferRenderDepth(parent);
+            this._init = this.createDCC(parent);
             this.generateBox();
         }
     }
     /**
      * 创建Draw Compute Commands
-     * @param scene 
+     * @param parent 
      * @returns 完成标志位：initStateEntity.finished
      */
-    createDCC(scene: any): initStateEntity {
+    createDCC(parent: any): initStateEntity {
         let scope = this;
         /////////////////////box  
         let shader;
@@ -151,8 +161,8 @@ export class Mesh extends BaseEntity {
                     resource: this.stage!.depthTextureOnly.createView()
                 });
                 // constants = {
-                //     canvasSizeWidth: this.stage!.scene.canvas.width,
-                //     canvasSizeHeight: this.stage!.scene.canvas.height,
+                //     canvasSizeWidth: this.stage!.parent.canvas.width,
+                //     canvasSizeHeight: this.stage!.parent.canvas.height,
                 // }
             }
             if (this.input?.shaderCode) {
@@ -182,7 +192,7 @@ export class Mesh extends BaseEntity {
             }
             let options: drawOptionOfCommand = {
                 label: this.name == "" ? "Mesh" : this.name,
-                scene: scene,
+                parent: parent,
                 vertex: {
                     code: shader,
                     entryPoint: "vs",
@@ -193,7 +203,7 @@ export class Mesh extends BaseEntity {
                     entryPoint: "fs",
                     targets: this.getFragmentTargets(),
                     constants: constants
-                    //[{ format: scene.presentationFormat }]
+                    //[{ format: parent.presentationFormat }]
                 },
                 primitive: {
                     topology: 'triangle-list',
@@ -212,7 +222,7 @@ export class Mesh extends BaseEntity {
             };
 
             let DC = new DrawCommand(options);
-            this._commmands.forward.push(DC);
+            this.commmands.forward.push(DC);
         }
 
         /////////////////////////////// wire frame
@@ -236,7 +246,7 @@ export class Mesh extends BaseEntity {
 
             let wireFrameOptions: drawOptionOfCommand = {
                 label: this.name == "" ? "Mesh wireframe" : this.name + " wireframe",
-                scene: scene,
+                parent: parent,
                 vertex: {
                     code: wireFrameShaderCode,
                     entryPoint: "vs",
@@ -246,7 +256,7 @@ export class Mesh extends BaseEntity {
                     code: wireFrameShaderCode,
                     entryPoint: "fs",
                     targets: this.getFragmentTargets()
-                    // targets: [{ format: scene.presentationFormat }]
+                    // targets: [{ format: parent.presentationFormat }]
                 },
                 primitive: {
                     topology: "line-list",
@@ -275,15 +285,15 @@ export class Mesh extends BaseEntity {
 
             }
             let wireFrameDC = new DrawCommand(wireFrameOptions);
-            this._commmands.forward.push(wireFrameDC);
+            this.commmands.forward.push(wireFrameDC);
         }
         return initStateEntity.finished;
     }
 
-    updateDCC(_scene: any, deltaTime: number, startTime: number, lastTime: number): renderCommands {
-        return this._commmands;
+    updateDCC(_parent: any, deltaTime: number, startTime: number, lastTime: number): renderCommands {
+        return this.commmands;
     }
-    createDCCDeferRenderDepth(scene: any): initStateEntity {
+    createDCCDeferRenderDepth(parent: any): initStateEntity {
         let scope = this;
         /////////////////////box  
         let shader = this._geometry.getCodeVS();
@@ -353,7 +363,7 @@ export class Mesh extends BaseEntity {
 
         let options: drawOptionOfCommand = {
             label: "Mesh for deferRender depth" + this.name,
-            scene: scene,
+            parent: parent,
             vertex: {
                 code: shader,
                 entryPoint: "vs",
@@ -383,7 +393,7 @@ export class Mesh extends BaseEntity {
         };
 
         let DC = new DrawCommand(options);
-        this._commmands.depth.push(DC);
+        this.commmands.depth.push(DC);
 
         return initStateEntity.initializing;
     }

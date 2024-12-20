@@ -285,7 +285,7 @@ export abstract class BaseGeometry {
         return colorsArray;
     }
     destroy() {
-        this._destroy = false;
+        this._destroy = true;
         this.buffer = {
             position: [],
             normal: [],

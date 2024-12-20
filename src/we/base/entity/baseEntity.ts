@@ -16,6 +16,15 @@ export interface renderCommands {
     color: commmandType[],
 }
 
+export interface boundingSphere {
+    position: [number, number, number],
+    radius: number,
+}
+export interface boundingBox {
+    min: [number, number, number],
+    max: [number, number, number],
+}
+
 export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
 export interface geometryBufferOfEntity {
     /**索引buffer
@@ -114,7 +123,7 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
  * 
  * 20241129,类型从any 改为BaseStage
  */
-    scene?: BaseStage,
+    parent?: BaseStage,
     name?: string,
     //todo
     /** 顶点和材质组一对一 */
@@ -194,7 +203,7 @@ export abstract class BaseEntity extends Root {
     _LOD!: LOD[];//todo
     _shadow!: optionShadowEntity;
     _shadowMaterail!: ShadowMaterial;
-    _commmands: renderCommands;//commmandType[];
+    commmands: renderCommands;//commmandType[];
     _vertexAndMaterialGroup!: entityContentGroup;
     _position!: Vec3;
     _scale!: Vec3;
@@ -234,7 +243,7 @@ export abstract class BaseEntity extends Root {
     //     // this.updateUniformBuffer(this.scene, 1, 1, 1);
     // }
 
-    parent: BaseEntity | undefined;
+    parent!: BaseEntity;
     /** stageID*/
     stageID!: number;
 
@@ -269,6 +278,10 @@ export abstract class BaseEntity extends Root {
     deferRenderDepth!: boolean;
     deferRenderColor!: boolean;
 
+
+    boundingBox!: boundingBox;//initDCC中赋值
+    boundingSphere!: boundingSphere;//20241219，未使用
+
     constructor(input: optionBaseEntity) {
         super();
         this._init = initStateEntity.constructing;
@@ -292,7 +305,7 @@ export abstract class BaseEntity extends Root {
         this.stageID = 0;
         this._LOD = [];
         this._destroy = false;
-        this._commmands = {
+        this.commmands = {
             forward: [],
             depth: [],
             color: []
@@ -351,16 +364,26 @@ export abstract class BaseEntity extends Root {
         this.deferRenderDepth = values.deferRenderDepth;
         this.deferRenderColor = values.deferRenderColor;
         this.stageTransparent = values.stage.scene.stages[values.stage.name].transparent;
-        await this.setRootENV(values.stage.scene);
+        await this.setRootENV(values.stage.scene);//为获取在scene中注册的resource
         this.ID = values.ID;//这个在最后，update需要判断ID是否存在，以开始更新
-
     }
 
-
-    initDCC(scene: any) {
-        this._init = this.createDCC(scene);
-        this.generateBox();
+    initDCC(parent: BaseStage) {
+        let already = this.checkStatus();
+        if (already) {
+            this._init = initStateEntity.initializing;
+            if (this.deferRenderDepth) this._init =  this.createDCCDeferRenderDepth(parent);
+            this._init = this.createDCC(parent);
+            this.generateBox();
+        }
     }
+    // initDCC(parent: BaseStage) {
+    //     let already = this.checkStatus();
+    //     if (already) {
+    //         this._init = this.createDCC(parent);
+    //         this.boundingBox = this.generateBox();
+    //     }
+    // }
     set transparent(transparent: boolean) {
         this._transparent = transparent;
     }
@@ -373,13 +396,14 @@ export abstract class BaseEntity extends Root {
      * 创建this._vertexAndMaterialGroup对应的DrawCommand组
      * 
      */
-    abstract createDCC(scene: any): initStateEntity
-    abstract createDCCDeferRenderDepth(scene: any): initStateEntity
+    abstract createDCC(parent: BaseStage): initStateEntity
+    abstract createDCCDeferRenderDepth(parent: BaseStage): initStateEntity
 
 
 
     /** todo */
-    generateBox() { }
+    abstract generateBox(): boundingBox
+    abstract generateSphere(): boundingSphere
 
     addContent(name: string, vm: entityContentOfVertexAndMaterial) {
         this._vertexAndMaterialGroup[name] = vm;
@@ -487,7 +511,7 @@ export abstract class BaseEntity extends Root {
             this.translation(this.input.position);
 
         this.matrixWorld = this.updateMatrixWorld();
-        this.updateUniformBuffer(false, 0, 0, 0);
+        this.updateUniformBuffer(this.stage as BaseStage, 0, 0, 0);
     }
 
     /** 
@@ -527,20 +551,20 @@ export abstract class BaseEntity extends Root {
      * 
      * 2、未完成初始化，返回空数组
      * 
-     * @param scene 
+     * @param parent 
      * @param deltaTime 
      * @param startTime 
      * @param lastTime 
      * @param updateForce boolean，true=重新生成Draw Command
      * @returns 
      */
-    update(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false, ForOnePixelDeferRender: boolean = false): renderCommands {
+    update(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false, ForOnePixelDeferRender: boolean = false): renderCommands {
         //初始化DCC
         if (this._readyForGPU && this._id != 0)
 
             if (this._init === initStateEntity.unstart) {
                 this.updateMatrix();//在这里必须更新一次，entityID，stageID，都是延迟到增加至stage之后才更新的。
-                this.initDCC(scene);
+                this.initDCC(parent);
             }
             //初始化是完成状态，同时checkStatus=true
             else if (this._init === initStateEntity.finished && this.checkStatus()) {
@@ -558,14 +582,14 @@ export abstract class BaseEntity extends Root {
                 }
                 else if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
 
-                    this.updateUniformBuffer(scene, deltaTime, startTime, lastTime);
-                    // this._commmandsForOnePixelDeferRender = this.updateDCCForOnePixelDeferRender(scene, deltaTime, startTime, lastTime);
-                    this._commmands = this.updateDCC(scene, deltaTime, startTime, lastTime);
-                    // return this._commmands;
+                    this.updateUniformBuffer(parent, deltaTime, startTime, lastTime);
+                    // this.commmandsForOnePixelDeferRender = this.updateDCCForOnePixelDeferRender(parent, deltaTime, startTime, lastTime);
+                    this.commmands = this.updateDCC(parent, deltaTime, startTime, lastTime);
+                    // return this.commmands;
                 }
                 else//静态，直接返回commands
                 {
-                    return this._commmands;
+                    return this.commmands;
                 }
             }
             else if (this._init == initStateEntity.initializing) {
@@ -573,12 +597,12 @@ export abstract class BaseEntity extends Root {
             }
 
         // return [];
-        // let commands = this.updateChilden(scene, deltaTime, startTime, lastTime);
+        // let commands = this.updateChilden(parent, deltaTime, startTime, lastTime);
 
-        return this._commmands;
+        return this.commmands;
     }
 
-    updateChilden(scene: any, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
+    updateChilden(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
         return [];
     }
     /**
@@ -640,7 +664,7 @@ export abstract class BaseEntity extends Root {
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
     // abstract
-    updateUniformBuffer(scene: any, deltaTime: number, startTime: number, lastTime: number): any {
+    updateUniformBuffer(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): any {
 
         for (let i = 0; i < this.numInstances; i++) {
             let perMatrix = mat4.identity();
@@ -680,7 +704,7 @@ export abstract class BaseEntity extends Root {
      * 2、如果没有更新直接返回DCC的数组
      * 
      */
-    abstract updateDCC(scene: any, deltaTime: number, startTime: number, lastTime: number): renderCommands;
+    abstract updateDCC(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): renderCommands;
 
     /**
      * 循环注销children
@@ -732,7 +756,7 @@ export abstract class BaseEntity extends Root {
     shaderCodeProcess(shaderCode: string): string {
         let deferRender = "";
         if (this.deferRenderDepth) {
-            deferRender = `@group(1) @binding(1) var u_DeferDepth : texture_depth_2d; \n `;
+            deferRender = `\n @group(1) @binding(1) var u_DeferDepth : texture_depth_2d; \n `;
         }
         let code = partAdd_st_entity_VS + deferRender + shaderCode;//增加结构体 ST_entity
         code = partAdd_st_VertexShaderOutput_VS + code;//增加结构体 VertexShaderOutput

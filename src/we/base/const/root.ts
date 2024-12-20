@@ -6,8 +6,8 @@ export abstract class Root {
     device!: GPUDevice;
     scene!: Scene;
     canvas!: HTMLCanvasElement;
-    stage: BaseStage | undefined;
-    stageTransparent: BaseStage | undefined;
+    stage!: BaseStage | undefined;//UI 可能没有不透明层
+    stageTransparent!: BaseStage | undefined;//sky 没有透明层
 
     _readyForGPU!: boolean;
 
@@ -15,7 +15,7 @@ export abstract class Root {
     set ID(id) { this._id = id; }
     get ID() { return this._id; }
 
-    async setRootScene(scene: any) {
+    async setRootScene(scene: Scene) {
         this.scene = scene;
     }
     async setRootcanvas(canvas: HTMLCanvasElement) {

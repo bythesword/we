@@ -3,9 +3,9 @@ import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 import { uniformEntries } from "../../command/baseCommand";
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
 import { weSamplerKind } from "../../resource/weResource";
-import { optionBaseMaterialStep2 } from "../baseMaterial";
+import {  textureType } from "../baseMaterial";
 
-export type textureType = ImageBitmap | string | GPUTexture;
+
 /*
 * 这个phong模型是PBR的，结果只是近似
 */

@@ -3,14 +3,13 @@ import { ArcballCameraControl } from "../../../../src/we/base/control/arcballCam
 import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
-import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene" 
-import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry" 
+import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
+import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
- 
-import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/lightsphongMaterial" 
-import { PointLight } from "../../../../src/we/base/light/pointLight"
-import { Blur3x3 } from "../../../../src/we/base/postprocess/blur3x3"
 import { initScene } from "../../../../src/we/base/scene/initScene"
+import { Blur3x3 } from "../../../../src/we/base/postprocess/blur3x3"
+
 
 declare global {
   interface Window {
@@ -26,14 +25,6 @@ let input: sceneInputJson = {
     green: 0.1,
     blue: 0.1,
     alpha: 1
-  },
-  ambientLight: {
-    color: {
-      red: 1,
-      green: 1,
-      blue: 1
-    },
-    intensity: 0.13
   }
 }
 let scene = await initScene(input)
@@ -44,8 +35,8 @@ window.scene = scene;
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
-  far: 100,
+  near: 0.1,
+  far: 5,
   position: [0, 0, 3],
   lookAt: [0, 0, 0]
 }
@@ -76,45 +67,21 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let Geometry = new SphereGeometry({
-  radius: 1,
-  widthSegments: 128,
-  heightSegments: 128
-});
+let boxGeometry = new BoxGeometry();
 //极简测试材质，red
-let redMaterial = new PhongLightsMaterial(
-  {
-    color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
-    Shininess: 32,
-    metalness: 1.50,
-    roughness: .50,
-  });
+let redMaterial = new ColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
 //box实体
 let boxEntity = new Mesh(
   {
-    geometry: Geometry,
+    geometry: boxGeometry,
     material: redMaterial,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
-    wireFrame: false,
-    // position:vec3.create(1,0,0),
-    // scale:[2,2,1],
-    // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:0.15*Math.PI
-    // },
+    // wireFrame: false,
+    wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 },
   }
 );
 //增加实体到scene
 scene.add(boxEntity)
 
-let light1= new PointLight(
-  {
-    position: [0.0, 0.0, 8.0],
-    intensity: 2.0,
 
-  }
-);
-
-scene.addLight(light1);
-
-
+let blur3x3 = new Blur3x3();
+scene.addPostProcess(blur3x3)

@@ -1,4 +1,4 @@
-import teapotData from 'teapot';
+import teapotData from './teapotData.ts';
 import { computeSurfaceNormals } from './utils.ts';
 
 export const mesh = {
@@ -9,3 +9,4 @@ export const mesh = {
 
 // Compute surface normals
 mesh.normals = computeSurfaceNormals(mesh.positions, mesh.triangles);
+

@@ -136,7 +136,7 @@ export class GBuffersVisualize extends SingleRender {
                 mode: "draw",
                 values: values
             },
-            scene: this.parent,
+            parent: this.parent,
             uniforms: uniforms,
             primitive: {
                 topology: 'triangle-list',
@@ -229,7 +229,7 @@ export class GBuffersVisualize extends SingleRender {
                         mode: "draw",
                         values: values
                     },
-                    scene: this.parent,
+                    parent: this.parent,
                     uniforms: uniforms,
                     primitive: {
                         topology: 'triangle-list',

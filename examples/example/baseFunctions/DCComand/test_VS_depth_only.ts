@@ -99,7 +99,7 @@ let renderPassDescriptorDepth: GPURenderPassDescriptor = {
 let options: drawOptionOfCommand = {
   renderPassDescriptor: renderPassDescriptorDepth,
   label: "a triangle",
-  scene: scene,
+  parent: scene,
   vertex: {
     code: shader,
     entryPoint: "vs",
@@ -227,7 +227,7 @@ let shaderColor = `
 let optionsColor: drawOptionOfCommand = {
   renderPassDescriptor: renderPassDescriptorColor,
   label: "a triangle",
-  scene: scene,
+  parent: scene,
   vertex: {
     code: shaderColor,
     entryPoint: "vs",
