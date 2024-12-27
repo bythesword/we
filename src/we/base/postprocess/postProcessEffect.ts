@@ -9,7 +9,7 @@ export interface optionBasePostprocessEffect {
     // height?: number,
 }
 export interface optionBasePostprocessEffectStep2 {
-    copyToTarget: GPUTexture,
+    copyToTarget: { [name: string]: GPUTexture },
     rawColorTexture: GPUTexture,
     renderPassDescriptor: GPURenderPassDescriptor,
     presentationFormat: GPUTextureFormat,
@@ -18,10 +18,12 @@ export interface optionBasePostprocessEffectStep2 {
 }
 export abstract class PostProcessEffect extends Root {
     commands: commmandType[];
-    copyToTarget!: GPUTexture;
+    copyToTarget!: { [name: string]: GPUTexture };
     rawColorTexture!: GPUTexture;
     renderPassDescriptor!: GPURenderPassDescriptor;
-    GBuffers!: GBuffers;
+    GBuffers!: {
+        [name: string]: GBuffers
+    };
     presentationFormat!: GPUTextureFormat;
     input: optionBasePostprocessEffect;
     width!: number;
@@ -41,20 +43,22 @@ export abstract class PostProcessEffect extends Root {
         await this.setRootENV(values.scene);//为获取在scene中注册的resource
         this.copyToTarget = values.copyToTarget;
         this.rawColorTexture = values.rawColorTexture;
-        this.presentationFormat = this.scene.presentationFormat;       
-        this.renderPassDescriptor=values.renderPassDescriptor;
+        this.presentationFormat = this.scene.presentationFormat;
+        this.renderPassDescriptor = values.renderPassDescriptor;
         this.width = this.scene.canvas.width;
         this.height = this.scene.canvas.height;
         this.GBuffers = this.scene.GBuffers;
         this._init();
-        this.copy();
+        // this.copy();
     }
 
-    copy() {
+    copy(source: GPUTexture, target: GPUTexture) {
         let copyToColorTexture = new CopyCommandT2T(
             {
-                A: this.rawColorTexture,
-                B: this.copyToTarget,
+                A: source,
+                B: target,
+                // A: this.rawColorTexture,
+                // B: this.copyToTarget,
                 size: { width: this.canvas.width, height: this.canvas.height },
                 device: this.device
             }

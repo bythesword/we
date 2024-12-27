@@ -77,7 +77,7 @@ export abstract class BaseCamera {
   /** MVP的Mat4的数组，[model,view,projection]  */
   MVP!: Mat4[];
   /**数字ID，scene中的队列的id */
-  NID!: number;
+  id!: number;
 
 
   lookAt!: Vec3;
@@ -103,7 +103,7 @@ export abstract class BaseCamera {
   name!: string;
 
   constructor(option: projectionOptions) {
-
+    this.id = Date.now();
     this.option = option;
     if (option.upDirection) {
       vec3.copy(option.upDirection, this.up);

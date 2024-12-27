@@ -8,13 +8,13 @@ export interface optionPostprocessMangement {
     // GBuffers: GBuffers,
     // renderPassDescriptor: GPURenderPassDescriptor,
     parent: Scene,
-    copyToTarget: GPUTexture,
+    copyToTarget:  { [name: string]: GPUTexture },
     rawColorTexture?: GPUTexture,
 }
 
 export class PostProcessMangement {
     device: GPUDevice;
-    copyToTarget: GPUTexture;
+    copyToTarget:  { [name: string]: GPUTexture };
     // GBuffers: GBuffers;
     parent: Scene;
     presentationFormat: GPUTextureFormat;
@@ -57,7 +57,7 @@ export class PostProcessMangement {
             colorAttachments: [
                 {
                     view: this.rawColorTexture.createView(),
-                    clearValue: [0, 0, 1, 0],
+                    clearValue: [0, 0, 0, 0],
                     loadOp: 'clear',
                     storeOp: "store"
                 }

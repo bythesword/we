@@ -1,7 +1,7 @@
 import { DrawCommand } from "../command/DrawCommand"
 import { ComputeCommand } from '../command/ComputeCommand';
 import { BaseEntity } from "../entity/baseEntity";
-import { BaseScene,  commmandType,  sceneJson } from "../scene/baseScene";
+import { BaseScene, commmandType, sceneJson } from "../scene/baseScene";
 import { BaseLight } from "../light/baseLight";
 import { BaseCamera } from "../camera/baseCamera";
 import * as coreConst from "../const/coreConst"
@@ -61,7 +61,7 @@ export class BaseStage extends BaseScene {
 
 
     root: BaseEntity[];
-    idOfRoot:number;
+    idOfRoot: number;
 
     // start todo ,20241020,不同的stage可能存在不同light的可见情况，不同的环境光，比如：室外，室内，
     // light ,camera 的数组为空，或为undefined，则使用全局（Scene）的。
@@ -120,7 +120,7 @@ export class BaseStage extends BaseScene {
     /**   @param input optionBaseStage     */
     constructor(input: optionBaseStage) {
         super(input.scene.input);//采用与scene相同的初始化参数,主要考虑的ReversedZ
-        this.idOfRoot=1;
+        this.idOfRoot = 1;
         this.device = input.scene!.device;
         this.scene = input.scene;
         this.presentationFormat = this.scene.presentationFormat;
@@ -162,7 +162,7 @@ export class BaseStage extends BaseScene {
                 commandsColor: []
             }
         };
-        this.lightsCommands={}
+        this.lightsCommands = {}
 
         //这个是写死的，后期改成公共functon，需要同步更改pickup.ts getTargetID()中的内容
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */
@@ -177,9 +177,22 @@ export class BaseStage extends BaseScene {
         //this.init();
     }
     async init() {
+        const width = this.scene.canvas.width;
+        const height = this.scene.canvas.height;
+        //stage初始化defer render（单像素模式）使用
+        if (this.deferRenderDepth) {
+            //深度buffer
+            this.depthTextureOnly = this.device.createTexture({
+                label: "stage:depth attachemnet of one pixel defer",
+                size: [width, height],
+                format: this.depthDefaultFormat,            // format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+            });
+
+        }
         if (!this.transparent) {
-            this.GBuffers = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
-            this.renderPassDescriptor = await this.createRenderPassDescriptor();
+            this.GBuffers["default"] = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
+            this.renderPassDescriptor = await this.createRenderPassDescriptor("default");
 
             if (this.deferRenderDepth)
                 this.RPD_ForDeferDepth = this.createRPD_ForDeferDepth();
@@ -188,6 +201,7 @@ export class BaseStage extends BaseScene {
         else {
             this.renderPassDescriptor = await this.createRenderPassDescriptorForTransparent();
         }
+
     }
     /**透明stage使用 */
     async createRenderPassDescriptorForTransparent(): Promise<GPURenderPassDescriptor> {
@@ -204,32 +218,32 @@ export class BaseStage extends BaseScene {
      * 
      * 2、stage初始化defer render（单像素模式）使用
       */
-    async initGBuffers(width: number, height: number) {
-        let GBuffers = await super.initGBuffers(width, height);
+    // async initGBuffers(width: number, height: number) {
+    //     let GBuffers = await super.initGBuffers(width, height);
 
 
-        /////////////gbuffer ，需要整合到BaseScene中
-        //输出到texture，而不是canvas
-        //todo:20241212,目前来看this.colorTextureForID是没有使用的，后期排除，删除
-        this.colorTextureForID = this.device.createTexture({
-            label: "stage:color attachemnet for entity id",
-            size: [width, height],
-            format: "r32uint",
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
+    //     /////////////gbuffer ，需要整合到BaseScene中
+    //     //输出到texture，而不是canvas
+    //     //todo:20241212,目前来看this.colorTextureForID是没有使用的，后期排除，删除
+    //     this.colorTextureForID = this.device.createTexture({
+    //         label: "stage:color attachemnet for entity id",
+    //         size: [width, height],
+    //         format: "r32uint",
+    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
 
-        });
-        if (this.deferRenderDepth) {
-            //深度buffer
-            this.depthTextureOnly = this.device.createTexture({
-                label: "stage:depth attachemnet of one pixel defer",
-                size: [width, height],
-                format: this.depthDefaultFormat,            // format: 'depth24plus',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
-            });
+    //     });
+    //     if (this.deferRenderDepth) {
+    //         //深度buffer
+    //         this.depthTextureOnly = this.device.createTexture({
+    //             label: "stage:depth attachemnet of one pixel defer",
+    //             size: [width, height],
+    //             format: this.depthDefaultFormat,            // format: 'depth24plus',
+    //             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+    //         });
 
-        }
-        return GBuffers;
-    }
+    //     }
+    //     return GBuffers;
+    // }
     /**延迟单像素depth通道描述 */
     createRPD_ForDeferDepth(): GPURenderPassDescriptor {
         // this.depthStencilAttachment = this.depthTexture.createView();

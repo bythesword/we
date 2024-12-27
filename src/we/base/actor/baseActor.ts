@@ -75,7 +75,7 @@ export abstract class BaseActor extends Root {
     // userUpdate: ((scope: any, input: any) => Promise<any>) | undefined;
     // userInput: any;
 
-    id: number;
+    id!: number;
     enable: boolean;
 
     constructor(option: optionActor) {
@@ -84,17 +84,9 @@ export abstract class BaseActor extends Root {
         if (option.enable != undefined) {
             this.enable = option.enable;
         }
-        this.id = Date.now();
+        
         this.input = option;
         this.name = this.input.name;
-        // // this.scene = option.scene;
-        // if (option.stage) {
-        //     this.stage = option.stage;
-        // }
-        // else {
-        //     this.stage = coreConst.defaultStageName;
-        // }
-
     }
     // set stage(stage: coreConst.stageIndex) {
     //     this._stage = stage;

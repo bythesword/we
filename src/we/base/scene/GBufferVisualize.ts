@@ -121,7 +121,7 @@ export class GBuffersVisualize extends SingleRender {
                     entries: [
                         {
                             binding: 0,
-                            resource: this.parent.stages["World"].opaque!.GBuffers["entityID"].createView(),
+                            resource: this.parent.stages["World"].opaque!.GBuffers["default"]["entityID"].createView(),
                             // resource: this.GBuffers[layoutName].createView(),
                         }
                     ]

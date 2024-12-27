@@ -1,19 +1,18 @@
-import {
-    vec3,
-    Vec3
-} from "wgpu-matrix";
+import { vec3, Vec3 } from "wgpu-matrix";
 import { BaseActor, optionActor } from "./baseActor";
 import {
     CamreaControl,
     // optionCamreaControl
 } from "../control/cameracCntrol";
 import { BaseCamera } from "../camera/baseCamera";
+import { stageName } from "../const/coreConst";
+
 
 export interface optionCameraActor extends optionActor {
     lookAt?: Vec3,
     camera: BaseCamera | BaseCamera[],
     control: CamreaControl,
-
+    stages?: string[],
 }
 
 export class CameraActor extends BaseActor {
@@ -23,11 +22,12 @@ export class CameraActor extends BaseActor {
     cameras: BaseCamera[];
     _camera: BaseCamera;
     _control: CamreaControl;
+    stagesName: stageName;
 
     globalPosition!: boolean;
     constructor(option: optionCameraActor) {
         super(option);
-
+        this.id = Date.now();
         if (typeof option.lookAt == "undefined") {
             option.lookAt = vec3.create(0, 0, 0);
         }
@@ -52,7 +52,12 @@ export class CameraActor extends BaseActor {
         if (this.control.camera == undefined) {
             this.control.camera = this.camera;
         }
-
+        if (option.stages) {
+            this.stagesName = option.stages;
+        }
+        else {
+            this.stagesName = {};
+        }
 
     }
     addCamera(one: BaseCamera) {

@@ -133,7 +133,9 @@ export abstract class BaseScene {
     // };
     renderPassDescriptor!: GPURenderPassDescriptor
     /**GBuffer 收集器*/
-    GBuffers!: coreConst.GBuffers;
+    GBuffers!: {
+        [name: string]: coreConst.GBuffers
+    };
 
     constructor(input: sceneJson) {
         this.input = input;
@@ -157,9 +159,7 @@ export abstract class BaseScene {
             else if (input.deferRender.type == "color")
                 this.deferRenderColor = true;
         }
-
-
-
+        this.GBuffers = {};
         this._maxlightNumber = coreConst.lightNumber;
         this._lastNumberOfLights = 0;
 
@@ -188,7 +188,7 @@ export abstract class BaseScene {
     abstract init(): any
 
     /** 前向渲染renderPassDescriptor(GPURenderPassDescriptor) */
-    async createRenderPassDescriptor() {
+    async createRenderPassDescriptor(camera:string="default") {
         let colorAttachments: GPURenderPassColorAttachment[] = [];
         this.colorAttachmentTargets = [];
         Object.entries(coreConst.GBuffersRPDAssemble).forEach(([key, value]) => {
@@ -196,7 +196,7 @@ export abstract class BaseScene {
                 let one: GPURenderPassColorAttachment;
                 if (key == "color") {
                     one = {
-                        view: this.GBuffers[key].createView(),
+                        view: this.GBuffers[camera][key].createView(),
                         clearValue: this.backgroudColor,
                         loadOp: 'clear',
                         storeOp: "store"
@@ -212,7 +212,7 @@ export abstract class BaseScene {
                     //     };
                     // else
                     one = {
-                        view: this.GBuffers[key].createView(),
+                        view: this.GBuffers[camera][key].createView(),
                         clearValue: [0, 0, 0, 0],
                         loadOp: 'clear',
                         storeOp: "store"
@@ -236,7 +236,7 @@ export abstract class BaseScene {
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: colorAttachments,
             depthStencilAttachment: {
-                view: this.GBuffers["depth"].createView(),
+                view: this.GBuffers[camera]["depth"].createView(),
                 depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,// 1.0,                
                 depthLoadOp: 'clear',// depthLoadOp: 'load',
                 depthStoreOp: 'store',
@@ -352,7 +352,11 @@ export abstract class BaseScene {
     destoryGBuffers(GBuffers: coreConst.GBuffers) {
         this.commands = [];
         for (let i in GBuffers) {
-            this.GBuffers[i].destroy();
+            let oneCameraGBuffer=GBuffers[i];
+            for (let j in oneCameraGBuffer) {
+                // let name=oneCameraGBuffer[i];
+                this.GBuffers[i][j].destroy();
+            }
         }
     }
     /**

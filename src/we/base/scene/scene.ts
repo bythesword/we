@@ -147,6 +147,7 @@ class Scene extends BaseScene {
     defaultCamera!: BaseCamera;
     /**多个摄像机队列 */
     cameras!: BaseCamera[];
+    cameraActors: CameraActor[];
     /**视场比例 */
     aspect!: number;
     /** system uniform buffer 结构体，参加 interfance systemUniformBuffer */
@@ -154,7 +155,7 @@ class Scene extends BaseScene {
 
     ////////////////////////////////////////////////////////////////////////////////
     /** actor group */
-    actors!: actorGroup;
+    actors: actorGroup;
     /**单独更新的在root中的更新对象 */
     root: updateObjectOfRootOfScene[];
 
@@ -209,8 +210,8 @@ class Scene extends BaseScene {
     }
 
     ////////////////////////////////////////////////////////////////////////////////
-    /** 进行GBuffer合并的对象 */
-    GBufferPostprocess!: GBufferPostProcess;
+    /** 进行GBuffer合并的对象集合 */
+    GBufferPostprocess!: { [name: string]: GBufferPostProcess };
     /**GBuffer 可视化对象 */
     GBuffersVisualize!: GBuffersVisualize;
     /**后处理管理器 */
@@ -218,9 +219,9 @@ class Scene extends BaseScene {
     /**GBuffer&GPU 的拾取管理器 */
     pickUp!: Pickup;
     /**GBuffer 可视化的配置interface  */
-    _GBuffersVisualize!: GBuffersVisualizeViewport;
+    _GBuffersVisualize: GBuffersVisualizeViewport;
     /**最终copy到surface的最后一个GPUTexture */
-    sourceOfcopyToSurface!: GPUTexture;
+    sourceOfcopyToSurface!: { [name: string]: GPUTexture };
 
     ////////////////////////////////////////////////////////////////////////////////
     /** for raw */
@@ -236,6 +237,8 @@ class Scene extends BaseScene {
     constructor(input: sceneInputJson) {
         super(input);
         this.root = [];
+        this.cameraActors = [];
+        this.actors = {};
         this.stagesOfSystem = coreConst.stagesOfSystem;
         this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage]
         this.stagesOrders = coreConst.defaultStageList;
@@ -332,16 +335,19 @@ class Scene extends BaseScene {
             alphaMode: 'premultiplied',//预乘透明度
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
-        this.sourceOfcopyToSurface = this.device.createTexture({
-            size: [canvas.width, canvas.height],
-            format: this.presentationFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-        });
+        this.sourceOfcopyToSurface = {}
+        this.sourceOfcopyToSurface["default"] = this.createSourceOfcopyToSurface("default");
+
+        // this.sourceOfcopyToSurface["default"] = this.device.createTexture({
+        //     size: [canvas.width, canvas.height],
+        //     format: this.presentationFormat,
+        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+        // });
         this.aspect = canvas.width / canvas.height;
         this.resources = new WeResource(this);
         // this.updateSystemUniformBuffer();
         await this.initStages();
-        this.GBuffers = await this.initGBuffers(canvas.width, canvas.height);
+        this.GBuffers["default"] = await this.initGBuffers(canvas.width, canvas.height);
         //for raw uniform model
         // this.renderPassDescriptor = await this.createRenderPassDescriptorForRAW();
         this.initActors();
@@ -351,6 +357,14 @@ class Scene extends BaseScene {
         this.initPickup()
         this.initForRAW()
         this.observer();
+    }
+    createSourceOfcopyToSurface(camera: string = "default") {
+        return this.device.createTexture({
+            label: "sourceOfcopyToSurface of " + camera,
+            size: [this.canvas.width, this.canvas.height],
+            format: this.presentationFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+        });
     }
     // async pickup() { }
     initPickup() {
@@ -403,21 +417,24 @@ class Scene extends BaseScene {
     }
 
     /**GBuffer的后处理，在scene中合并 */
-    initGBuffersPostProcess() {
+    initGBuffersPostProcess(camera: string = "default") {
+        this.GBufferPostprocess = {};
         let option: optionGBPP = {
-            GBuffers: this.GBuffers,
+            GBuffers: this.GBuffers[camera],
             parent: this,
             device: this.device,
             surfaceSize: {
                 width: this.canvas.width,
                 height: this.canvas.height
             },
-            copyToTarget: this.sourceOfcopyToSurface
+            copyToTarget: this.sourceOfcopyToSurface[camera],
+            camera,
         }
-        this.GBufferPostprocess = new GBufferPostProcess(option);
+        this.GBufferPostprocess[camera] = new GBufferPostProcess(option);
     }
     /**init post process management */
     initPostProcess() {
+
         this.postProcessManagement = new PostProcessMangement({
             parent: this,
             copyToTarget: this.sourceOfcopyToSurface,
@@ -555,7 +572,7 @@ class Scene extends BaseScene {
                     },
                     {//todo:20241212 ,为透明提供system uniform
                         binding: 2,
-                        resource: this.GBuffers["depth"].createView(),
+                        resource: this.GBuffers["default"]["depth"].createView(),
                     }
                 ],
         }
@@ -649,8 +666,12 @@ class Scene extends BaseScene {
         this.renderSceneCommands();//render scene commands
         this.renderShadowMap();
         this.renderStagesCommand();//render  stages commands
-        this.GBufferPostprocess.render();   //合并GBuffer
+        for (let i in this.GBufferPostprocess) {
+            this.GBufferPostprocess[i].render();   //合并GBuffer
+        }
+
         this.postProcessManagement.render();  //进行后处理
+
         await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
     }
     /**render perlight's shadowmap  */
@@ -921,7 +942,9 @@ class Scene extends BaseScene {
     }
     /** 初始化 后处理    */
     async updatePostProcess(deltaTime: number, startTime: number, lastTime: number) {
+
         this.postProcessManagement.update(deltaTime, startTime, lastTime);
+
         //  this.copyTextureToTexture(this.stages["World"]!.opaque!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
     }
     /**显示GBuffer可视化 */
@@ -935,13 +958,13 @@ class Scene extends BaseScene {
                 this.GBuffersVisualize = new GBuffersVisualize({
                     parent: this,
                     device: this.device,
-                    GBuffers: this.GBuffers,
+                    GBuffers: this.GBuffers["default"],
                     surfaceSize: {
                         width: this.canvas.width,
                         height: this.canvas.height,
                     },
                     layout: this._GBuffersVisualize,
-                    copyToTarget: this.sourceOfcopyToSurface
+                    copyToTarget: this.sourceOfcopyToSurface["default"]
                 });
                 this._GBuffersVisualize.statueChange = false;//更新statue状态
             }
@@ -991,7 +1014,7 @@ class Scene extends BaseScene {
     }
     /**每帧渲染的最后步骤 */
     async copyToSurface() {
-        this.copyTextureToTexture(this.sourceOfcopyToSurface, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+        this.copyTextureToTexture(this.sourceOfcopyToSurface["default"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
 
 
         //直接测试：world -->scene
@@ -1012,7 +1035,7 @@ class Scene extends BaseScene {
     /** 
      * @returns KeyboardEvent https://developer.mozilla.org/zh-CN/docs/Web/API/KeyboardEvent
      */
-    getKeyInput(): KeyboardEvent| undefined  {
+    getKeyInput(): KeyboardEvent | undefined {
         return (this.inputControl as CamreaControl).getKeyInput();
     }
     /** 
@@ -1111,7 +1134,7 @@ class Scene extends BaseScene {
      * @param stage     默认=World
      * @param transparent  默认=false
      */
-    addToStage(entity: BaseEntity, stage: coreConst.stageIndex = this.defaultStageName, transparent: boolean = false) {
+    addToStage(entity: BaseEntity, stage: string = this.defaultStageName, transparent: boolean = false) {
         if (entity.transparent === false || transparent === false) {
             if (this.stages[stage].opaque)
                 this.stages[stage].opaque!.add(entity);
@@ -1138,13 +1161,14 @@ class Scene extends BaseScene {
      */
     addCameraActor(one: CameraActor, isDefault = false) {
         one.setRootENV(this);
-        if (this.actors == undefined) {
-            this.actors = {};
-        }
-        this.actors[one.name] = one;
+        // if (this.actors == undefined) {
+        //     this.actors = {};
+        // }
+        this.cameraActors.push(one);
         if (isDefault === true) {
             this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
         }
+        // console.log(" instance of CameraActor:",one instanceof CameraActor);
     }
     /**
      * 增加actor，

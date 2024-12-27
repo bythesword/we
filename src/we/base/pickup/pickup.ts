@@ -33,7 +33,7 @@ export class Pickup {
         this.parent = input.parent;
         this.width = this.parent.canvas.width;
         this.height = this.parent.canvas.height;
-        this.GBufferOfID = this.parent.GBuffers["entityID"];
+        this.GBufferOfID = this.parent.GBuffers["default"]["entityID"];
         this.resultBuffer = this.device.createBuffer({
             label: 'pickup result buffer',
             size: this.pickupSize,

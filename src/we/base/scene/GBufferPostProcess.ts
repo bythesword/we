@@ -14,6 +14,7 @@ export interface optionGBPP extends optionSingleRender {
     GBuffers: GBuffers,
     parent: Scene,
     copyToTarget: GPUTexture,
+    camera:string,
 }
 
 interface renderPassDescriptorAndTaget {
@@ -43,9 +44,12 @@ export class GBufferPostProcess extends SingleRender {
     _temp_colorTexture_entityID: GPUTexture;
 
     _isReversedZ!: boolean;
+    /**GBuffer 对应的camera */
+    camera:string;
 
     constructor(input: optionGBPP) {
         super(input);
+        this.camera=input.camera;
         // this.parent = input.parent;
         this.renderPassDescriptor = this.parent.renderPassDescriptor;
         this.GBuffers = input.GBuffers;
@@ -241,7 +245,7 @@ export class GBufferPostProcess extends SingleRender {
         //     }
         // }
     }
-
+    /**创建entityID的RPD  */
     createRenderPassDescriptorOfID(): renderPassDescriptorAndTaget {
         let colorAttachmentTargets: GPUColorTargetState[] = [
             //color
@@ -280,6 +284,7 @@ export class GBufferPostProcess extends SingleRender {
         };
         return { renderPassDescriptor, colorAttachmentTargets };
     }
+    /**为其他的GBuffer创建RPD */
     createRenderPassDescriptorOfOther(): renderPassDescriptorAndTaget {
         let colorAttachments: GPURenderPassColorAttachment[] = [];
         let colorAttachmentTargets: GPUColorTargetState[] = [];
@@ -313,6 +318,9 @@ export class GBufferPostProcess extends SingleRender {
         };
         return { renderPassDescriptor, colorAttachmentTargets };
     }
+
+    //作废，透明的采用前向渲染方式
+    //可以copy到透明渲染中适用
     createRenderPassDescriptorOfTransparent(): renderPassDescriptorAndTaget {
 
         let colorAttachmentTargets: GPUColorTargetState[] = [
@@ -364,12 +372,12 @@ export class GBufferPostProcess extends SingleRender {
                 unifromGroup_1.entries.push({
                     label: `GBuffer post process  for Render Transparent of depth ,stage:${stage}`,
                     binding: i,
-                    resource: stage.GBuffers["depth"].createView()
+                    resource: stage.GBuffers[this.camera]["depth"].createView()
                 });
                 unifromGroup_2.entries.push({
                     label: `GBuffer post process  for Render Transparent of color ,stage:${stage}`,
                     binding: i,
-                    resource: stage.GBuffers["color"].createView()
+                    resource: stage.GBuffers[this.camera]["color"].createView()
                 });
             }
         }
@@ -384,22 +392,22 @@ export class GBufferPostProcess extends SingleRender {
                 {
                     label: `stage:${stageName} GBuffer Render Other : entityID `,
                     binding: 0,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers["entityID"].createView()
+                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["entityID"].createView()
                 },
                 {
                     label: `stage:${stageName} GBuffer Render Other : color `,
                     binding: 1,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers["color"].createView()
+                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["color"].createView()
                 },
                 {
                     label: `stage:${stageName} GBuffer Render Other : normal `,
                     binding: 2,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers["normal"].createView()
+                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["normal"].createView()
                 },
                 {
                     label: `stage:${stageName} GBuffer Render Other : uv `,
                     binding: 3,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers["uv"].createView()
+                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["uv"].createView()
                 }
             ]
         };
@@ -425,10 +433,10 @@ export class GBufferPostProcess extends SingleRender {
             const name = stagesOfSystem[perList];
             if (this.parent.stages[name].opaque) {
                 let stage = this.parent.stages[name].opaque!;
-                depths.push(stage.GBuffers["depth"]);
-                IDs.push(stage.GBuffers["entityID"]);
-                colors.push(stage.GBuffers["color"]);
-                normals.push(stage.GBuffers["normal"]);
+                depths.push(stage.GBuffers[this.camera]["depth"]);
+                IDs.push(stage.GBuffers[this.camera]["entityID"]);
+                colors.push(stage.GBuffers[this.camera]["color"]);
+                normals.push(stage.GBuffers[this.camera]["normal"]);
             }
         }
         let uniformDepth: unifromGroup = {
