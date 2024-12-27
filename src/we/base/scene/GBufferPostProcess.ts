@@ -8,13 +8,12 @@ import shaderDepthAndID from "../shader/GBuffers/gbuffers_render_depthAndID.wgsl
 import shaderOpaque from "../shader/GBuffers/gbuffers_render_other.wgsl?raw";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 
-shaderOpaque
+
 
 export interface optionGBPP extends optionSingleRender {
     GBuffers: GBuffers,
-    // renderPassDescriptor: GPURenderPassDescriptor,
     parent: Scene,
-    copyTotarget: GPUTexture,
+    copyToTarget: GPUTexture,
 }
 
 interface renderPassDescriptorAndTaget {
@@ -53,7 +52,7 @@ export class GBufferPostProcess extends SingleRender {
         this.presentationFormat = this.parent.presentationFormat;
         this.depthDefaultFormat = this.parent.depthDefaultFormat;
 
-        this.colorTexture = input.copyTotarget;
+        this.colorTexture = input.copyToTarget;
         // this.colorTexture = this.device.createTexture({
         //     size: [this.surfaceSize.width, this.surfaceSize.height],
         //     format: this.presentationFormat,

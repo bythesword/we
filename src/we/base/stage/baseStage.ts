@@ -1,7 +1,7 @@
 import { DrawCommand } from "../command/DrawCommand"
 import { ComputeCommand } from '../command/ComputeCommand';
 import { BaseEntity } from "../entity/baseEntity";
-import { BaseScene, sceneJson } from "../scene/baseScene";
+import { BaseScene,  commmandType,  sceneJson } from "../scene/baseScene";
 import { BaseLight } from "../light/baseLight";
 import { BaseCamera } from "../camera/baseCamera";
 import * as coreConst from "../const/coreConst"
@@ -44,6 +44,11 @@ export interface optionBaseStage extends sceneJson {
     // scene: BaseScene;
     scene: Scene,
 }
+export interface cameraCommands {
+    commands: commmandType[];
+    commandsDepth: commmandType[];
+    commandsColor: commmandType[];
+}
 
 /**
  * stage的目标
@@ -61,7 +66,7 @@ export class BaseStage extends BaseScene {
     // start todo ,20241020,不同的stage可能存在不同light的可见情况，不同的环境光，比如：室外，室内，
     // light ,camera 的数组为空，或为undefined，则使用全局（Scene）的。
     /**cameras 默认摄像机 */
-    defaultCamera: BaseCamera | undefined;
+    // defaultCamera: BaseCamera | undefined;
 
     //end todo
 
@@ -101,7 +106,15 @@ export class BaseStage extends BaseScene {
     /**延迟单像素渲染：第一遍的深度渲染通道描述 */
     RPD_ForDeferDepth!: GPURenderPassDescriptor;
 
-
+    /**
+     * 多camera队列
+     */
+    camerasCommands: {
+        [name: string]: cameraCommands
+    }
+    lightsCommands: {
+        [name: string]: commmandType[]
+    }
 
 
     /**   @param input optionBaseStage     */
@@ -141,6 +154,15 @@ export class BaseStage extends BaseScene {
             addonName = "_transparent";
 
         this.name = input.name + addonName;
+
+        this.camerasCommands = {
+            default: {
+                commands: [],
+                commandsDepth: [],
+                commandsColor: []
+            }
+        };
+        this.lightsCommands={}
 
         //这个是写死的，后期改成公共functon，需要同步更改pickup.ts getTargetID()中的内容
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */

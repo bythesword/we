@@ -74,7 +74,6 @@ export interface shadowMap {
     map: GPUTexture,
 }
 export abstract class BaseLight extends Root {
-    _id!: number;
     _kind!: number;
     /**
      * 

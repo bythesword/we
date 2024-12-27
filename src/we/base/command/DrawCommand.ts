@@ -1,18 +1,7 @@
 import {
-    BaseCommand,
-    // uniformBufferPart,
-    // unifromGroup,
-    // uniformBuffer,
-    // uniformBufferAll,
-    // uniformEntries,
-    // localUniformGroups,
-    baseOptionOfCommand,
-    uniformEntriesWithSystem,
-    unifromGroup,
+    BaseCommand, baseOptionOfCommand, unifromGroup
 } from './baseCommand';
-// import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3 } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
-// import * as baseDefine from "../scene/base"
 import { getReplaceVertexConstantsVS, getReplaceVertexConstantsFS } from './shaderFormat';
 
 
@@ -167,6 +156,7 @@ export interface drawOptionOfCommand extends baseOptionOfCommand {
 
     /**pipeline中的深度处理描述  GPUDepthStencilState */
     depthStencilState?: GPUDepthStencilState,
+    systemUniforms?: () => GPUBindGroup,
 }
 /**
  *   默认是surface的全部,
@@ -486,6 +476,13 @@ export class DrawCommand extends BaseCommand {
         return pipeline;
     }
 
+    createSystemUnifromGroupForPerShader(): GPUBindGroup {
+        if (this.input.systemUniforms) {
+            return this.input.systemUniforms();
+        }
+        return this.parent.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
+
+    }
     /**
      * 目前使用parent的colorAttachments,
      * todo ，增加texture
@@ -499,7 +496,7 @@ export class DrawCommand extends BaseCommand {
         else {//system uniform 
             //创建
             if (this.uniformGroups[0] == undefined) {
-                this.uniformGroups[0] = this.parent.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
+                this.uniformGroups[0] = this.createSystemUnifromGroupForPerShader();
             }
 
         }

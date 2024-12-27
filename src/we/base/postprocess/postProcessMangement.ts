@@ -8,13 +8,13 @@ export interface optionPostprocessMangement {
     // GBuffers: GBuffers,
     // renderPassDescriptor: GPURenderPassDescriptor,
     parent: Scene,
-    copyTotarget: GPUTexture,
+    copyToTarget: GPUTexture,
     rawColorTexture?: GPUTexture,
 }
 
 export class PostProcessMangement {
     device: GPUDevice;
-    copyTotarget: GPUTexture;
+    copyToTarget: GPUTexture;
     // GBuffers: GBuffers;
     parent: Scene;
     presentationFormat: GPUTextureFormat;
@@ -32,7 +32,7 @@ export class PostProcessMangement {
         this.input = input;
         this.parent = input.parent;
         this.device = this.parent.device;
-        this.copyTotarget = input.copyTotarget;
+        this.copyToTarget = input.copyToTarget;
         // this.GBuffers = input.GBuffers;
         this.root = [];
         this.commands = [];
@@ -67,7 +67,7 @@ export class PostProcessMangement {
 
     async add(one: PostProcessEffect) {
         let values: optionBasePostprocessEffectStep2 = {
-            copyTotarget: this.copyTotarget,
+            copyToTarget: this.copyToTarget,
             rawColorTexture: this.rawColorTexture,
             renderPassDescriptor: this.renderPassDescriptor,
             scene: this.parent,

@@ -35,6 +35,7 @@ export declare interface sceneJson {
 
 
 
+
 export abstract class BaseScene {
     name!: string;
     /** scene 的初始化参数 */
@@ -62,16 +63,30 @@ export abstract class BaseScene {
     commands: commmandType[];
     commandsDepth: commmandType[];
     commandsColor: commmandType[];
+
     /////////////////////////////////////////////////////////////
     // about lights
-    /** lights array */
+    /** lights array ,only for scene,stage use lightsIndex[]*/
     lights: BaseLight[];
+    /**stage 和 scene都可以有
+     * scene的是全局的
+     * stage的是自己的
+     */
     ambientLight!: AmbientLight;
     /**当前scene|stage中起作用的光源索引 */
-    lightsIndex!: [];
+    lightsIndex: [];
     /***上一帧光源数量，动态增减光源，uniform的光源的GPUBuffer大小会变化，这个值如果与this.lights.length相同，不更新；不同，怎更新GPUBuffer */
     _lastNumberOfLights!: number;
-    /**最大光源数量 */
+    /**最大光源数量 
+     * 默认在coreConst.ts 中:lightNumber=32
+     * 这个实际上是没有限制的，考虑两个因素
+     *  1、渲染：
+     *          A、前向渲染，不可能太多
+     *          B、延迟渲染，基本不影响
+     *  2、阴影
+     *          A、这个是主要的影响，由于使用shadow map，还是需要进行一遍灯光视角的渲染，全向光/点光源/spot角度过大的会产生cube shadow map
+     *          B、如果光源不产生阴影，就无所谓数量了
+    */
     _maxlightNumber!: number;
 
     /////////////////////////////////////////////////////////////
@@ -164,6 +179,9 @@ export abstract class BaseScene {
             }
         }
         this.lights = [];
+        this.lightsIndex = [];
+
+
     }
 
     //异步执行，需要单独调用

@@ -24,18 +24,32 @@ struct ST_Light {
   visible: i32,
   size: vec4f,
   kind: i32,             //0=dir,1=point,2=spoint
+  id: u32,                //light id  for shadow map, id start from 0
 };
 struct ST_Lights {
   lightNumber: u32,
   Ambient: ST_AmbientLight,
   //$lightsArray    //这个是变量的化，shader的编译会有问题，会不变的
   lights: array<ST_Light, $lightNumber>,
+  // shadows: array<ST_shadow,$lightNumber>,
 };
 struct bulin_phong {
   shininess: f32,
   metalness: f32,
   roughness: f32,
 }
+
+struct ST_shadow {
+  light_id: u32,
+  shadow_map_type: u32,//1=one depth,2=cube,3=todo
+  shadow_map_array_index: i32,//-1 = 没有shadowmap
+  shadow_map_array_lenght: u32,
+}
+
+// struct ST_shadows {
+//   shadow: array<ST_shadow,$lightNumber>,//这里与ST_lights保持相同
+// }
+
 
 var<private> weZero=0.000001;
 var<private > defaultCameraPosition : vec3f;

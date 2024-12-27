@@ -11,31 +11,23 @@ import { BaseCamera } from "../camera/baseCamera";
 
 export interface optionCameraActor extends optionActor {
     lookAt?: Vec3,
-    camera: BaseCamera,
+    camera: BaseCamera | BaseCamera[],
     control: CamreaControl,
 
-    // /** 
-    //  * 是否使用Camera的配置，比如 position
-    //  * 默认为true
-    //  */
-    // globalPosition?: boolean,
 }
 
 export class CameraActor extends BaseActor {
 
 
     declare input: optionCameraActor;
-    _camera!: BaseCamera;
-    _control!: CamreaControl;
-    // _position!: Vec3;
-    /**
-     * Camera Actor 与 camera 的位置是否同步，默认=true，同步
-     * 一般不会出现不同步的情况。
-     * playActor 会不同
-     */
+    cameras: BaseCamera[];
+    _camera: BaseCamera;
+    _control: CamreaControl;
+
     globalPosition!: boolean;
     constructor(option: optionCameraActor) {
         super(option);
+
         if (typeof option.lookAt == "undefined") {
             option.lookAt = vec3.create(0, 0, 0);
         }
@@ -47,18 +39,29 @@ export class CameraActor extends BaseActor {
         //     this.position = option.position!;
         //     this.globalPosition = false;
         // }
-        this._camera = this.input.camera;
+        this.cameras = [];
+        if (Array.isArray(option.camera)) {
+            this.cameras = option.camera;
+            this._camera = this.cameras[0];
+        }
+        else {
+            this._camera = this.input.camera as BaseCamera;
+            this.cameras.push(this._camera);
+        }
         this._control = this.input.control as CamreaControl;
         if (this.control.camera == undefined) {
             this.control.camera = this.camera;
         }
 
-    }
 
+    }
+    addCamera(one: BaseCamera) {
+        this.cameras.push(one);
+    }
     setDefault(scope: any) {
-        // scope.defaultCamera = this.camera;
-        this.setDefaultActor(scope);
-        this.setDefaultCamera(scope);
+        scope.defaultActor = this;
+        scope.inputControl = this._control;
+        scope.setDefaultCamera(this.camera);//scene
     }
     initBindPool() {
 
@@ -75,9 +78,12 @@ export class CameraActor extends BaseActor {
         // return this.camera.MVP;
     }
 
-    setDefaultCamera(scope: any) {
-        // scope.defaultCamera = this.camera;
-        scope.setDefaultCamera(this.camera)
+    setDefaultCamera(id: number) {
+        if (id < this.cameras.length - 1)
+            this.camera = this.cameras[id];
+        else {
+            console.error("设置的camera id未找到！");
+        }
     }
     setDefaultActor(scope: any) {
         scope.defaultActor = this;
@@ -97,6 +103,7 @@ export class CameraActor extends BaseActor {
     }
 
     set camera(camera: BaseCamera) {
+        this.control.camera = camera;
         this._camera = camera;
     }
     set control(control: CamreaControl) {

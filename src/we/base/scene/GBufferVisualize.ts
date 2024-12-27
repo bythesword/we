@@ -9,10 +9,23 @@ import { unifromGroup } from "../command/baseCommand";
 import { GBuffersVisualizeViewport } from "./scene";
 import { GBufferName } from "../const/coreConst";
 
+//GBuffer可视化至于GBuffers、layout、compyToTarget像刚刚
+
+//1、GBuffer的可视化是通过scene中的setGBuffersVisualize(value)进行设置的，形式如下：
+//2、 scene.setGBuffersVisualize({
+//     enable: true,
+//     layout: {
+//       name: "default",
+//       single: false,
+//     }
+//   });
+//3、 value：GBuffersVisualizeViewport的interface声明与export在scene.ts 中
+//4、如何scene.run()通过调用的scene.showGBuffersVisualize()调用本类的
+
 
 export interface optionGBuffersVisualize extends optionSingleRender {
     layout: GBuffersVisualizeViewport,
-    copyTotarget: GPUTexture,
+    copyToTarget: GPUTexture,
     GBuffers: coreConst.GBuffers,
 }
 
@@ -67,7 +80,7 @@ export class GBuffersVisualize extends SingleRender {
         let copyToColorTexture = new CopyCommandT2T(
             {
                 A: this.colorTexture,
-                B: this.input.copyTotarget,
+                B: this.input.copyToTarget,
                 size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
                 device: this.device
             }

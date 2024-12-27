@@ -47,8 +47,8 @@ export class Mesh extends BaseEntity {
     generateBox(): boundingBox {
         // throw new Error("Method not implemented.");
         return {
-            min:[0,0,0],
-            max:[0,0,0],
+            min: [0, 0, 0],
+            max: [0, 0, 0],
         }
     }
     generateSphere(): boundingSphere {
@@ -95,7 +95,8 @@ export class Mesh extends BaseEntity {
             scene: this.scene,//为获取在scene中注册的resource
             deferRenderColor: this.deferRenderColor,
             deferRenderDepth: this.deferRenderDepth,
-            reversedZ: this.reversedZ
+            reversedZ: this.reversedZ,
+            parent: this,
         });
         // await this._material.setRootENV(this.scene);
     }
@@ -125,7 +126,7 @@ export class Mesh extends BaseEntity {
         let already = this.checkStatus();
         if (already) {
             this._init = initStateEntity.initializing;
-            if (this.deferRenderDepth) this._init =  this.createDCCDeferRenderDepth(parent);
+            if (this.deferRenderDepth) this._init = this.createDCCDeferRenderDepth(parent);
             this._init = this.createDCC(parent);
             this.generateBox();
         }

@@ -33,7 +33,8 @@ export class SimpleModel extends BaseEntity {
             scene: this.scene,//为获取在scene中注册的resource
             deferRenderColor: this.deferRenderColor,
             deferRenderDepth: this.deferRenderDepth,
-            reversedZ: this.reversedZ
+            reversedZ: this.reversedZ,
+            parent: this,
         });
         // await this._material.setRootENV(this.scene);
     }
@@ -127,7 +128,7 @@ export class SimpleModel extends BaseEntity {
     createDCCDeferRenderDepth(parent: any): initStateEntity {
         let scope = this;
         /////////////////////box  
-        let shader =simpleModelVS;
+        let shader = simpleModelVS;
         shader = this.shaderCodeProcess(shader);
 
 

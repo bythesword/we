@@ -44,7 +44,7 @@ export class Blur3x3 extends PostProcessEffect {
                         {
                             label: "screen texture binding for PP blur 3x3",
                             binding: 0,
-                            resource: this.copyTotarget.createView()
+                            resource: this.copyToTarget.createView()
                         },
                         // {
                         //     label: "sampler from scene resource ",

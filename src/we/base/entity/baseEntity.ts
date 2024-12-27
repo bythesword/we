@@ -202,7 +202,7 @@ export abstract class BaseEntity extends Root {
      */
     _LOD!: LOD[];//todo
     _shadow!: optionShadowEntity;
-    _shadowMaterail!: ShadowMaterial;
+    // _shadowMaterail!: ShadowMaterial;
     commmands: renderCommands;//commmandType[];
     _vertexAndMaterialGroup!: entityContentGroup;
     _position!: Vec3;
@@ -350,9 +350,9 @@ export abstract class BaseEntity extends Root {
                 this._shadow.generate = false;
             }
         }
-        if (this._shadow.generate === true) {
-            this._shadowMaterail = new ShadowMaterial();
-        }
+        // if (this._shadow.generate === true) {
+        //     this._shadowMaterail = new ShadowMaterial();
+        // }
         // this.updateMatrix();
 
     }

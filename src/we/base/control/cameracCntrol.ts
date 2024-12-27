@@ -45,8 +45,8 @@ export interface InputForCamera extends Input {
     // Analog input (e.g mouse, touchscreen)
     readonly analog: analog;
     // readonly mouse: mouse;
-    readonly pointer: PointerEvent;
-    readonly key: KeyboardEvent;
+    readonly pointer: PointerEvent | undefined;
+    readonly key: KeyboardEvent | undefined;
 }
 export type InputHandlerForCamera = (scope: any) => InputForCamera;
 
@@ -64,8 +64,8 @@ export abstract class CamreaControl extends InputControl {
     _digital!: digital;
     _analog!: analog;
     // _mouse!: mouse;
-    _pointer!: PointerEvent;
-    _key!: KeyboardEvent;
+    _pointer: PointerEvent | undefined;
+    _key: KeyboardEvent | undefined;
 
     declare inputHandler: InputHandlerForCamera;
     constructor(option: optionCamreaControl) {
@@ -234,13 +234,13 @@ export abstract class CamreaControl extends InputControl {
             return out;
         };
     }
-    getPointerInput(): PointerEvent {
+    getPointerInput(): PointerEvent | undefined {
         // if (this._pointer)            console.log(this._pointer)
         const pointer = this._pointer
         this._pointer = undefined;
         return pointer;
     }
-    getKeyInput(): KeyboardEvent {
+    getKeyInput(): KeyboardEvent | undefined {
         const key = this._key;
         this._key = undefined;
         return key;

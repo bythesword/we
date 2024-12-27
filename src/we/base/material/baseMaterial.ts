@@ -6,6 +6,7 @@ import partHead_GBuffer_Add_FS from "../shader/material/part/part_add.st_gbuffer
 import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.fs.wgsl?raw"
 import { BaseScene } from "../scene/baseScene";
+import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
 
 export type textureType = ImageBitmap | string | GPUTexture;
 
@@ -39,6 +40,7 @@ export interface optionBaseMaterial {
 }
 /**三段式初始化的第二步：init */
 export interface optionBaseMaterialStep2 {
+    parent:BaseEntity,
     scene: Scene,//为获取在scene中注册的resource
     deferRenderDepth: boolean,
     deferRenderColor: boolean,
@@ -61,7 +63,8 @@ export abstract class BaseMaterial extends Root {
     deferRenderDepth!: boolean;
     deferRenderColor!: boolean;
     reversedZ!: boolean;
-
+    _shadow!: optionShadowEntity;
+    parent!:BaseEntity;
 
     constructor(input?: optionBaseMaterial) {
         super();
@@ -85,6 +88,8 @@ export abstract class BaseMaterial extends Root {
         this._already = false;
     }
     async init(values: optionBaseMaterialStep2) {
+        this.parent=values.parent;
+        this._shadow=values.parent._shadow;
         this.deferRenderDepth = values.deferRenderDepth;
         this.deferRenderColor = values.deferRenderColor;
         this.reversedZ = values.reversedZ;

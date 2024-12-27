@@ -52,9 +52,7 @@ export interface optionActor extends coreConst.optionUpdate {
     needUupdate?: boolean,
     parent?: any,
     name: string,
-    // /** */
-    // stage?: coreConst.stageIndex,
-    // // scene: any,
+    enable?: boolean,
 }
 /**
  * 基础actor 
@@ -66,11 +64,8 @@ export abstract class BaseActor extends Root {
     /** option的初始化参数保存 */
     input!: optionActor;
     bindPool!: actorBindPool;
-    // scene: any;
     name!: string;
-    //作废，20240827，只处理简单的逻辑，不做循环引用
-    // /**stage ,默认= coreConst.defaultStage*/
-    // _stage!: coreConst.stageIndex;
+
     /**
      * 用户自定义 callback
      * scope:CameraActor
@@ -80,9 +75,16 @@ export abstract class BaseActor extends Root {
     // userUpdate: ((scope: any, input: any) => Promise<any>) | undefined;
     // userInput: any;
 
+    id: number;
+    enable: boolean;
 
     constructor(option: optionActor) {
         super();
+        this.enable = true;
+        if (option.enable != undefined) {
+            this.enable = option.enable;
+        }
+        this.id = Date.now();
         this.input = option;
         this.name = this.input.name;
         // // this.scene = option.scene;
@@ -104,7 +106,7 @@ export abstract class BaseActor extends Root {
 
     abstract initBindPool(): any
     /**更新入口 */
-    abstract update(deltaTime: number,startTime:number,lastTime:number): any
+    abstract update(deltaTime: number, startTime: number, lastTime: number): any
 
     abstract get position(): Vec3;
     abstract set position(position: Vec3);
@@ -119,5 +121,9 @@ export abstract class BaseActor extends Root {
     //     this.userUpdate = fn;
     //     this.userInput = input;
     // }
+
+    setEnable(enable:boolean){
+        this.enable=enable;
+    }
 }
 

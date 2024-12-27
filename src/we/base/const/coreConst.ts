@@ -44,7 +44,7 @@ export type stagesOrderByRender = number[];
 // export var defaultStageList: stagesOrderByRender = [defaultStage];
 // export var defaultStageList: stagesOrderByRender = [2,3];
 export var defaultStageList: stagesOrderByRender = [0, 1, 2, 3];
-export var lightNumber = 32;//这个需要同步到“system.wgsl”中的数量
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //color define
@@ -74,8 +74,11 @@ export interface color3U {
     green: number,
     blue: number,
 }
-export var shadowMapSize = 1024;
 
+////////////////////////////////////////////////////////////////////////////////////////
+//shadowMapSize
+export var shadowMapSize = 1024;
+export var lightNumber = 32;//这个需要同步到“system.wgsl”中的数量
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //GBuffer

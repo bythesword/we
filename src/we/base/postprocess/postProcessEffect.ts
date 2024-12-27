@@ -9,7 +9,7 @@ export interface optionBasePostprocessEffect {
     // height?: number,
 }
 export interface optionBasePostprocessEffectStep2 {
-    copyTotarget: GPUTexture,
+    copyToTarget: GPUTexture,
     rawColorTexture: GPUTexture,
     renderPassDescriptor: GPURenderPassDescriptor,
     presentationFormat: GPUTextureFormat,
@@ -18,7 +18,7 @@ export interface optionBasePostprocessEffectStep2 {
 }
 export abstract class PostProcessEffect extends Root {
     commands: commmandType[];
-    copyTotarget!: GPUTexture;
+    copyToTarget!: GPUTexture;
     rawColorTexture!: GPUTexture;
     renderPassDescriptor!: GPURenderPassDescriptor;
     GBuffers!: GBuffers;
@@ -39,7 +39,7 @@ export abstract class PostProcessEffect extends Root {
 
     async init(values: optionBasePostprocessEffectStep2) {
         await this.setRootENV(values.scene);//为获取在scene中注册的resource
-        this.copyTotarget = values.copyTotarget;
+        this.copyToTarget = values.copyToTarget;
         this.rawColorTexture = values.rawColorTexture;
         this.presentationFormat = this.scene.presentationFormat;       
         this.renderPassDescriptor=values.renderPassDescriptor;
@@ -54,7 +54,7 @@ export abstract class PostProcessEffect extends Root {
         let copyToColorTexture = new CopyCommandT2T(
             {
                 A: this.rawColorTexture,
-                B: this.copyTotarget,
+                B: this.copyToTarget,
                 size: { width: this.canvas.width, height: this.canvas.height },
                 device: this.device
             }

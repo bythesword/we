@@ -144,7 +144,9 @@ class Scene extends BaseScene {
 
     ////////////////////////////////////////////////////////////////////////////////
     /**cameras 默认摄像机 */
-    defaultCamera: BaseCamera | undefined;
+    defaultCamera!: BaseCamera;
+    /**多个摄像机队列 */
+    cameras!: BaseCamera[];
     /**视场比例 */
     aspect!: number;
     /** system uniform buffer 结构体，参加 interfance systemUniformBuffer */
@@ -410,7 +412,7 @@ class Scene extends BaseScene {
                 width: this.canvas.width,
                 height: this.canvas.height
             },
-            copyTotarget: this.sourceOfcopyToSurface
+            copyToTarget: this.sourceOfcopyToSurface
         }
         this.GBufferPostprocess = new GBufferPostProcess(option);
     }
@@ -418,7 +420,7 @@ class Scene extends BaseScene {
     initPostProcess() {
         this.postProcessManagement = new PostProcessMangement({
             parent: this,
-            copyTotarget: this.sourceOfcopyToSurface,
+            copyToTarget: this.sourceOfcopyToSurface,
         });
     }
 
@@ -576,7 +578,7 @@ class Scene extends BaseScene {
     getWGSLOfSystemShader(): string {
         let lightNumber = this._maxlightNumber.toString();
         let code = wgsl_main.toString();
-        code = code.replace("$lightNumber", lightNumber);
+        code = code.replaceAll("$lightNumber", lightNumber);
         return code;
     }
 
@@ -645,11 +647,18 @@ class Scene extends BaseScene {
     * */
     async oneFrameRender() {
         this.renderSceneCommands();//render scene commands
+        this.renderShadowMap();
         this.renderStagesCommand();//render  stages commands
         this.GBufferPostprocess.render();   //合并GBuffer
         this.postProcessManagement.render();  //进行后处理
         await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
     }
+    /**render perlight's shadowmap  */
+    renderShadowMap() {
+
+    }
+
+    /**render perstage  */
     renderStagesCommand() {
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
@@ -665,6 +674,7 @@ class Scene extends BaseScene {
             }
         }
     }
+    /**render root of scene */
     renderSceneCommands() {
         for (let one of this.commands) {
             one.update();
@@ -931,7 +941,7 @@ class Scene extends BaseScene {
                         height: this.canvas.height,
                     },
                     layout: this._GBuffersVisualize,
-                    copyTotarget: this.sourceOfcopyToSurface
+                    copyToTarget: this.sourceOfcopyToSurface
                 });
                 this._GBuffersVisualize.statueChange = false;//更新statue状态
             }
@@ -1002,13 +1012,13 @@ class Scene extends BaseScene {
     /** 
      * @returns KeyboardEvent https://developer.mozilla.org/zh-CN/docs/Web/API/KeyboardEvent
      */
-    getKeyInput(): KeyboardEvent {
+    getKeyInput(): KeyboardEvent| undefined  {
         return (this.inputControl as CamreaControl).getKeyInput();
     }
     /** 
      * @returns PointerEvent https://developer.mozilla.org/zh-CN/docs/Web/API/PointerEvent
      */
-    getPointerInput(): PointerEvent {
+    getPointerInput(): PointerEvent | undefined {
         return (this.inputControl as CamreaControl).getPointerInput();
     }
     /**获取鼠标点击后的surface中的xy
