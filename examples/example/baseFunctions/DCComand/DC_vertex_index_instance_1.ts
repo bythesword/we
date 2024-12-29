@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOptionOfCommand,
+  DrawOptionOfCommand,
 
 } from "../../../../src/we/base/command/DrawCommand"
 declare global {
@@ -67,7 +67,7 @@ const rand = (min: number = 0, max: number = 1) => {
   return min + Math.random() * (max - min);
 };
 
-let options: drawOptionOfCommand = {
+let options: DrawOptionOfCommand = {
   label: "a triangle",
   parent: scene,
   vertex: {

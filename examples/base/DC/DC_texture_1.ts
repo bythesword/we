@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOptionOfCommand,
+  DrawOptionOfCommand,
  
 } from "../../../src/we/base/command/DrawCommand"
 declare global {
@@ -103,7 +103,7 @@ scene.device.queue.writeTexture(
 
 
 ///////////////////////////
-let options: drawOptionOfCommand ={
+let options: DrawOptionOfCommand ={
   label: "a triangle",
   scene: scene,
   vertex: {

@@ -1,5 +1,5 @@
 import { uniformEntries, unifromGroup } from "../../command/baseCommand";
-import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer, vsAttributes } from "../../command/DrawCommand";
+import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseStage } from "../../stage/baseStage";
 import { BaseEntity, boundingBox, boundingSphere, initStateEntity, optionBaseEntity, renderCommands } from "../baseEntity";
@@ -15,13 +15,14 @@ interface modelData {
 export interface optionSimpleModel extends optionBaseEntity {
     data: modelData,
     material: BaseMaterial
-
 }
 
 export class SimpleModel extends BaseEntity {
 
     modelData: modelData;
     _material: BaseMaterial;
+    vsa!: vsAttributes[];
+    indeices!: indexBuffer;
     constructor(input: optionSimpleModel) {
         super(input);
         this._material = input.material;
@@ -40,7 +41,14 @@ export class SimpleModel extends BaseEntity {
     }
 
 
-    createDCC(parent: BaseStage): initStateEntity {
+    createDCC(parent: BaseStage,camera:string): initStateEntity {
+        if(this.commmands[camera] ==undefined){
+            this.commmands[camera]={
+                forward:[],
+                depth:[],
+                color:[]
+            };
+        }
         let scope = this;
         let shader;
         let binding = 0;
@@ -83,14 +91,14 @@ export class SimpleModel extends BaseEntity {
             indexCount: counts,
             instanceCount: this.numInstances,
         };
-        // let options: drawOptionOfCommand;
+        // let options: DrawOptionOfCommand;
         let uniformFS = this._material.getUniform(binding);
 
         if (uniformFS !== false) {
             for (let i of uniformFS as uniformEntries[])
                 uniforms[0].entries.push(i);
         }
-        let options: drawOptionOfCommand = {
+        let options: DrawOptionOfCommand = {
             label: this.name == "" ? "simple model " : this.name,
             parent: parent,
             vertex: {
@@ -121,11 +129,11 @@ export class SimpleModel extends BaseEntity {
         };
 
         let DC = new DrawCommand(options);
-        this.commmands.forward.push(DC);////////////////////////////////////////////////////特别注意
+        this.commmands[camera].forward.push(DC);////////////////////////////////////////////////////特别注意
         return initStateEntity.finished;
     }
 
-    createDCCDeferRenderDepth(parent: any): initStateEntity {
+    createDCCDeferRenderDepth(parent: BaseStage,camera:string): initStateEntity  {
         let scope = this;
         /////////////////////box  
         let shader = simpleModelVS;
@@ -155,7 +163,7 @@ export class SimpleModel extends BaseEntity {
             },
         ];
 
-        let options: drawOptionOfCommand = {
+        let options: DrawOptionOfCommand = {
             label: "Mesh for deferRender depth" + this.name,
             parent: parent,
             vertex: {
@@ -180,18 +188,24 @@ export class SimpleModel extends BaseEntity {
 
 
         };
-
+        if(this.commmands[camera] ==undefined){
+            this.commmands[camera]={
+                forward:[],
+                depth:[],
+                color:[]
+            };
+        }
         let DC = new DrawCommand(options);
-        this.commmands.depth.push(DC);////////////////////////////////////////////////////特别注意
+        this.commmands[camera].depth.push(DC);////////////////////////////////////////////////////特别注意
 
         return initStateEntity.initializing;
     }
     checkStatus(): boolean {
         return this._material.getReady();
     }
-    updateDCC(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): renderCommands {
-        return this.commmands;
-    }
+    // updateDCC(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): renderCommands {
+    //     return this.commmands;
+    // }
     //todo :20241219
     generateBox(): boundingBox {
         // throw new Error("Method not implemented.");
@@ -212,7 +226,7 @@ export class SimpleModel extends BaseEntity {
             triangles: [],
         }
     }
-    vsa!: vsAttributes[];
+
     /* 输出顶点信息
     * @returns sAttributes[]
     */
@@ -260,7 +274,7 @@ export class SimpleModel extends BaseEntity {
         return this.vsa;
     }
 
-    indeices!: indexBuffer;
+
     /**
      * 返回片面的索引数据跟上
      * @returns indeBuffer 格式

@@ -16,7 +16,6 @@ export interface optionSingleRender {
         height: number,
     },
     parent: Scene,
-
 }
 // type DrawCommandAndComputeCommandAndCopyCommand = DrawCommand | ComputeCommand | CopyCommandT2T;
 export abstract class SingleRender {

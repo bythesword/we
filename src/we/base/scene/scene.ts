@@ -20,6 +20,9 @@ import { InputControl, typeOfInputControl } from "../control/inputControl";
 import { CamreaControl } from "../control/cameracCntrol";
 import { PostProcessEffect } from "../postprocess/postProcessEffect";
 
+
+
+
 /**
  * stageStatus是快速初始化stage状态用的
  * 
@@ -54,6 +57,9 @@ export interface sceneStageInput {
         defaultStageName: string,
     }
 }
+
+
+
 interface updateObjectOfRootOfScene { update: coreConst.userFN }
 /**
  * canvas: string, canvas id;
@@ -145,8 +151,9 @@ class Scene extends BaseScene {
     ////////////////////////////////////////////////////////////////////////////////
     /**cameras 默认摄像机 */
     defaultCamera!: BaseCamera;
+    defaultCameraActor!: CameraActor;
     /**多个摄像机队列 */
-    cameras!: BaseCamera[];
+    // cameras!: BaseCamera[];
     cameraActors: CameraActor[];
     /**视场比例 */
     aspect!: number;
@@ -336,29 +343,24 @@ class Scene extends BaseScene {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
         this.sourceOfcopyToSurface = {}
-        this.sourceOfcopyToSurface["default"] = this.createSourceOfcopyToSurface("default");
+        // this.sourceOfcopyToSurface["default"] = this.createSourceOfcopyToSurface("default");
 
-        // this.sourceOfcopyToSurface["default"] = this.device.createTexture({
-        //     size: [canvas.width, canvas.height],
-        //     format: this.presentationFormat,
-        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-        // });
+
         this.aspect = canvas.width / canvas.height;
         this.resources = new WeResource(this);
-        // this.updateSystemUniformBuffer();
+
         await this.initStages();
-        this.GBuffers["default"] = await this.initGBuffers(canvas.width, canvas.height);
-        //for raw uniform model
-        // this.renderPassDescriptor = await this.createRenderPassDescriptorForRAW();
+        // this.GBuffers["default"] = await this.initGBuffers(canvas.width, canvas.height);
+
         this.initActors();
-        this.initGBuffersPostProcess();
+        // this.initGBuffersPostProcess();
 
         this.initPostProcess();
         this.initPickup()
         this.initForRAW()
         this.observer();
     }
-    createSourceOfcopyToSurface(camera: string = "default") {
+    createSourceOfcopyToSurface(camera: string ) {
         return this.device.createTexture({
             label: "sourceOfcopyToSurface of " + camera,
             size: [this.canvas.width, this.canvas.height],
@@ -417,7 +419,7 @@ class Scene extends BaseScene {
     }
 
     /**GBuffer的后处理，在scene中合并 */
-    initGBuffersPostProcess(camera: string = "default") {
+    initGBuffersPostProcess(camera: string ) {
         this.GBufferPostprocess = {};
         let option: optionGBPP = {
             GBuffers: this.GBuffers[camera],
@@ -434,7 +436,6 @@ class Scene extends BaseScene {
     }
     /**init post process management */
     initPostProcess() {
-
         this.postProcessManagement = new PostProcessMangement({
             parent: this,
             copyToTarget: this.sourceOfcopyToSurface,
@@ -947,7 +948,10 @@ class Scene extends BaseScene {
 
         //  this.copyTextureToTexture(this.stages["World"]!.opaque!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
     }
-    /**显示GBuffer可视化 */
+    /**显示GBuffer可视化 
+     * 
+     * 只进行defaultcamera的GBuffer可视化
+    */
     async showGBuffersVisualize() {
         if (this._GBuffersVisualize.enable) {
             if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//有可视化，且状态改变（layout不同）
@@ -958,13 +962,13 @@ class Scene extends BaseScene {
                 this.GBuffersVisualize = new GBuffersVisualize({
                     parent: this,
                     device: this.device,
-                    GBuffers: this.GBuffers["default"],
+                    GBuffers: this.GBuffers[this.defaultCameraActor.id.toString()],
                     surfaceSize: {
                         width: this.canvas.width,
                         height: this.canvas.height,
                     },
                     layout: this._GBuffersVisualize,
-                    copyToTarget: this.sourceOfcopyToSurface["default"]
+                    copyToTarget: this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()]
                 });
                 this._GBuffersVisualize.statueChange = false;//更新statue状态
             }
@@ -1012,9 +1016,10 @@ class Scene extends BaseScene {
         }
         console.error("GBuffer可视化输入参数错误!");
     }
+    showMultiCamera(){}
     /**每帧渲染的最后步骤 */
     async copyToSurface() {
-        this.copyTextureToTexture(this.sourceOfcopyToSurface["default"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+        this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
 
 
         //直接测试：world -->scene
@@ -1159,14 +1164,28 @@ class Scene extends BaseScene {
     /**增加摄像机 Actor
      * 适用于：非活动Actor场景
      */
-    addCameraActor(one: CameraActor, isDefault = false) {
+    async addCameraActor(one: CameraActor, isDefault = false) {
         one.setRootENV(this);
-        // if (this.actors == undefined) {
-        //     this.actors = {};
-        // }
+        if (this.cameraActors.length == 0) {
+            isDefault = true;
+        }
+
+        const id=one.id.toString();
         this.cameraActors.push(one);
+        this.sourceOfcopyToSurface[id] = this.createSourceOfcopyToSurface(id);
+        this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);
+        for (let i in this.stages) {
+            await this.stages[i].opaque?.initCameraGBuffer(id);
+        }
+        this.initGBuffersPostProcess(id);        
+       
+
         if (isDefault === true) {
             this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
+            this.defaultCameraActor = one;
+        }
+        else {
+
         }
         // console.log(" instance of CameraActor:",one instanceof CameraActor);
     }
@@ -1200,6 +1219,10 @@ class Scene extends BaseScene {
     addPostProcess(one: PostProcessEffect) {
         this.postProcessManagement.add(one);
     }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // get  
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Observer 

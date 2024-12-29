@@ -134,7 +134,8 @@ export abstract class BaseScene {
     renderPassDescriptor!: GPURenderPassDescriptor
     /**GBuffer 收集器*/
     GBuffers!: {
-        [name: string]: coreConst.GBuffers
+        /**name= camera  的 id */
+        [name: string]: coreConst.GBuffers,
     };
 
     constructor(input: sceneJson) {
@@ -188,7 +189,7 @@ export abstract class BaseScene {
     abstract init(): any
 
     /** 前向渲染renderPassDescriptor(GPURenderPassDescriptor) */
-    async createRenderPassDescriptor(camera:string="default") {
+    async createRenderPassDescriptor(camera:string) {
         let colorAttachments: GPURenderPassColorAttachment[] = [];
         this.colorAttachmentTargets = [];
         Object.entries(coreConst.GBuffersRPDAssemble).forEach(([key, value]) => {

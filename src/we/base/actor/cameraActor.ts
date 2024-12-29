@@ -10,7 +10,7 @@ import { stageName } from "../const/coreConst";
 
 export interface optionCameraActor extends optionActor {
     lookAt?: Vec3,
-    camera: BaseCamera | BaseCamera[],
+    camera: BaseCamera,
     control: CamreaControl,
     stages?: string[],
 }
@@ -19,7 +19,6 @@ export class CameraActor extends BaseActor {
 
 
     declare input: optionCameraActor;
-    cameras: BaseCamera[];
     _camera: BaseCamera;
     _control: CamreaControl;
     stagesName: stageName;
@@ -39,15 +38,17 @@ export class CameraActor extends BaseActor {
         //     this.position = option.position!;
         //     this.globalPosition = false;
         // }
-        this.cameras = [];
-        if (Array.isArray(option.camera)) {
-            this.cameras = option.camera;
-            this._camera = this.cameras[0];
-        }
-        else {
-            this._camera = this.input.camera as BaseCamera;
-            this.cameras.push(this._camera);
-        }
+
+        // this.cameras = [];
+        // if (Array.isArray(option.camera)) {
+        //     this.cameras = option.camera;
+        //     this._camera = this.cameras[0];
+        // }
+        // else
+        // {
+        this._camera = this.input.camera as BaseCamera;
+        // this.cameras.push(this._camera);
+        // }
         this._control = this.input.control as CamreaControl;
         if (this.control.camera == undefined) {
             this.control.camera = this.camera;
@@ -60,9 +61,10 @@ export class CameraActor extends BaseActor {
         }
 
     }
-    addCamera(one: BaseCamera) {
-        this.cameras.push(one);
+    initGBuffers() {
+
     }
+
     setDefault(scope: any) {
         scope.defaultActor = this;
         scope.inputControl = this._control;
@@ -83,17 +85,13 @@ export class CameraActor extends BaseActor {
         // return this.camera.MVP;
     }
 
-    setDefaultCamera(id: number) {
-        if (id < this.cameras.length - 1)
-            this.camera = this.cameras[id];
-        else {
-            console.error("设置的camera id未找到！");
-        }
-    }
-    setDefaultActor(scope: any) {
-        scope.defaultActor = this;
-        scope.inputControl = this._control;
-    }
+    // setDefaultCamera(id: number) {
+    // scope.setDefaultCamera(this.camera);//scene
+    // }
+    // setDefaultActor(scope: any) {
+    //     scope.defaultActor = this;
+    //     scope.inputControl = this._control;
+    // }
     get position(): Vec3 {
         return this.camera.position;
     }

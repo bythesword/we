@@ -6,6 +6,7 @@ import { BaseLight } from "../light/baseLight";
 import { BaseCamera } from "../camera/baseCamera";
 import * as coreConst from "../const/coreConst"
 import { Scene } from "../scene/scene";
+import { CameraActor } from "../actor/cameraActor";
 
 
 
@@ -190,9 +191,25 @@ export class BaseStage extends BaseScene {
             });
 
         }
+    }
+
+    async initCameraGBuffer(camera: string) {
+        // const width = this.scene.canvas.width;
+        // const height = this.scene.canvas.height;
+        // //stage初始化defer render（单像素模式）使用
+        // if (this.deferRenderDepth) {
+        //     //深度buffer
+        //     this.depthTextureOnly = this.device.createTexture({
+        //         label: "stage:depth attachemnet of one pixel defer",
+        //         size: [width, height],
+        //         format: this.depthDefaultFormat,            // format: 'depth24plus',
+        //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
+        //     });
+
+        // }
         if (!this.transparent) {
-            this.GBuffers["default"] = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
-            this.renderPassDescriptor = await this.createRenderPassDescriptor("default");
+            this.GBuffers[camera] = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
+            this.renderPassDescriptor = await this.createRenderPassDescriptor(camera);
 
             if (this.deferRenderDepth)
                 this.RPD_ForDeferDepth = this.createRPD_ForDeferDepth();
@@ -210,40 +227,13 @@ export class BaseStage extends BaseScene {
 
         return rpd;
     }
-    /**stage是初始化GBuffer使用
-     * 
-     * GBuffer有两层初始化，
-     * 
-     * 1、初始化GBuffer，这个scene 和 stage 通用
-     * 
-     * 2、stage初始化defer render（单像素模式）使用
-      */
-    // async initGBuffers(width: number, height: number) {
-    //     let GBuffers = await super.initGBuffers(width, height);
-
-
-    //     /////////////gbuffer ，需要整合到BaseScene中
-    //     //输出到texture，而不是canvas
-    //     //todo:20241212,目前来看this.colorTextureForID是没有使用的，后期排除，删除
-    //     this.colorTextureForID = this.device.createTexture({
-    //         label: "stage:color attachemnet for entity id",
-    //         size: [width, height],
-    //         format: "r32uint",
-    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING
-
-    //     });
-    //     if (this.deferRenderDepth) {
-    //         //深度buffer
-    //         this.depthTextureOnly = this.device.createTexture({
-    //             label: "stage:depth attachemnet of one pixel defer",
-    //             size: [width, height],
-    //             format: this.depthDefaultFormat,            // format: 'depth24plus',
-    //             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
-    //         });
-
-    //     }
-    //     return GBuffers;
-    // }
+    /**为多摄像机增加GBuffers */
+    async initGBuffersForMultiCamera(camera: string) {
+        const width: number = this.scene.canvas.width;
+        const height: number = this.scene.canvas.height;
+        let GBuffers = await super.initGBuffers(width, height);
+        this.GBuffers[camera] = GBuffers;
+    }
     /**延迟单像素depth通道描述 */
     createRPD_ForDeferDepth(): GPURenderPassDescriptor {
         // this.depthStencilAttachment = this.depthTexture.createView();
@@ -323,11 +313,20 @@ export class BaseStage extends BaseScene {
             this.renderOfForward();//进行前向渲染，在这个stage中
             this.copyForTAA();
         }
+        this.renderForLightsShadowMap();
     }
 
 
     //todo,stage 中的TAA，可以减少与非本stage的干扰
     copyForTAA() { }
+
+    renderForLightsShadowMap() {
+        if (Object.keys(this.lightsCommands).length) {
+            for (let i of this.scene.lights) {
+
+            }
+        }
+    }
     /**
      * render延迟单像素渲染的第一遍depth
      * @param deltaTime 
@@ -335,16 +334,19 @@ export class BaseStage extends BaseScene {
      * @param lastTime 
      */
     renderOfDepth() {
-        if (this.commandsDepth.length > 0) {
-            //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
-            for (let i in this.commandsDepth) {
-                if (i == "0") {
-                    this.RPD_ForDeferDepth.depthStencilAttachment!.depthLoadOp = "clear";
+        for (let Ci in this.camerasCommands) {
+            const commands = this.camerasCommands[Ci];
+            if (commands.commandsDepth.length > 0) {
+                //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
+                for (let i in commands.commandsDepth) {
+                    if (i == "0") {
+                        this.RPD_ForDeferDepth.depthStencilAttachment!.depthLoadOp = "clear";
+                    }
+                    else if (i == "1") {
+                        this.RPD_ForDeferDepth.depthStencilAttachment!.depthLoadOp = "load";
+                    }
+                    commands.commandsDepth[i].update();
                 }
-                else if (i == "1") {
-                    this.RPD_ForDeferDepth.depthStencilAttachment!.depthLoadOp = "load";
-                }
-                this.commandsDepth[i].update();
             }
         }
     }
@@ -355,55 +357,81 @@ export class BaseStage extends BaseScene {
      * @param lastTime 
      */
     renderOfForward() {
-        if (this.commands.length > 0) {
-            //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
-            for (let i in this.commands) {
-                if (i == "0") {
-                    for (let i in this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[]) {
-                        let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[i];
-                        perOne.loadOp = "clear";
-                        //202411290014:不需要每个更新,但canvas需要,copytexturetotextur,只是copy,也不需要
-                        // perOne.view = this.colorTextureViews[i];////20241128：这一步在canvas中式必须的，texture 是否必须，测试后给出定论
+        for (let Ci in this.camerasCommands) {
+            const commands = this.camerasCommands[Ci];
+            if (commands.commands.length > 0) {
+                //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
+                for (let i in commands.commands) {
+                    if (i == "0") {
+                        for (let i in this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[]) {
+                            let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[i];
+                            perOne.loadOp = "clear";
+                            //202411290014:不需要每个更新,但canvas需要,copytexturetotextur,只是copy,也不需要
+                            // perOne.view = this.colorTextureViews[i];////20241128：这一步在canvas中式必须的，texture 是否必须，测试后给出定论
+                        }
+                        // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "clear";
+                        this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "clear";
+                        // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
+                        //     this.colorAttachment;
                     }
-                    // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "clear";
-                    this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "clear";
-                    // (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].view =
-                    //     this.colorAttachment;
-                }
-                else if (i == "1") {
-                    for (let i in this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[]) {
-                        let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[i];
-                        perOne.loadOp = "load";
+                    else if (i == "1") {
+                        for (let i in this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[]) {
+                            let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[i];
+                            perOne.loadOp = "load";
+                        }
+                        //(<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
+                        this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "load";
                     }
-                    //(<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
-                    this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "load";
+                    commands.commands[i].update();
                 }
-                this.commands[i].update();
             }
         }
     }
     /**更新entities容器RooT的每个entity */
-    update(deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false) {
-        let scene;
-        //Draw Command 适用谁的renderPassDescriptor
-        // if (this.scene)
-        //     scene = this.scene;
-        // else
-        scene = this;
-        this.commands = [];
-        this.commandsDepth = [];
-        this.commandsColor = [];
+    update(deltaTime: number, startTime: number, lastTime: number) {
+        if (Object.keys(this.GBuffers).length == 0) {
+            return;
+        }
+        // this.commands = [];
+        // this.commandsDepth = [];
+        // this.commandsColor = [];
+        this.camerasCommands = {};
+        this.lightsCommands = {};
         for (let i of this.root) {
-            let dcc = i.update(scene, deltaTime, startTime, lastTime, updateForce);
-            for (let j of dcc.forward) {
-                this.commands.push(j);
-            }
-            if (this.deferRenderDepth) {
-                for (let j of dcc.depth) {
-                    this.commandsDepth.push(j);
-                }
+            if (i.enable && i.visible) {
+                let dcc = i.update(this, deltaTime, startTime, lastTime);
+                if (Object.keys(dcc).length)
+                    for (let oneCA of this.scene.cameraActors) {
+                        if (this.camerasCommands[oneCA.id.toString()] == undefined) {
+                            this.camerasCommands[oneCA.id.toString()] = {
+                                commands: [],
+                                commandsDepth: [],
+                                commandsColor: []
+                            };
+                        }
+                        // if (oneCA.id == this.scene.defaultCameraActor.id) 
+                        if (this.getRenderVisibleForCamera(oneCA)) {
+                            for (let j of dcc[oneCA.id].forward) {
+                                // this.commands.push(j);
+                                this.camerasCommands[oneCA.id.toString()].commands.push(j);
+                            }
+                            if (this.deferRenderDepth) {
+                                for (let j of dcc[oneCA.id].depth) {
+                                    // this.commandsDepth.push(j);
+                                    this.camerasCommands[oneCA.id.toString()].commandsDepth.push(j);
+                                }
+                            }
+                        }
+                    }
             }
         }
+    }
+
+    getRenderVisibleForCamera(camera: CameraActor): boolean {
+        return true;
+    }
+    getRenderVisibleForLight(camera: CameraActor): boolean {
+        return true;
     }
 
     /**

@@ -8,7 +8,7 @@ import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
 import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
 import { mat4, vec3 } from "wgpu-matrix"
-import { DrawCommand, drawOptionOfCommand } from "../../../../src/we/base/command/DrawCommand"
+import { DrawCommand, DrawOptionOfCommand } from "../../../../src/we/base/command/DrawCommand"
 
 
 declare global {

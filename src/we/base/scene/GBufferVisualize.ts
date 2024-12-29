@@ -1,4 +1,4 @@
-import { DrawCommand, drawMode, drawOptionOfCommand } from "../command/DrawCommand";
+import { DrawCommand, drawMode, DrawOptionOfCommand } from "../command/DrawCommand";
 import * as coreConst from "../const/coreConst";
 import { optionSingleRender, SingleRender } from "./singleRender";
 // import shaderCodeDepth from "../shader/GBuffersVisualize/depth.wgsl?raw";
@@ -70,6 +70,10 @@ export class GBuffersVisualize extends SingleRender {
 
         this.init();
     }
+    /**1、初始化single或viewport模式，并push到commands
+     * 
+     * 2、生成copy command，push到commands
+     */
     init() {
         if (this.input.layout.layout!.single === true) {
             this.initSingle();
@@ -87,6 +91,7 @@ export class GBuffersVisualize extends SingleRender {
         );
         this.commands.push(copyToColorTexture);
     }
+    /**single，全屏模式的可视化 */
     initSingle() {
         let layoutName = this.input.layout.layout!.name;
         let shaderCode = coreConst.varOfshaderCodeSingleOfGBuffersVisualizeLayout[layoutName];
@@ -130,7 +135,7 @@ export class GBuffersVisualize extends SingleRender {
 
         }
 
-        let option: drawOptionOfCommand = {
+        let option: DrawOptionOfCommand = {
             label: "GBuffers render ID",
             vertex: {
                 code: shaderCode,
@@ -164,6 +169,9 @@ export class GBuffersVisualize extends SingleRender {
         this.commands.push(DC);
     }
 
+    /**
+     * viewport布局的可视化
+     */
     initLayout() {
         let layoutName = this.input.layout.layout!.name;
         let layout = coreConst.GBuffersVisualizeLayoutAssemble[layoutName];
@@ -223,7 +231,7 @@ export class GBuffersVisualize extends SingleRender {
                     }
                 }
 
-                let option: drawOptionOfCommand = {
+                let option: DrawOptionOfCommand = {
                     label: "GBuffers render ID",
                     vertex: {
                         code: shaderCode[key] as string,

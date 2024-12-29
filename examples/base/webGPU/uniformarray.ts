@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOptionOfCommand} from "../../../src/we/base/command/DrawCommand"
+  DrawOptionOfCommand} from "../../../src/we/base/command/DrawCommand"
 declare global {
   interface Window {
     scene: any
@@ -65,7 +65,7 @@ scene.device.queue.writeBuffer(
   uniformOneColor.byteLength
 );
 
-let options: drawOptionOfCommand = {
+let options: DrawOptionOfCommand = {
   label: "a triangle",
   scene: scene,
   vertex: {

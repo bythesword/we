@@ -1,4 +1,4 @@
-import { DrawCommand, drawMode, drawOptionOfCommand } from "../command/DrawCommand";
+import { DrawCommand, drawMode, DrawOptionOfCommand } from "../command/DrawCommand";
 import { unifromGroup } from "../command/baseCommand";
 import { GBuffers, GBuffersRPDAssemble, stagesOfSystem } from "../const/coreConst";
 import { Scene } from "./scene";
@@ -91,7 +91,7 @@ export class GBufferPostProcess extends SingleRender {
         };
         let uniformsOpaque: unifromGroup[] = this.getTexturesOfUniformFromStageForID();
         let far = this._isReversedZ ? 0 : 1;
-        let optionsOpaque: drawOptionOfCommand = {
+        let optionsOpaque: DrawOptionOfCommand = {
             label: "GBuffers render ID",
             vertex: {
                 code: shaderDepthAndID,
@@ -138,7 +138,7 @@ export class GBufferPostProcess extends SingleRender {
                 //  && name=="World"
             ) {
                 let uniformsOther: unifromGroup[] = this.getTexturesOfUniformFromStageForOther(name);
-                let optionsOther: drawOptionOfCommand = {
+                let optionsOther: DrawOptionOfCommand = {
                     label: "GBuffers render Other",
                     vertex: {
                         code: shaderOpaque,
@@ -188,7 +188,7 @@ export class GBufferPostProcess extends SingleRender {
         //20241212,todo:将透明层由合并改为比较depth的油画法
         // //只有color，一个DC，stage在uniform中
         // let uniformsTransparent: unifromGroup[] = this.getTexturesOfUniformFromStageForTransparent();
-        // let optionsTransparent: drawOptionOfCommand = {
+        // let optionsTransparent: DrawOptionOfCommand = {
         //     label: "GBuffers render Transparent",
         //     vertex: {
         //         code: shaderTransparent,

@@ -110,7 +110,7 @@ export interface drawModeIndexed {
  * camera?: any,
  * 
 */
-export interface drawOptionOfCommand extends baseOptionOfCommand {
+export interface DrawOptionOfCommand extends baseOptionOfCommand {
     vertex: vsPart,
 
     fragment?: fsPart,//20241215,若只进行VS输出depth，非必须
@@ -190,13 +190,13 @@ export class DrawCommand extends BaseCommand {
     /**renderPassDescriptor */
     renderPassDescriptor!: GPURenderPassDescriptor;
     /**这个类的webGPU的 commandEncoder */
-    declare input: drawOptionOfCommand;
+    declare input: DrawOptionOfCommand;
     primitive!: GPUPrimitiveState;
     /** 深度与模板的 参数，pipeline 的描述使用*/
     depthStencil!: GPUDepthStencilState | undefined;
 
 
-    constructor(options: drawOptionOfCommand) {
+    constructor(options: DrawOptionOfCommand) {
         super(options)
         this.verticesBuffer = [];
         this.unifromBuffer = [];

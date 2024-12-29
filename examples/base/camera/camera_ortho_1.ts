@@ -36,7 +36,7 @@ import { CamreaControl, optionCamreaControl } from "../../../src/we/base/control
 import { CameraActor, optionCameraActor } from "../../../src/we/base/actor/cameraActor"
 
 import { Scene, sceneInputJson } from "../../../src/we/base/scene/scene"
-import { DrawCommand, drawOptionOfCommand } from "../../../src/we/base/command/DrawCommand"
+import { DrawCommand, DrawOptionOfCommand } from "../../../src/we/base/command/DrawCommand"
 import { OrthographicCamera, optionOrthProjection } from "../../../src/we/base/camera/orthographicCamera"
 // import { stageOne } from "../../../src/we/base/stage/baseStage"
 declare global {
@@ -123,7 +123,7 @@ const oneTriangleVertexF32A = new Float32Array(oneTriangleVertexArray);
 const uniformOneColor = new Float32Array([1, 0, 1, 1]);
 
 
-let options: drawOptionOfCommand = {
+let options: DrawOptionOfCommand = {
   label: "a triangle",
   scene: scene,
   vertex: {

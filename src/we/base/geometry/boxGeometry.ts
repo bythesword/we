@@ -1,14 +1,8 @@
 import { vec3 } from "wgpu-matrix";
 import {
     BaseGeometry,
-    geometryWireFrameAttribute,
     optionBaseGemetry,
 } from "./baseGeometry";
-import { indexBuffer, vsAttributes } from "../command/DrawCommand";
-// import * as coreConst from "../const/coreConst";
-// import triangleVS from "../shader/geometry/baseGeometry.vs.wgsl?raw"
-// import framelineVS from "../shader/geometry/baseGeometryFrameline.vs.wgsl?raw"
-
 
 interface boxParameters {
     width: number,

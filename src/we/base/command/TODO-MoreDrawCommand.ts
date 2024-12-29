@@ -20,7 +20,7 @@ import {
 import { TypedArray } from 'webgpu-utils';
 // import * as baseDefine from "../scene/base"
 import { getReplaceVertexConstants } from './shaderFormat';
-import { drawMode, drawModeIndexed, drawOptionOfCommand } from './DrawCommand';
+import { drawMode, drawModeIndexed, DrawOptionOfCommand } from './DrawCommand';
 
 
 
@@ -34,13 +34,13 @@ export class MoreDrawCommand extends BaseCommand {
     /**renderPassDescriptor */
     renderPassDescriptor!: GPURenderPassDescriptor;
     /**这个类的webGPU的 commandEncoder */
-    declare input: drawOptionOfCommand;
+    declare input: DrawOptionOfCommand;
     primitive!: GPUPrimitiveState;
     /** 深度与模板的 参数，pipeline 的描述使用*/
     depthStencil!: GPUDepthStencilState | undefined;
 
 
-    constructor(options: drawOptionOfCommand) {
+    constructor(options: DrawOptionOfCommand) {
         super(options)
         // this.input = options;
         // this.scene = options.scene;

@@ -23,7 +23,7 @@ export class Pickup {
     input: optionPickup;
     resultBuffer: GPUBuffer
     pickupSize = 4;//u32=4bytes
-    GBufferOfID: GPUTexture;
+    GBufferOfID: GPUTexture | undefined;
     width: number;
     height: number
 
@@ -33,7 +33,8 @@ export class Pickup {
         this.parent = input.parent;
         this.width = this.parent.canvas.width;
         this.height = this.parent.canvas.height;
-        this.GBufferOfID = this.parent.GBuffers["default"]["entityID"];
+        if (this.parent.defaultCameraActor)
+            this.GBufferOfID = this.parent.GBuffers[this.parent.defaultCameraActor.id.toString()]["entityID"];
         this.resultBuffer = this.device.createBuffer({
             label: 'pickup result buffer',
             size: this.pickupSize,
@@ -42,7 +43,12 @@ export class Pickup {
     }
 
     async getTargetID(x: number, y: number): Promise<pickupTargetOfIDs | false> {
-
+        if (this.GBufferOfID == undefined) {
+            if (this.parent.defaultCameraActor)
+                this.GBufferOfID = this.parent.GBuffers[this.parent.defaultCameraActor.id.toString()]["entityID"];
+            else
+                return false;
+        }
         if (x && y) {
             const result = await this.copyTextureToBuffer(x, y);
 
@@ -87,7 +93,7 @@ export class Pickup {
         const commandEncoder = this.device.createCommandEncoder();
         // Encode a command to copy the results to a mappable buffer.
         let source: GPUImageCopyTexture = {//这里应该是GPUTexelCopyTextureInfo,@webgpu/types没有这个，GPUImageCopyTexture是GPUTexelCopyTextureInfo集成;
-            texture: this.GBufferOfID,
+            texture: this.GBufferOfID as GPUTexture,
             origin: {
                 x,
                 y

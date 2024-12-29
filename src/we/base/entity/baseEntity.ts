@@ -110,6 +110,9 @@ export interface optionShadowEntity {
     /**是否产生阴影     */
     generate?: boolean,
 }
+
+
+
 /**三段式初始化的第一步： input参数 */
 export interface optionBaseEntity extends coreConst.optionUpdate {
     /**
@@ -156,12 +159,12 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
      * 实体是否为动态，boolean
      * 默认=false
      */
-    dynamicPostion?: boolean;
+    dynamicPostion?: boolean,
     /**
      * 是否未动态形变物体
      * 默认=false
      */
-    dynamicMesh?: boolean;
+    dynamicMesh?: boolean,
     /**实例化数量，默认为1 */
     numInstances?: number,
     /**
@@ -181,7 +184,10 @@ export interface optionBaseEntityStep2 {
     deferRenderColor: boolean,
     reversedZ: boolean,
 }
-
+/**为多摄像机和shadow map输出的commmand格式 */
+export interface commandsOfEntity {
+    [name: string]: renderCommands
+}
 export abstract class BaseEntity extends Root {
 
 
@@ -203,7 +209,7 @@ export abstract class BaseEntity extends Root {
     _LOD!: LOD[];//todo
     _shadow!: optionShadowEntity;
     // _shadowMaterail!: ShadowMaterial;
-    commmands: renderCommands;//commmandType[];
+    commmands: commandsOfEntity;//commmandType[];
     _vertexAndMaterialGroup!: entityContentGroup;
     _position!: Vec3;
     _scale!: Vec3;
@@ -305,11 +311,7 @@ export abstract class BaseEntity extends Root {
         this.stageID = 0;
         this._LOD = [];
         this._destroy = false;
-        this.commmands = {
-            forward: [],
-            depth: [],
-            color: []
-        };
+        this.commmands = {};
         this._vertexAndMaterialGroup = {};
         this.enable = true;
         this._position = vec3.create();
@@ -354,6 +356,12 @@ export abstract class BaseEntity extends Root {
         //     this._shadowMaterail = new ShadowMaterial();
         // }
         // this.updateMatrix();
+        this.commmands = {};
+        // this.commmands["default"] = {
+        //     forward: [],
+        //     depth: [],
+        //     color: []
+        // };
 
     }
     /** */
@@ -372,18 +380,17 @@ export abstract class BaseEntity extends Root {
         let already = this.checkStatus();
         if (already) {
             this._init = initStateEntity.initializing;
-            if (this.deferRenderDepth) this._init =  this.createDCCDeferRenderDepth(parent);
-            this._init = this.createDCC(parent);
             this.generateBox();
+            for (let i of this.scene.cameraActors) {
+                if (this.deferRenderDepth) this._init = this.createDCCDeferRenderDepth(parent, i.id.toString());
+                this._init = this.createDCC(parent, i.id.toString());
+            }
+            for(let i of this.scene.lights){
+
+            }
         }
     }
-    // initDCC(parent: BaseStage) {
-    //     let already = this.checkStatus();
-    //     if (already) {
-    //         this._init = this.createDCC(parent);
-    //         this.boundingBox = this.generateBox();
-    //     }
-    // }
+
     set transparent(transparent: boolean) {
         this._transparent = transparent;
     }
@@ -396,8 +403,8 @@ export abstract class BaseEntity extends Root {
      * 创建this._vertexAndMaterialGroup对应的DrawCommand组
      * 
      */
-    abstract createDCC(parent: BaseStage): initStateEntity
-    abstract createDCCDeferRenderDepth(parent: BaseStage): initStateEntity
+    abstract createDCC(parent: BaseStage, camera: string): initStateEntity
+    abstract createDCCDeferRenderDepth(parent: BaseStage, camera: string): initStateEntity
 
 
 
@@ -554,12 +561,13 @@ export abstract class BaseEntity extends Root {
      * @param parent 
      * @param deltaTime 
      * @param startTime 
-     * @param lastTime 
-     * @param updateForce boolean，true=重新生成Draw Command
+     * @param lastTime  
      * @returns 
      */
-    update(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false, ForOnePixelDeferRender: boolean = false): renderCommands {
+    update(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): commandsOfEntity {
+        // let cameraOrLight: string, forWhatRender: entityRenderFor;
         //初始化DCC
+
         if (this._readyForGPU && this._id != 0)
 
             if (this._init === initStateEntity.unstart) {
@@ -577,15 +585,9 @@ export abstract class BaseEntity extends Root {
                 if (this._dynamicPostion === true) {
                     this.matrixWorld = this.updateMatrixWorld();
                 }
-                if (updateForce === true) {
-
-                }
-                else if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
-
+                if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
                     this.updateUniformBuffer(parent, deltaTime, startTime, lastTime);
-                    // this.commmandsForOnePixelDeferRender = this.updateDCCForOnePixelDeferRender(parent, deltaTime, startTime, lastTime);
                     this.commmands = this.updateDCC(parent, deltaTime, startTime, lastTime);
-                    // return this.commmands;
                 }
                 else//静态，直接返回commands
                 {
@@ -703,8 +705,16 @@ export abstract class BaseEntity extends Root {
      * 
      * 2、如果没有更新直接返回DCC的数组
      * 
+     * 
+     * @param parent 
+     * @param deltaTime 
+     * @param startTime 
+     * @param lastTime 
+     * @returns commandsOfEntity, 返回this.commmands 包括多个camera和light的renderCommands 每个renderCommands中包括3个类型的commands
      */
-    abstract updateDCC(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): renderCommands;
+     updateDCC(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): commandsOfEntity{
+        return this.commmands;
+    }
 
     /**
      * 循环注销children

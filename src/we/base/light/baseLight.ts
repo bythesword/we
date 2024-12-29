@@ -1,7 +1,5 @@
 import * as coreConst from "../const/coreConst";
-import {
-    Vec3,
-} from "wgpu-matrix";
+import { Vec3, } from "wgpu-matrix";
 import { Root } from "../const/root";
 
 // export interface optionBaseLightSize{
@@ -167,10 +165,10 @@ export abstract class BaseLight extends Root {
         this._id = id;
     }
     get id(): number { return this._id; }
-    async update( deltaTime: number,startTime:number,lastTime:number) {
+    async update(deltaTime: number, startTime: number, lastTime: number) {
         let scope = this;
         if (this.input.update) {
-            await scope.input.update!(scope, deltaTime,startTime,lastTime);
+            await scope.input.update!(scope, deltaTime, startTime, lastTime);
             scope.updateStructBuffer();
         }
     }

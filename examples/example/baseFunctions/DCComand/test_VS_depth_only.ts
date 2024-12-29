@@ -1,7 +1,7 @@
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import {
   DrawCommand,
-  drawOptionOfCommand,
+  DrawOptionOfCommand,
 
 } from "../../../../src/we/base/command/DrawCommand"
 declare global {
@@ -96,7 +96,7 @@ let renderPassDescriptorDepth: GPURenderPassDescriptor = {
   },
 };
 
-let options: drawOptionOfCommand = {
+let options: DrawOptionOfCommand = {
   renderPassDescriptor: renderPassDescriptorDepth,
   label: "a triangle",
   parent: scene,
@@ -224,7 +224,7 @@ let shaderColor = `
         return color;
       }
 `;
-let optionsColor: drawOptionOfCommand = {
+let optionsColor: DrawOptionOfCommand = {
   renderPassDescriptor: renderPassDescriptorColor,
   label: "a triangle",
   parent: scene,

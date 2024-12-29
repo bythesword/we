@@ -2,8 +2,8 @@
 import { PostProcessEffect } from "./postProcessEffect";
 import quadVS from "../shader/PostProcess/quard/quad.vs.wgsl?raw";
 import blur3x3FS from "../shader/PostProcess/ConvolutionMatrix/blur3x3.fs.wgsl?raw";
-import { DrawCommand, drawOptionOfCommand } from "../command/DrawCommand";
-import { weSamplerKind } from "../resource/weResource";
+import { DrawCommand, DrawOptionOfCommand } from "../command/DrawCommand";
+
 
 export class Blur3x3 extends PostProcessEffect {
 
@@ -14,7 +14,7 @@ export class Blur3x3 extends PostProcessEffect {
     _init(): void {
         for (let i in this.GBuffers) {
             let shaderCode = quadVS + blur3x3FS;
-            let options: drawOptionOfCommand = {
+            let options: DrawOptionOfCommand = {
                 renderPassDescriptor: this.renderPassDescriptor,
                 rawUniform: true,
                 label: "post process blue 3x3",

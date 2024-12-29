@@ -31,7 +31,7 @@ export var stagesOfSystem: stageName = [
     "Sky",//天空盒
     "UI",//UI
 ];
-export var stagesOfSystemDeferRender :boolean[] = [
+export var stagesOfSystemDeferRender: boolean[] = [
     true,//角色
     true,//水、树、草等
     true,//静态
@@ -56,12 +56,7 @@ export interface color4F {
     alpha: number
 }
 /**RGBA四个数值的颜色interface，0--255 */
-export interface color4U {
-    red: number,
-    green: number,
-    blue: number,
-    alpha: number
-}
+export type color4U = color4F
 /**RGB数值的颜色interface，0--1 */
 export interface color3F {
     red: number,
@@ -69,11 +64,8 @@ export interface color3F {
     blue: number
 }
 /** RGB三个数值的颜色interface，0--255 */
-export interface color3U {
-    red: number,
-    green: number,
-    blue: number,
-}
+export type color3U = color3F;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //shadowMapSize
