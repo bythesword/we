@@ -60,7 +60,7 @@ export abstract class BaseScene {
      * 每个stage的command集合 
     * 一个实体可以由多个command，分布在不同的stage，比如透明，不透明
     */
-    commands: commmandType[];
+    commands: commmandType[];//scene 在使用 for scene.root
     commandsDepth: commmandType[];
     commandsColor: commmandType[];
 

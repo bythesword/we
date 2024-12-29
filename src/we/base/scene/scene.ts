@@ -21,6 +21,18 @@ import { CamreaControl } from "../control/cameracCntrol";
 import { PostProcessEffect } from "../postprocess/postProcessEffect";
 
 
+export interface cameraViewport {
+    cameraActor: CameraActor,
+    /**x,y,width,height都是百分比，0.0--1.0 */
+    viewport: {
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+    }
+}
+
+
 
 
 /**
@@ -78,7 +90,14 @@ export interface sceneInputJson extends sceneJson {
     /**Debug  */
     // Debug?: WE_Debug,
     /**自定义stage */
-    stageSetting?: sceneStageInput
+    stageSetting?: sceneStageInput,
+    /**出现的camera显示，没有的不显示，按照数组的先后顺序进行render，0=最底层，数组最后的在最上层 
+     * 
+     * multiCameraViewport 与GBuffer可视化不可同时使用，multiCameraViewport优先级高
+    */
+    multiCameraViewport?: cameraViewport[],
+
+
 }
 
 /**scene 中配置是否使用GBuffer可视化的interface，
@@ -159,7 +178,14 @@ class Scene extends BaseScene {
     aspect!: number;
     /** system uniform buffer 结构体，参加 interfance systemUniformBuffer */
     systemUniformBuffers!: systemUniformBuffer;
-
+    /**多摄像机属性，默认=false。
+     * 
+     * 来源：
+     * 1、scene初始化参数指定
+     * 2、通过function实现
+     */
+    multiCamera: boolean;
+    multiCameraViewport: cameraViewport[];
     ////////////////////////////////////////////////////////////////////////////////
     /** actor group */
     actors: actorGroup;
@@ -238,6 +264,7 @@ class Scene extends BaseScene {
     /** for raw*/
     rawColorAttachmentTargets!: GPUColorTargetState[];
 
+    finalTarget!: GPUTexture;
     ////////////////////////////////////////////////////////////////////////////////
     // function
     ////////////////////////////////////////////////////////////////////////////////
@@ -247,7 +274,13 @@ class Scene extends BaseScene {
         this.cameraActors = [];
         this.actors = {};
         this.stagesOfSystem = coreConst.stagesOfSystem;
-        this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage]
+        this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage];
+        this.multiCamera = false;
+        this.multiCameraViewport = [];
+        if (input.multiCameraViewport) {
+            this.multiCameraViewport = input.multiCameraViewport;
+            this.multiCamera = true;
+        }
         this.stagesOrders = coreConst.defaultStageList;
         //这个部分是为编辑器使用定义的
         if (input.stageSetting && input.stageSetting.sceneStageInit) {
@@ -348,7 +381,11 @@ class Scene extends BaseScene {
 
         this.aspect = canvas.width / canvas.height;
         this.resources = new WeResource(this);
-
+        this.finalTarget = this.device.createTexture({
+            size: [this.canvas.width, this.canvas.height],
+            format: this.presentationFormat,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+        });
         await this.initStages();
         // this.GBuffers["default"] = await this.initGBuffers(canvas.width, canvas.height);
 
@@ -356,11 +393,11 @@ class Scene extends BaseScene {
         // this.initGBuffersPostProcess();
 
         this.initPostProcess();
-        this.initPickup()
-        this.initForRAW()
+        this.initPickup();
+        // this.initForRAW();//20241229,未使用 
         this.observer();
     }
-    createSourceOfcopyToSurface(camera: string ) {
+    createSourceOfcopyToSurface(camera: string) {
         return this.device.createTexture({
             label: "sourceOfcopyToSurface of " + camera,
             size: [this.canvas.width, this.canvas.height],
@@ -376,6 +413,7 @@ class Scene extends BaseScene {
         };
         this.pickUp = new Pickup(option);
     }
+    /**20241229,未使用 */
     async initForRAW() {
         this.rawColorTexture = this.device.createTexture({
             size: [this.canvas.width, this.canvas.height],
@@ -419,7 +457,7 @@ class Scene extends BaseScene {
     }
 
     /**GBuffer的后处理，在scene中合并 */
-    initGBuffersPostProcess(camera: string ) {
+    initGBuffersPostProcess(camera: string) {
         this.GBufferPostprocess = {};
         let option: optionGBPP = {
             GBuffers: this.GBuffers[camera],
@@ -643,15 +681,21 @@ class Scene extends BaseScene {
      * 3、更新实体 entity
      */
     async update(deltaTime: number, startTime: number, lastTime: number) {
-        if (this.defaultActor)
-            this.defaultActor.update(deltaTime, startTime, lastTime);
-        this.updateSystemUniformBuffer();
+        if (this.defaultCameraActor)
+            this.defaultCameraActor.update(deltaTime, startTime, lastTime);
+        this.updateSystemUniformBuffer();//更新默认camera的unifrom
+        this.updateCameraActor(deltaTime, startTime, lastTime);
+        this.updateSystemUniformBufferForCameras();//更新其他cameras，20241229，增加多cameras
+
         //todo
         // 四个中间点，稍稍延迟
         // let rays = this.defaultCamera!.getCameraRays();
         // 四个中间点，稍稍延迟
         // this.updateBVH(rays)
+
         await this.updateLights(deltaTime, startTime, lastTime);
+        this.updateSystemUniformBufferForlights();//更新lights的uniform ，for shadowmapping
+
         this.updateActor(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
         this.updateEntities(deltaTime, startTime, lastTime);//更新实体状态，比如水，树，草等动态的
         this.updateStagesCommand(deltaTime, startTime, lastTime);
@@ -672,7 +716,7 @@ class Scene extends BaseScene {
         }
 
         this.postProcessManagement.render();  //进行后处理
-
+        this.showMultiCamera();
         await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
     }
     /**render perlight's shadowmap  */
@@ -717,7 +761,16 @@ class Scene extends BaseScene {
             this.systemUniformBuffers["MVP"] = this.getMVP();
         this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
     }
-
+    updateSystemUniformBufferForCameras() {
+    //     if (this.defaultCamera)
+    //         this.systemUniformBuffers["MVP"] = this.getMVP();
+    //     this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
+    }
+    updateSystemUniformBufferForlights() {
+        // if (this.defaultCamera)
+        //     this.systemUniformBuffers["MVP"] = this.getMVP();
+        // this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
+    }
     /**
      * 在WGSL是一个struct ，参见“system.wgsl”中的 ST_Lights结构。
      * 
@@ -886,8 +939,19 @@ class Scene extends BaseScene {
                     this.actors[i].update(deltaTime, startTime, lastTime);
                 }
                 else {
-
-                } this.actors[i].update(deltaTime, startTime, lastTime);
+                    this.actors[i].update(deltaTime, startTime, lastTime);
+                }
+            }
+    }
+    updateCameraActor(deltaTime: number, startTime: number, lastTime: number) {
+        if (this.cameraActors)
+            for (let i in this.cameraActors) {
+                if (this.defaultActor && this.cameraActors[i] != this.defaultCameraActor) {
+                    this.cameraActors[i].update(deltaTime, startTime, lastTime);
+                }
+                else {
+                    this.cameraActors[i].update(deltaTime, startTime, lastTime);
+                }
             }
     }
     /**todo
@@ -953,33 +1017,36 @@ class Scene extends BaseScene {
      * 只进行defaultcamera的GBuffer可视化
     */
     async showGBuffersVisualize() {
-        if (this._GBuffersVisualize.enable) {
-            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//有可视化，且状态改变（layout不同）
-                this.GBuffersVisualize.destroy();
-                this.GBuffersVisualize != undefined;
+        if (this.multiCamera === false)//多摄像机时不显示GBuffer可视化
+            if (this._GBuffersVisualize.enable) {
+                if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//有可视化，且状态改变（layout不同）
+                    this.GBuffersVisualize.destroy();
+                    this.GBuffersVisualize != undefined;
+                }
+                if (this.GBuffersVisualize == undefined) {
+                    this.GBuffersVisualize = new GBuffersVisualize({
+                        parent: this,
+                        device: this.device,
+                        GBuffers: this.GBuffers[this.defaultCameraActor.id.toString()],
+                        surfaceSize: {
+                            width: this.canvas.width,
+                            height: this.canvas.height,
+                        },
+                        layout: this._GBuffersVisualize,
+                        // copyToTarget: this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()],//ok,20241229 多摄像机之前
+                        copyToTarget: this.finalTarget,
+                    });
+                    this._GBuffersVisualize.statueChange = false;//更新statue状态
+                }
+                this.GBuffersVisualize.render();
             }
-            if (this.GBuffersVisualize == undefined) {
-                this.GBuffersVisualize = new GBuffersVisualize({
-                    parent: this,
-                    device: this.device,
-                    GBuffers: this.GBuffers[this.defaultCameraActor.id.toString()],
-                    surfaceSize: {
-                        width: this.canvas.width,
-                        height: this.canvas.height,
-                    },
-                    layout: this._GBuffersVisualize,
-                    copyToTarget: this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()]
-                });
-                this._GBuffersVisualize.statueChange = false;//更新statue状态
+            else {
+                if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//关闭可视化，且layout也改变（这种应用少，即：关闭可视化，且改变布局）
+                    this.GBuffersVisualize.destroy();
+                    this.GBuffersVisualize != undefined;
+                }
             }
-            this.GBuffersVisualize.render();
-        }
-        else {
-            if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//关闭可视化，且layout也改变（这种应用少，即：关闭可视化，且改变布局）
-                this.GBuffersVisualize.destroy();
-                this.GBuffersVisualize != undefined;
-            }
-        }
+
     }
     /**设置 GBuffer 可视化，仅设置 */
     setGBuffersVisualize(input: GBuffersVisualizeViewport | false) { //enable: boolean, layout: string = coreConst.GBuffersVisualizeLayoutDefaultName) {
@@ -1016,10 +1083,26 @@ class Scene extends BaseScene {
         }
         console.error("GBuffer可视化输入参数错误!");
     }
-    showMultiCamera(){}
+    /** 设置multiCamera是否有效 */
+    setMultiCamera(enable: boolean) {
+        this.multiCamera = enable;
+    }
+    /**
+     * 多摄像机viewport显示
+     */
+    showMultiCamera() {
+        if (this.multiCamera) {
+            this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        }
+        else {
+            this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+
+        }
+    }
     /**每帧渲染的最后步骤 */
     async copyToSurface() {
-        this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+        this.copyTextureToTexture(this.finalTarget, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
 
 
         //直接测试：world -->scene
@@ -1029,7 +1112,9 @@ class Scene extends BaseScene {
         // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
         // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
     }
-
+    /** 20241229 ,未使用
+     * 这个是准备做WE tory （类似shadertoy）使用的
+     */
     copyRawToSurface() {
         this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
     }
@@ -1170,15 +1255,15 @@ class Scene extends BaseScene {
             isDefault = true;
         }
 
-        const id=one.id.toString();
-        this.cameraActors.push(one);
+        const id = one.id.toString();
+        this.cameraActors.push(one);//增加cameraActor数组中
         this.sourceOfcopyToSurface[id] = this.createSourceOfcopyToSurface(id);
         this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);
         for (let i in this.stages) {
             await this.stages[i].opaque?.initCameraGBuffer(id);
         }
-        this.initGBuffersPostProcess(id);        
-       
+        this.initGBuffersPostProcess(id);
+
 
         if (isDefault === true) {
             this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
