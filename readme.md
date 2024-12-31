@@ -32,6 +32,11 @@
 * 在Stage舞台目前初步设定五个：UI、sky、world、dynamic、actor。其中后三个分别有透明和不透明两个子舞台；
 * 短期的规划还有：SSGI、SSR、SSAO、IBL、GI with Reflective shadow maps(这个感觉babylon的挺好的)；
 
+## API文档
+
+* API文档在doc目录下，使用TypeDoc生成；
+* 示例文档，todo
+
 ## 运行示例
 
 
@@ -40,6 +45,19 @@
 | ![1733906622761](images/readme/1733906622761.png) | ![1733906612284](images/readme/1733906612284.png) | ![1733906617659](images/readme/1733906617659.png) |
 | 后处理：模糊，3x3卷积                             | 延迟渲染 1024个光源                               | 多摄像机                                          |
 | ![1734701499419](images/readme/1734701499419.png) | ![1734701508068](images/readme/1734701508068.png) | ![1735662458707](images/readme/1735662458707.png) |
+| camera可视区域优化与剔除                          | 光源+阴影：方向光                                 | 光源+阴影：点光源光源+阴影：spot                  |
+|                                                   |                                                   |                                                   |
+| 透光源+阴影：spot                                 | 透明混合                                          | 半透明阴影                                        |
+|                                                   |                                                   |                                                   |
+| 视频纹理                                          | lightmap                                          | 粒子系统                                          |
+|                                                   |                                                   |                                                   |
+| Skinned Mesh                                      | 体积渲染                                          | 仿真云图                                          |
+|                                                   |                                                   |                                                   |
+| 文本渲染                                          | PBR                                               | PBR                                               |
+|                                                   |                                                   |                                                   |
+| PBR                                               | PBR                                               | PBR                                               |
+|                                                   |                                                   |                                                   |
+|                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
 
 ## Todo

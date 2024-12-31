@@ -730,9 +730,6 @@ class Scene extends BaseScene {
         for (let i in this.GBufferPostprocess) {
             this.GBufferPostprocess[i].render();   //合并GBuffer
         }
-
-
-
         this.postProcessManagement.render();  //进行后处理
         this.showMultiCamera();
         await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
