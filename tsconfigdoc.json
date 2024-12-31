@@ -27,7 +27,7 @@
     "entryPoints": [
       "src/we/**/*.ts"
     ],
-    "out": "./doc/dist"
+    "out": "./doc/doc"
   },
   "include": ["src/we/base/**/*.ts"]
   // "references": [{ "path": "./tsconfig.node.json" }]

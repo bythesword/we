@@ -1,5 +1,4 @@
 import { CameraActor } from "../actor/cameraActor";
-import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { DrawCommand, drawMode, DrawOptionOfCommand } from "../command/DrawCommand";
 import { MultiGBuffers } from "../const/coreConst";
 import { cameraViewport } from "./scene";
