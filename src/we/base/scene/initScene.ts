@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //scen的语法糖
-import { userFN, userPromiseFN } from "../const/coreConst";
+import { userPromiseFN } from "../const/coreConst";
 import { Scene, sceneInputJson } from "./scene";
 export async function initScene(input: sceneInputJson, userRun: userPromiseFN = async function () { }) {
     let scene = new Scene(input);

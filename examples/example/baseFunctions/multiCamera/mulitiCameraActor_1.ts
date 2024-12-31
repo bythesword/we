@@ -8,6 +8,7 @@ import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
 import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
 import { mat4, vec3 } from "wgpu-matrix"
+import { initScene } from "../../../../src/we/base/scene/initScene"
 
 
 declare global {
@@ -24,46 +25,89 @@ let input: sceneInputJson = {
     green: 0.1,
     blue: 0.1,
     alpha: 1
-  }
+  },
+  stageSetting: {
+    stageStatus: "world"
+  },
+  multiCameraViewport:[
+    {
+      cameraActorName: "camera_0",
+      viewport: {
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1
+      },
+      // backgroudColor:{red:1,green:1,blue:1,alpha:1},
+    },
+    {
+      cameraActorName: "camera_1",
+      viewport: {
+        x: 0.5,
+        y: 0.5,
+        width: 0.5,
+        height: 0.5
+      },
+      // backgroudColor:{red:0,green:0,blue:1,alpha:1},
+    },
+  ]
 }
-let scene = new Scene(input);
-await scene.init();
-
+let scene = await initScene(input);
 window.scene = scene;
 
 
 //摄像机初始化参数
-const cameraOption: optionPerspProjection = {
+const cameraOption0: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
+  near: 0.1,
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
-let camera = new PerspectiveCamera(cameraOption);
+let camera0 = new PerspectiveCamera(cameraOption0);
+
+const cameraOption1: optionPerspProjection = {
+  fov: (2 * Math.PI) / 5,
+  aspect: scene.aspect,
+  near: 0.1,
+  far: 100,
+  position: [0, 0, -4],
+  lookAt: [0, 0, 0]
+}
+//实例化摄像机
+let camera1 = new PerspectiveCamera(cameraOption1);
+
 
 
 //摄像机控制器
 const controlOption: optionCamreaControl = {
   window: window,
   canvas: scene.canvas,
-  camera: camera,
+  camera: camera0,
 };
+
 //实例化摄像机控制器
 let control = new ArcballCameraControl(controlOption);
 
 //摄像机角色参数
-const ccOption: optionCameraActor = {
-  camera: camera,
+const ccOption0: optionCameraActor = {
+  camera: camera0,
   control: control,
+  name: "camera_0"
+}
+const ccOption1: optionCameraActor = {
+  camera: camera1,
+  // control: control,
   name: "camera_1"
 }
 //实例化摄像机角色
-let actor = new CameraActor(ccOption)
+let actor0 = new CameraActor(ccOption0)
+let actor1 = new CameraActor(ccOption1)
 //增加摄像机角色到scene
-scene.addCameraActor(actor, true)
+await scene.addCameraActor(actor0)
+await scene.addCameraActor(actor1)
 
 
 ////enities 初始化
@@ -78,20 +122,20 @@ let boxEntity = new Mesh(
     material: redMaterial,
     wireFrame: false,
     dynamicPostion: true,
-    // update: (scope, deltaTime, startTime, lastTime) => {
-    //   // console.log("12");
-    //   scope.matrix = mat4.identity();
-    //   // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
-    //   const now = Date.now() / 1000;
-    //   // mat4.rotate(
-    //   //   scope.matrix,
-    //   //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-    //   //   1,
-    //   //   scope.matrix
-    //   // );
-    //   scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
-    //   return true;
-    // },
+    update: (scope, deltaTime, startTime, lastTime) => {
+      // console.log("12");
+      scope.matrix = mat4.identity();
+      // mat4.translate(scope.matrix, vec3.fromValues(0, 0, 0), scope.matrix);
+      const now = Date.now() / 1000;
+      // mat4.rotate(
+      //   scope.matrix,
+      //   vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      //   1,
+      //   scope.matrix
+      // );
+      scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
+      return true;
+    },
   }
 );
 //增加实体到scene

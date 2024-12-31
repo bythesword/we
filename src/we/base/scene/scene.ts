@@ -19,22 +19,25 @@ import { optionPickup, Pickup, pickupTargetOfIDs } from "../pickup/pickup";
 import { InputControl, typeOfInputControl } from "../control/inputControl";
 import { CamreaControl } from "../control/cameracCntrol";
 import { PostProcessEffect } from "../postprocess/postProcessEffect";
+import { MultiCameras, optionMulitCameras } from "./multiCameras";
 
 
 export interface cameraViewport {
-    cameraActor: CameraActor,
+    cameraActorName: string,
     /**x,y,width,height都是百分比，0.0--1.0 */
     viewport: {
         x: number,
         y: number,
         width: number,
         height: number,
-    }
+    },
+    // backgroudColor: coreConst.color4F,
 }
 
 
 
 
+type stageStatus = "all" | "world";// | "userdefine"
 /**
  * stageStatus是快速初始化stage状态用的
  * 
@@ -42,32 +45,32 @@ export interface cameraViewport {
  * */
 export interface sceneStageInput {
 
-    stageStatus: "all" | "scene" | "world",
-    sceneStageInit?: {
-        /**定义stage列表 
-          stages: stageName = [
-            "Actor",//角色
-            "DynamicEntities",//水、树、草等
-            "World",//静态
-            "Sky",//天空盒
-            "UI",
-            ];
-         * 
-        */
-        stages: coreConst.stageName,
-        /**stage DeferRender  */
-        stagesOfDeferRender: boolean[]
-        /**定义stage 显示排序
-         * 
-         *  [0, 1, 2, 3, 4]
-         */
-        stagesOrders: [],
-        /**默认stage名称
-         * 
-         * stages[] 中的一个名称,exp:"World"
-         */
-        defaultStageName: string,
-    }
+    stageStatus: stageStatus,
+    // sceneStageInit?: {
+    //     /**定义stage列表 
+    //       stages: stageName = [
+    //         "Actor",//角色
+    //         "DynamicEntities",//水、树、草等
+    //         "World",//静态
+    //         "Sky",//天空盒
+    //         "UI",
+    //         ];
+    //      * 
+    //     */
+    //     stages: coreConst.stageName,
+    //     /**stage DeferRender  */
+    //     stagesOfDeferRender: boolean[]
+    //     /**定义stage 显示排序
+    //      * 
+    //      *  [0, 1, 2, 3, 4]
+    //      */
+    //     stagesOrders: [],
+    //     /**默认stage名称
+    //      * 
+    //      * stages[] 中的一个名称,exp:"World"
+    //      */
+    //     defaultStageName: string,
+    // }
 }
 
 
@@ -90,7 +93,7 @@ export interface sceneInputJson extends sceneJson {
     /**Debug  */
     // Debug?: WE_Debug,
     /**自定义stage */
-    stageSetting?: sceneStageInput,
+    stageSetting: sceneStageInput,
     /**出现的camera显示，没有的不显示，按照数组的先后顺序进行render，0=最底层，数组最后的在最上层 
      * 
      * multiCameraViewport 与GBuffer可视化不可同时使用，multiCameraViewport优先级高
@@ -131,7 +134,7 @@ export declare interface systemUniformBuffer {
      * size:3*4*4*4 byte 
      * 4*4 的matrix ，分别是model，view，projection
     */
-    MVP?: GPUBuffer,
+    MVP?: { [name: string]: GPUBuffer },
     /** stroage buffer */
     lights?: GPUBuffer,
     /**uint32 *2 */
@@ -167,6 +170,8 @@ class Scene extends BaseScene {
     stagesOrders!: coreConst.stagesOrderByRender// number[];
     stageNameOfGroup!: coreConst.stageName;
 
+    stageStatus: stageStatus;
+
     ////////////////////////////////////////////////////////////////////////////////
     /**cameras 默认摄像机 */
     defaultCamera!: BaseCamera;
@@ -186,6 +191,7 @@ class Scene extends BaseScene {
      */
     multiCamera: boolean;
     multiCameraViewport: cameraViewport[];
+    multtiCameras!: MultiCameras;
     ////////////////////////////////////////////////////////////////////////////////
     /** actor group */
     actors: actorGroup;
@@ -264,7 +270,12 @@ class Scene extends BaseScene {
     /** for raw*/
     rawColorAttachmentTargets!: GPUColorTargetState[];
 
+    /**最后的各个功能输出的target texture */
     finalTarget!: GPUTexture;
+    /**system uniform（）的GPUBindGroupLayout */
+    layoutOfSystemUniform!: GPUBindGroupLayout;
+
+
     ////////////////////////////////////////////////////////////////////////////////
     // function
     ////////////////////////////////////////////////////////////////////////////////
@@ -282,14 +293,22 @@ class Scene extends BaseScene {
             this.multiCamera = true;
         }
         this.stagesOrders = coreConst.defaultStageList;
-        //这个部分是为编辑器使用定义的
-        if (input.stageSetting && input.stageSetting.sceneStageInit) {
-            this.stagesOfSystem = input.stageSetting.sceneStageInit.stages;
-            this.defaultStageName = input.stageSetting.sceneStageInit.defaultStageName;
-            this.stagesOrders = input.stageSetting.sceneStageInit.stagesOrders;
-        }
-        else if (input.stageSetting && input.stageSetting.stageStatus) {
-            //todo :20241217
+        this.stageStatus = "all";
+        //这个部分是为stage自定义部分
+        // if (input.stageSetting && input.stageSetting.sceneStageInit && input.stageSetting.stageStatus == "userdefine") {
+        //     this.stagesOfSystem = input.stageSetting.sceneStageInit.stages;
+        //     this.defaultStageName = input.stageSetting.sceneStageInit.defaultStageName;
+        //     this.stagesOrders = input.stageSetting.sceneStageInit.stagesOrders;
+        //     this.stageStatus = "userdefine";
+        // }
+        // else
+        if (input.stageSetting && input.stageSetting.stageStatus) {
+            this.stageStatus = input.stageSetting.stageStatus;
+            if (this.stageStatus == "world") {
+                this.stagesOfSystem = ["World"];
+                this.defaultStageName = "World";
+                this.stagesOrders = [0];
+            }
         }
         if (input.color) {
             this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
@@ -318,7 +337,9 @@ class Scene extends BaseScene {
             statueChange: true,//因为默认状态下，enable=false，如果使用（enable-->true），GBuffer开始时需要初始化，所以，statueChange=true
         }
 
-        this.systemUniformBuffers = {};
+        this.systemUniformBuffers = {
+            MVP: {},
+        };
         this.clock = new Clock();
         this.input = input;
         if (input.ambientLight) {
@@ -391,13 +412,13 @@ class Scene extends BaseScene {
 
         this.initActors();
         // this.initGBuffersPostProcess();
-
+        this.initMultiCameras()
         this.initPostProcess();
         this.initPickup();
         // this.initForRAW();//20241229,未使用 
         this.observer();
     }
-    createSourceOfcopyToSurface(camera: string) {
+    async createSourceOfcopyToSurface(camera: string) {
         return this.device.createTexture({
             label: "sourceOfcopyToSurface of " + camera,
             size: [this.canvas.width, this.canvas.height],
@@ -405,7 +426,29 @@ class Scene extends BaseScene {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
         });
     }
-    // async pickup() { }
+    /**
+     * 初始化多摄像机
+     */
+    initMultiCameras() {
+        if (this.multiCamera) {
+            const values: optionMulitCameras = {
+                multiCameraViewport: this.multiCameraViewport,
+                copyToTarget: this.finalTarget,
+                device: this.device,
+                surfaceSize: {
+                    width: this.canvas.width,
+                    height: this.canvas.height
+                },
+                parent: this,
+                MultiGBuffers: this.GBuffers,
+                CameraActors: this.cameraActors,
+            };
+            this.multtiCameras = new MultiCameras(values);
+        }
+    }
+    /**
+     * 初始化pickup
+     */
     initPickup() {
         let option: optionPickup = {
             device: this.device,
@@ -414,40 +457,40 @@ class Scene extends BaseScene {
         this.pickUp = new Pickup(option);
     }
     /**20241229,未使用 */
-    async initForRAW() {
-        this.rawColorTexture = this.device.createTexture({
-            size: [this.canvas.width, this.canvas.height],
-            format: this.presentationFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-        });
-        this.rawDepthTexture = this.device.createTexture({
-            size: [this.canvas.width, this.canvas.height],
-            format: this.depthDefaultFormat,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-        });
-        this.rawColorAttachmentTargets = [
-            // color
-            { format: this.presentationFormat },
-        ];
-        this.renderPassDescriptor = {
-            label: "stage:forward render pass descriptor",
-            colorAttachments: [
-                {
-                    view: this.rawColorTexture.createView(),
-                    clearValue: this.backgroudColor,
-                    loadOp: 'clear',
-                    storeOp: "store"
-                }
-            ],
-            depthStencilAttachment: {
-                view: this.rawDepthTexture.createView(),
-                depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
-                // depthLoadOp: 'load',
-                depthLoadOp: 'clear',
-                depthStoreOp: 'store',
-            },
-        };
-    }
+    // async initForRAW() {
+    //     this.rawColorTexture = this.device.createTexture({
+    //         size: [this.canvas.width, this.canvas.height],
+    //         format: this.presentationFormat,
+    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    //     });
+    //     this.rawDepthTexture = this.device.createTexture({
+    //         size: [this.canvas.width, this.canvas.height],
+    //         format: this.depthDefaultFormat,
+    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    //     });
+    //     this.rawColorAttachmentTargets = [
+    //         // color
+    //         { format: this.presentationFormat },
+    //     ];
+    //     this.renderPassDescriptor = {
+    //         label: "stage:forward render pass descriptor",
+    //         colorAttachments: [
+    //             {
+    //                 view: this.rawColorTexture.createView(),
+    //                 clearValue: this.backgroudColor,
+    //                 loadOp: 'clear',
+    //                 storeOp: "store"
+    //             }
+    //         ],
+    //         depthStencilAttachment: {
+    //             view: this.rawDepthTexture.createView(),
+    //             depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
+    //             // depthLoadOp: 'load',
+    //             depthLoadOp: 'clear',
+    //             depthStoreOp: 'store',
+    //         },
+    //     };
+    // }
 
     //GBuffer
     /**scene 初始化GBuffer，如果是debug模式，同时初始化可视化*/
@@ -457,8 +500,9 @@ class Scene extends BaseScene {
     }
 
     /**GBuffer的后处理，在scene中合并 */
-    initGBuffersPostProcess(camera: string) {
-        this.GBufferPostprocess = {};
+    async initGBuffersPostProcess(camera: string) {
+
+        if (this.GBufferPostprocess == undefined) this.GBufferPostprocess = {};
         let option: optionGBPP = {
             GBuffers: this.GBuffers[camera],
             parent: this,
@@ -492,7 +536,6 @@ class Scene extends BaseScene {
      * depth buffer 在此初始化，todo
     */
     async initStages() {
-
         this.stages = {};
         for (let i of this.stagesOrders) {
             let name = this.stagesOfSystem[i];
@@ -555,8 +598,8 @@ class Scene extends BaseScene {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //GPU 
     /** for raw uniform model*/
-    getRenderPassDescriptor() {
-        return this.renderPassDescriptor;
+    getRenderPassDescriptor(camera: string, _kind?: string): GPURenderPassDescriptor {
+        return this.renderPassDescriptor[camera];
     }
 
     /**
@@ -565,32 +608,11 @@ class Scene extends BaseScene {
      *  
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline): GPUBindGroup {
-        const bindLayout = pipeline.getBindGroupLayout(0);
-        let groupDesc: GPUBindGroupDescriptor = {
-            label: "global Group bind to 0",
-            layout: bindLayout,
-            entries:
-                [
-                    {
-                        binding: 0,
-                        resource: {
-                            buffer: this.systemUniformBuffers["MVP"]!,
-                        },
-                    },
-                    {
-                        binding: 1,
-                        resource: {
-                            buffer: this.systemUniformBuffers["lights"]!,
-                        }
-                    }
-                ],
+    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, _scope?: BaseScene, camera?: string, _kind?: string): GPUBindGroup {
+        let ID = this.defaultCameraActor.id.toString();
+        if (camera != undefined) {
+            ID = camera;
         }
-        const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
-        return bindGroup;
-    }
-    //todo:20241212 ,为透明提供system uniform
-    createSystemUnifromGroupForPerShaderForTransparent(pipeline: GPURenderPipeline): GPUBindGroup {
         const bindLayout = pipeline.getBindGroupLayout(0);
         let groupDesc: GPUBindGroupDescriptor = {
             label: "global Group bind to 0",
@@ -600,7 +622,7 @@ class Scene extends BaseScene {
                     {
                         binding: 0,
                         resource: {
-                            buffer: this.systemUniformBuffers["MVP"]!,
+                            buffer: this.systemUniformBuffers["MVP"]![ID],
                         },
                     },
                     {
@@ -608,10 +630,6 @@ class Scene extends BaseScene {
                         resource: {
                             buffer: this.systemUniformBuffers["lights"]!,
                         }
-                    },
-                    {//todo:20241212 ,为透明提供system uniform
-                        binding: 2,
-                        resource: this.GBuffers["default"]["depth"].createView(),
                     }
                 ],
         }
@@ -619,8 +637,6 @@ class Scene extends BaseScene {
         return bindGroup;
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //uniform 
     getLightNumbers() {
         return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
     }
@@ -681,11 +697,10 @@ class Scene extends BaseScene {
      * 3、更新实体 entity
      */
     async update(deltaTime: number, startTime: number, lastTime: number) {
-        if (this.defaultCameraActor)
-            this.defaultCameraActor.update(deltaTime, startTime, lastTime);
-        this.updateSystemUniformBuffer();//更新默认camera的unifrom
+
+
         this.updateCameraActor(deltaTime, startTime, lastTime);
-        this.updateSystemUniformBufferForCameras();//更新其他cameras，20241229，增加多cameras
+        await this.updateSystemUniformBufferForCameras();//更新其他cameras，20241229，增加多cameras
 
         //todo
         // 四个中间点，稍稍延迟
@@ -711,9 +726,12 @@ class Scene extends BaseScene {
         this.renderSceneCommands();//render scene commands
         this.renderShadowMap();
         this.renderStagesCommand();//render  stages commands
+
         for (let i in this.GBufferPostprocess) {
             this.GBufferPostprocess[i].render();   //合并GBuffer
         }
+
+
 
         this.postProcessManagement.render();  //进行后处理
         this.showMultiCamera();
@@ -728,7 +746,7 @@ class Scene extends BaseScene {
     renderStagesCommand() {
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = coreConst.stagesOfSystem[perList];
+            const name = this.stagesOfSystem[perList];
             {//每个stageGroup进行update，包含透明和不透明两个stage 
                 if (this.stages[name].opaque) {
                     this.stages[name].opaque!.render();
@@ -757,19 +775,24 @@ class Scene extends BaseScene {
     * 这个需要确保每帧只更新一次
     */
     updateSystemUniformBuffer() {
-        if (this.defaultCamera)
-            this.systemUniformBuffers["MVP"] = this.getMVP();
-        this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
-    }
-    updateSystemUniformBufferForCameras() {
-    //     if (this.defaultCamera)
-    //         this.systemUniformBuffers["MVP"] = this.getMVP();
-    //     this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
-    }
-    updateSystemUniformBufferForlights() {
         // if (this.defaultCamera)
         //     this.systemUniformBuffers["MVP"] = this.getMVP();
         // this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
+    }
+    /**更新所有camera的MVP */
+    async updateSystemUniformBufferForCameras() {
+        for (let i of this.cameraActors) {
+            const id = i.id.toString();
+            if (this.systemUniformBuffers["MVP"]![id] == undefined) {
+                this.systemUniformBuffers["MVP"]![id] = await this.getMVP(i);
+            }
+            else {
+                await this.getMVP(i);
+            }
+        }
+    }
+    updateSystemUniformBufferForlights() {
+        this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
     }
     /**
      * 在WGSL是一个struct ，参见“system.wgsl”中的 ST_Lights结构。
@@ -852,7 +875,7 @@ class Scene extends BaseScene {
      * @param mvp Mat4[] | boolean = false 
      * @returns GPUBuffer
      */
-    getUnitMVP(mvp: Mat4[] | boolean = false): GPUBuffer {
+    async getUnitMVP(mvp: Mat4[] | boolean = false, id: string): Promise<GPUBuffer> {
         const uniformBufferSize = 4 * 4 * 4 * 4;//MVP 
         let MVP: GPUBuffer;
         let MVP_buffer = new Float32Array([
@@ -861,8 +884,8 @@ class Scene extends BaseScene {
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]);
-        if (this.systemUniformBuffers["MVP"]) {
-            MVP = this.systemUniformBuffers["MVP"];
+        if (this.systemUniformBuffers["MVP"]![id]) {
+            MVP = this.systemUniformBuffers["MVP"]![id];
         }
         else {
             MVP = this.device.createBuffer({
@@ -895,7 +918,7 @@ class Scene extends BaseScene {
             let reversedZ = new Uint32Array(MVP_buffer.buffer, 4 * 4 * 4 * 3 + 3 * 4, 1);
             reversedZ[0] = 1;
         }
-        this.device.queue.writeBuffer(
+        await this.device.queue.writeBuffer(
             MVP,
             0,
             MVP_buffer.buffer,
@@ -909,17 +932,13 @@ class Scene extends BaseScene {
      * 获取MVP矩阵
      * @returns MVP(16*4)
      */
-    getMVP(): GPUBuffer {
-        if (this.defaultCamera) {
-            let mvpArray = this.defaultCamera.getMVP();
-            return this.getUnitMVP(mvpArray);
-        }
-        else//返回单位矩阵数组和000的摄像机位置
-            return this.getUnitMVP();
+    async getMVP(one: CameraActor): Promise<GPUBuffer> {
+        let mvpArray = one.camera.getMVP();
+        return this.getUnitMVP(mvpArray, one.id.toString());
     }
 
     /**todo */
-    updateBVH(cameraValues: cameraRayValues) {
+    updateBVH(_cameraValues: cameraRayValues) {
 
     }
     /**更新Actor
@@ -969,7 +988,7 @@ class Scene extends BaseScene {
      *          视锥
      *        输出是否本轮可见 
     */
-    updateEntities(deltaTime: number, startTime: number, lastTime: number) {
+    updateEntities(_deltaTime: number, _startTime: number, _lastTime: number) {
 
     }
 
@@ -992,7 +1011,8 @@ class Scene extends BaseScene {
         //更新stage
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = coreConst.stagesOfSystem[perList];
+            const name = this.stagesOfSystem[perList];
+            // const name = coreConst.stagesOfSystem[perList];
 
             {//每个stageGroup进行update，包含透明和不透明两个stage 
                 if (this.stages[name].opaque) {
@@ -1091,13 +1111,33 @@ class Scene extends BaseScene {
      * 多摄像机viewport显示
      */
     showMultiCamera() {
+
+        //多camera
         if (this.multiCamera) {
-            this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+            this.multtiCameras.render();
         }
         else {
             this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
-
         }
+
+
+
+        //测试多camera
+        // for (let i in this.sourceOfcopyToSurface) {
+        //     if (i == this.defaultCameraActor.id.toString()) {
+        //         // console.log("相同", i, this.defaultCameraActor.id.toString());
+        //         this.copyTextureToTexture(this.sourceOfcopyToSurface[i], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        //     }
+        //     else {
+        //         // console.log("不相同", i, this.defaultCameraActor.id.toString());
+        //     }
+        // }
+
+        //基础测试World
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers[this.defaultCameraActor.id]["color"], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+
+
+        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
     }
     /**每帧渲染的最后步骤 */
     async copyToSurface() {
@@ -1257,13 +1297,15 @@ class Scene extends BaseScene {
 
         const id = one.id.toString();
         this.cameraActors.push(one);//增加cameraActor数组中
-        this.sourceOfcopyToSurface[id] = this.createSourceOfcopyToSurface(id);
+        this.sourceOfcopyToSurface[id] = await this.createSourceOfcopyToSurface(id);
         this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);
         for (let i in this.stages) {
             await this.stages[i].opaque?.initCameraGBuffer(id);
         }
-        this.initGBuffersPostProcess(id);
 
+        await this.initGBuffersPostProcess(id);
+        if (this.multiCamera)
+            await this.multtiCameras.check(id);
 
         if (isDefault === true) {
             this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
@@ -1274,12 +1316,15 @@ class Scene extends BaseScene {
         }
         // console.log(" instance of CameraActor:",one instanceof CameraActor);
     }
+    setDefaultCameraActor(one: CameraActor) {
+        this.defaultCameraActor = one;
+    }
     /**
      * 增加actor，
      * 增加到stage：//todo
      *     "Actor",不透明
            "ActorTransparent",透明
-    
+     
      * @param one :BaseActor
      * @param isDefault :boolean,default=false
      */
@@ -1328,7 +1373,7 @@ class Scene extends BaseScene {
             scope.defaultCamera.onResize();
         }
         let allStage = [];
-        const scene = new Promise(async (resolve, reject) => {
+        const scene = new Promise(async (resolve) => {
             await resolve(scope.reInitGBuffers(width, height))
         });
         allStage.push(scene);
@@ -1338,13 +1383,13 @@ class Scene extends BaseScene {
 
             {//每个stageGroup进行update，包含透明和不透明两个stage 
                 if (scope.stages[name].opaque) {
-                    const stage = new Promise(async (resolve, reject) => {
+                    const stage = new Promise(async (resolve) => {
                         await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
                     });
                     allStage.push(stage);
                 }
                 if (scope.stages[name].transparent) {
-                    const stage = new Promise(async (resolve, reject) => {
+                    const stage = new Promise(async (resolve) => {
                         await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
                     });
                     allStage.push(stage);
@@ -1365,7 +1410,7 @@ class Scene extends BaseScene {
 
                 // console.log(entries);
                 const entry = entries[0];
-                const canvas = entry.target;
+                // const canvas = entry.target;
                 const devicePixelRatio = window.devicePixelRatio;//设备像素比
                 const width = Math.max(1, Math.min(entry.contentBoxSize[0].inlineSize * devicePixelRatio, scope.device.limits.maxTextureDimension2D));// entry.contentBoxSize[0].inlineSize * devicePixelRatio;
                 const height = Math.max(1, Math.min(entry.contentBoxSize[0].blockSize * devicePixelRatio, scope.device.limits.maxTextureDimension2D));//entry.contentBoxSize[0].blockSize * devicePixelRatio;

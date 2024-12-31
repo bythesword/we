@@ -7,7 +7,6 @@ import { optionSingleRender, SingleRender } from "./singleRender";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { unifromGroup } from "../command/baseCommand";
 import { GBuffersVisualizeViewport } from "./scene";
-import { GBufferName } from "../const/coreConst";
 
 //GBuffer可视化至于GBuffers、layout、compyToTarget像刚刚
 

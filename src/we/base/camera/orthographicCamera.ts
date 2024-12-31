@@ -1,6 +1,4 @@
 import {
-    Mat4,
-    Vec3,
     mat4,
 } from 'wgpu-matrix';
 

@@ -65,7 +65,7 @@ export abstract class PostProcessEffect extends Root {
         );
         this.commands.push(copyToColorTexture);
     }
-    update(deltaTime: number, startTime: number, lastTime: number): commmandType[] {
+    update(_deltaTime: number, _startTime: number, _lastTime: number): commmandType[] {
         return this.commands;
     }
 

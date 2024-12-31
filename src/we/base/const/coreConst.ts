@@ -102,7 +102,10 @@ export enum GBufferName {
 export interface GBuffers {
     [name: string]: GPUTexture
 };
-
+export interface MultiGBuffers{
+    /**name= camera  的 id */
+    [name: string]: GBuffers,
+}
 /**GBuffers viewport集合的类型描述(type) */
 export type GBufferLayout = {
     [name in GBufferName]: viewPort;
@@ -117,7 +120,7 @@ export var GBuffersVisualizeLayoutAssemble: GBuffersVisualizeLayout = {
         [GBufferName.color]: {
             x: 0.25 / 2,
             y: 0.25,
-            width: 1 - 0.25,//是到多少pixel
+            width: 1 - 0.25,    //是增加多少pixel
             height: 1 - 0.25
         },
         [GBufferName.depth]: {
@@ -147,7 +150,7 @@ export var GBuffersVisualizeLayoutAssemble: GBuffersVisualizeLayout = {
             x: 0.75,
             y: 0,
             width: 0.25,
-            height: 0.25
+            height: 0.25,//是增加多少pixel
         }
     }
 }

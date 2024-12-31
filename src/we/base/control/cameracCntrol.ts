@@ -1,7 +1,7 @@
 
 
 import { BaseCamera } from "../camera/baseCamera"
-import { Input, InputControl, InputHandler, typeOfInputControl } from "./inputControl";
+import { Input, InputControl, typeOfInputControl } from "./inputControl";
 
 
 

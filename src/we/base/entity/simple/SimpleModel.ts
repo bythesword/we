@@ -2,7 +2,7 @@ import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseStage } from "../../stage/baseStage";
-import { BaseEntity, boundingBox, boundingSphere, initStateEntity, optionBaseEntity, renderCommands } from "../baseEntity";
+import { BaseEntity, boundingBox, boundingSphere, initStateEntity, optionBaseEntity } from "../baseEntity";
 import simpleModelVS from "../../shader/model/simpleModel.vs.wgsl?raw"
 
 interface modelData {
@@ -41,14 +41,17 @@ export class SimpleModel extends BaseEntity {
     }
 
 
-    createDCC(parent: BaseStage,camera:string): initStateEntity {
-        if(this.commmands[camera] ==undefined){
-            this.commmands[camera]={
-                forward:[],
-                depth:[],
-                color:[]
+    createDCC(parent: BaseStage, camera: string, kind: string = "camera"): initStateEntity {
+        if (this.commmands[camera] == undefined) {
+            this.commmands[camera] = {
+                forward: [],
+                depth: [],
+                color: []
             };
         }
+        ///////////////////////////////
+        const renderPassDescriptor = this.stage!.getRenderPassDescriptor(camera);
+
         let scope = this;
         let shader;
         let binding = 0;
@@ -69,7 +72,7 @@ export class SimpleModel extends BaseEntity {
         if (this.deferRenderDepth) {
             uniforms[0].entries.push({
                 binding: binding++,
-                resource: this.stage!.depthTextureOnly.createView()
+                resource: this.stage!.depthTextureOnly[camera].createView()
             });
             // constants = {
             //     canvasSizeWidth: this.stage!.parent.canvas.width,
@@ -125,7 +128,10 @@ export class SimpleModel extends BaseEntity {
 
             },
             indexBuffer: indexBuffer as indexBuffer,
-
+            renderForID: camera,
+            renderForType: kind,
+            systemUniforms: parent.createSystemUnifromGroupForPerShader,
+            renderPassDescriptor: renderPassDescriptor,
         };
 
         let DC = new DrawCommand(options);
@@ -133,8 +139,11 @@ export class SimpleModel extends BaseEntity {
         return initStateEntity.finished;
     }
 
-    createDCCDeferRenderDepth(parent: BaseStage,camera:string): initStateEntity  {
+    createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity {
         let scope = this;
+        ///////////////////////////////
+        const renderPassDescriptor = this.stage!.getRenderPassDescriptor_ForDeferDepth(camera, kind);
+
         /////////////////////box  
         let shader = simpleModelVS;
         shader = this.shaderCodeProcess(shader);
@@ -184,15 +193,17 @@ export class SimpleModel extends BaseEntity {
             },
             indexBuffer: indexBuffer as indexBuffer,
 
-            renderPassDescriptor: this.stage!.getRenderPassDescriptor_ForDeferDepth(),
-
+            renderPassDescriptor,
+            renderForID: camera,
+            renderForType: kind,
+            systemUniforms: parent.createSystemUnifromGroupForPerShader,
 
         };
-        if(this.commmands[camera] ==undefined){
-            this.commmands[camera]={
-                forward:[],
-                depth:[],
-                color:[]
+        if (this.commmands[camera] == undefined) {
+            this.commmands[camera] = {
+                forward: [],
+                depth: [],
+                color: []
             };
         }
         let DC = new DrawCommand(options);

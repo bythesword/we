@@ -63,7 +63,7 @@ export interface storageBufferPart extends uniformBufferPart {
     */
     update: boolean,
 }
-
+/**  unifrom 入口的数组格式  */
 export type uniformEntries = GPUBindGroupEntry | uniformBufferPart | storageBufferPart;
 /**
  * RAW模式使用，自定义layout绑定组，自定义binding编号，自定义shader code
@@ -445,6 +445,11 @@ export abstract class BaseCommand {
         let unifromGroupSource = this.input.uniforms;
         for (let perGroup of unifromGroupSource) {
             for (let perOne of (perGroup as unifromGroup).entries) {
+                /**
+                 * size 是DCC自定义的unifrom的参数，即数组的大小,MVP和lights视点GBPBUffer，不是DCC自定义的数值类型
+                 * 
+                 * 即：MVP和lights的更新是单独的，在system层级进行的，DCC只需要bindGroup即可
+                 */
                 if ("size" in perOne) {
                     this.updataOneUniformBuffer((perGroup as unifromGroup).layout, perOne as uniformBufferPart);
                 }

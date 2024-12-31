@@ -1,4 +1,3 @@
-import { BaseScene } from "../scene/baseScene";
 import { Scene } from "../scene/scene";
 import { BaseStage } from "../stage/baseStage";
 

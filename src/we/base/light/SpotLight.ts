@@ -1,5 +1,5 @@
 import { Vec3 } from "wgpu-matrix";
-import { lightType, optionBaseLight, shadowMap, structBaselight } from "./baseLight";
+import { lightType, optionBaseLight, shadowMap } from "./baseLight";
 import { BaseLight } from "./baseLight"; 
 
 
@@ -24,7 +24,7 @@ export class SpotLight extends BaseLight {
         super(input, lightType.spot);
     }
 
-    generateShadowMap(device: GPUDevice): shadowMap {
+    generateShadowMap(_device: GPUDevice): shadowMap {
         throw new Error("Method not implemented.");
     }
 

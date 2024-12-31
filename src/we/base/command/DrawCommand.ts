@@ -3,6 +3,7 @@ import {
 } from './baseCommand';
 import { TypedArray } from 'webgpu-utils';
 import { getReplaceVertexConstantsVS, getReplaceVertexConstantsFS } from './shaderFormat';
+import { BaseStage } from '../stage/baseStage';
 
 
 /** VS的buffer的typearray的结构 
@@ -117,10 +118,9 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
 
     primitive?: GPUPrimitiveState,
 
-    layout?: GPUPipelineLayout | "auto",
 
     /** 如果没有，使用scene的默认设置，需要 */
-    renderPassDescriptor?: GPURenderPassDescriptor,
+    renderPassDescriptor: GPURenderPassDescriptor,
 
     /**索引模式 */
     indexBuffer?: indexBuffer,
@@ -131,32 +131,24 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
      *          C、也可以通过shader生成random,进行随机（上述）操作，比如花草的摇曳的matrix
     */
 
-    // instanceCount?: number,
 
     /** draw mode:  */
     draw: {
         mode: "draw" | "index",
         values: drawMode | drawModeIndexed,
     },
-    // renderPass?: {
-    //     color?: {
-    //         clearValue?: GPUColor,
-    //         loadOp?: GPULoadOp,
-    //         storeOp?: GPUStoreOp,
-    //     },
-    //     depth?: {
-    //         depthClearValue?: number,
-    //         depthLoadOp?: GPULoadOp,
-    //         depthStoreOp?: GPUStoreOp,
-    //     }
-    // },
+
     /**viewport,从标准化设备坐标(NDC)线性映射到视区坐标。
      */
     viewport?: viewport,
 
     /**pipeline中的深度处理描述  GPUDepthStencilState */
     depthStencilState?: GPUDepthStencilState,
-    systemUniforms?: () => GPUBindGroup,
+    // systemUniforms?: GPUBindGroup,
+    systemUniforms?: (pipeline: GPURenderPipeline, stage: BaseStage, id?: string, kind?: string) => GPUBindGroup,
+    renderForID?: string,
+    renderForType?: string,
+    // systemUniforms?: (pipeline: GPURenderPipeline) => GPUBindGroup,
 }
 /**
  *   默认是surface的全部,
@@ -184,16 +176,17 @@ export class DrawCommand extends BaseCommand {
 
     /***pipeline 句柄 */
     declare pipeline: GPURenderPipeline;
+    declare pipelineLayout: GPUPipelineLayout | "auto";
     /**保存 pipeline 用的buffer ,不超过(maxVertexBuffers:8,maxVertexAttributes:16)*/
-    verticesBuffer!: GPUBuffer[]//GPUBuffer[] | undefined;
+    verticesBuffer!: GPUBuffer[];//GPUBuffer[] | undefined;
     indexBuffer!: GPUBuffer;
     /**renderPassDescriptor */
-    renderPassDescriptor!: GPURenderPassDescriptor;
+    renderPassDescriptor: GPURenderPassDescriptor;
     /**这个类的webGPU的 commandEncoder */
     declare input: DrawOptionOfCommand;
     primitive!: GPUPrimitiveState;
     /** 深度与模板的 参数，pipeline 的描述使用*/
-    depthStencil!: GPUDepthStencilState | undefined;
+    depthStencil: GPUDepthStencilState | undefined;
 
 
     constructor(options: DrawOptionOfCommand) {
@@ -221,18 +214,18 @@ export class DrawCommand extends BaseCommand {
         else {
             this.label = "";
         }
-        if (options.renderPassDescriptor !== undefined) {
-            this.renderPassDescriptor = options.renderPassDescriptor;
-        }
-        else {
-            this.renderPassDescriptor = this.parent.getRenderPassDescriptor();
-
-        }
+        // if (options.renderPassDescriptor !== undefined) {
+        this.renderPassDescriptor = options.renderPassDescriptor;
+        // }
+        // else {
+        //     this.renderPassDescriptor = this.parent.getRenderPassDescriptor();
+        // }
         if (options.depthStencilState) {
             this.depthStencil = options.depthStencilState
         }
         else {
-            if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor)
+            if (this.depthStencil == undefined && this.renderPassDescriptor.depthStencilAttachment != undefined)
+                // if (this.depthStencil == undefined && "depthStencilAttachment" in this.renderPassDescriptor)
                 this.depthStencil = this.parent.depthStencil;//scene extend baseScene
         }
         //todo indexBuffer
@@ -246,6 +239,11 @@ export class DrawCommand extends BaseCommand {
         this._isDestroy = false;
         this.init();
     }
+    // createGPUPipelineLayout(layout: GPUBindGroupLayout[]): GPUPipelineLayout {
+    //     return this.device.createPipelineLayout({
+    //         bindGroupLayouts: layout,
+    //     })
+    // }
     /**
      * 销毁本DrawCommand中的资源
      * 
@@ -478,10 +476,9 @@ export class DrawCommand extends BaseCommand {
 
     createSystemUnifromGroupForPerShader(): GPUBindGroup {
         if (this.input.systemUniforms) {
-            return this.input.systemUniforms();
+            return this.input.systemUniforms(this.pipeline, this.parent, this.input.renderForID, this.input.renderForType);
         }
-        return this.parent.createSystemUnifromGroupForPerShader(this.pipeline);//更新ystem的uniform ，MVP，camera，lights等
-
+        return this.parent.createSystemUnifromGroupForPerShader(this.pipeline, this.parent,);//更新ystem的uniform ，MVP，camera，lights等
     }
     /**
      * 目前使用parent的colorAttachments,

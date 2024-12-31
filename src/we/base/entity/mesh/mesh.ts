@@ -1,8 +1,8 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, boundingBox, boundingSphere, commandsOfEntity, entityRenderFor, initStateEntity, optionBaseEntity, renderCommands } from "../baseEntity";
+import { BaseEntity, boundingBox, boundingSphere, initStateEntity, optionBaseEntity } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
-import { DrawCommand, drawModeIndexed, drawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
+import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
 
 import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 //for wireframe
@@ -120,6 +120,7 @@ export class Mesh extends BaseEntity {
         return this._material.getReady() && this._geometry.getReady();
 
     }
+
     /**
      * 覆写了父类的这个function
      * 
@@ -136,6 +137,7 @@ export class Mesh extends BaseEntity {
     //         this.generateBox();
     //     }
     // }
+
     /**
      * 创建Draw Compute Commands
      * 
@@ -143,15 +145,20 @@ export class Mesh extends BaseEntity {
      * @param parent 
      * @returns 完成标志位：initStateEntity.finished
      */
-    createDCC(parent: BaseStage,camera:string): initStateEntity {
-        if(this.commmands[camera] ==undefined){
-            this.commmands[camera]={
-                forward:[],
-                depth:[],
-                color:[]
+    createDCC(parent: BaseStage, cameraActorID: string, kind: string = "camera"): initStateEntity {
+        let camera = cameraActorID;
+        if (this.commmands[camera] == undefined) {
+            this.commmands[camera] = {
+                forward: [],
+                depth: [],
+                color: []
             };
         }
         let scope = this;
+
+        ///////////////////////////////
+
+        const renderPassDescriptor=this.stage!.getRenderPassDescriptor(camera);
         /////////////////////box  
         let shader;
         let binding = 0;
@@ -170,10 +177,11 @@ export class Mesh extends BaseEntity {
                         }
                     ]
                 });
+            //如果是延迟渲染(单像素) ，增加depth texture
             if (this.deferRenderDepth) {
                 uniforms[0].entries.push({
                     binding: binding++,
-                    resource: this.stage!.depthTextureOnly.createView()
+                    resource: this.stage!.depthTextureOnly[camera].createView()
                 });
                 // constants = {
                 //     canvasSizeWidth: this.stage!.parent.canvas.width,
@@ -205,7 +213,11 @@ export class Mesh extends BaseEntity {
                 for (let i of uniformFS as uniformEntries[])
                     uniforms[0].entries.push(i);
             }
-            let options: drawOptionOfCommand = {
+
+            //////////////////////////////////////////////////////////////////////
+         
+
+            let options: DrawOptionOfCommand = {
                 label: this.name == "" ? "Mesh" : this.name,
                 parent: parent,
                 vertex: {
@@ -230,10 +242,12 @@ export class Mesh extends BaseEntity {
                 draw: {
                     mode: "index",
                     values: values,
-
                 },
                 indexBuffer: indexBuffer as indexBuffer,
-
+                renderForID: camera,
+                renderForType: kind,
+                systemUniforms: parent.createSystemUnifromGroupForPerShader,
+                renderPassDescriptor:renderPassDescriptor,
             };
 
             let DC = new DrawCommand(options);
@@ -259,7 +273,7 @@ export class Mesh extends BaseEntity {
                 instanceCount: this.numInstances,
             }
 
-            let wireFrameOptions: drawOptionOfCommand = {
+            let wireFrameOptions: DrawOptionOfCommand = {
                 label: this.name == "" ? "Mesh wireframe" : this.name + " wireframe",
                 parent: parent,
                 vertex: {
@@ -285,7 +299,7 @@ export class Mesh extends BaseEntity {
                                 label: "Mesh matrixWorld",
                                 binding: 0,
                                 size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
-                                get: () => { return scope.getUniformOfMatrix() },
+                                get: () => { return scope.getUniformOfMatrix(); },
                             }
                         ]
                     },
@@ -297,7 +311,10 @@ export class Mesh extends BaseEntity {
                 },
                 indexBuffer: wireFrameIndexBuffer as indexBuffer,
                 // instanceCount: this.numInstances,
-
+                renderForID: camera,
+                renderForType: kind,
+                systemUniforms: parent.createSystemUnifromGroupForPerShader,
+                renderPassDescriptor,
             }
             let wireFrameDC = new DrawCommand(wireFrameOptions);
             this.commmands[camera].forward.push(wireFrameDC);
@@ -313,8 +330,10 @@ export class Mesh extends BaseEntity {
     //     return this.commmands;
     // }
     /**DCC push 到this.commmands.depth中 */
-    createDCCDeferRenderDepth(parent: BaseStage,camera:string): initStateEntity {
+    createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity {
         let scope = this;
+        ///////////////////////////////
+        const renderPassDescriptor=this.stage!.getRenderPassDescriptor_ForDeferDepth(camera, kind);
         /////////////////////box  
         let shader = this._geometry.getCodeVS();
         shader = this.shaderCodeProcess(shader);
@@ -341,7 +360,7 @@ export class Mesh extends BaseEntity {
                 ]
             },
         ];
-        let options: drawOptionOfCommand = {
+        let options: DrawOptionOfCommand = {
             label: "Mesh for deferRender depth" + this.name,
             parent: parent,
             vertex: {
@@ -362,7 +381,10 @@ export class Mesh extends BaseEntity {
             },
             indexBuffer: indexBuffer as indexBuffer,
 
-            renderPassDescriptor: this.stage!.getRenderPassDescriptor_ForDeferDepth(),
+            renderPassDescriptor,
+            renderForID: camera,
+            renderForType: kind,
+            systemUniforms: parent.createSystemUnifromGroupForPerShader,
             // depthStencilState: {
             //     depthWriteEnabled: true,
             //     depthCompare: 'less',
@@ -373,11 +395,11 @@ export class Mesh extends BaseEntity {
         };
 
         let DC = new DrawCommand(options);
-        if(this.commmands[camera] ==undefined){
-            this.commmands[camera]={
-                forward:[],
-                depth:[],
-                color:[]
+        if (this.commmands[camera] == undefined) {
+            this.commmands[camera] = {
+                forward: [],
+                depth: [],
+                color: []
             };
         }
         this.commmands[camera].depth.push(DC);

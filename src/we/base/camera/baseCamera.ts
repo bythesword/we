@@ -8,6 +8,7 @@ import {
   mat4,
   vec3
 } from 'wgpu-matrix';
+import { WeGenerateID } from '../math/baseFunction';
 
 /**
  * 投影矩阵的参数(base)
@@ -103,7 +104,7 @@ export abstract class BaseCamera {
   name!: string;
 
   constructor(option: projectionOptions) {
-    this.id = Date.now();
+    this.id = WeGenerateID();
     this.option = option;
     if (option.upDirection) {
       vec3.copy(option.upDirection, this.up);
@@ -112,7 +113,7 @@ export abstract class BaseCamera {
       this.name = option.name;
     }
     else {
-      this.name = "Camera_" + new Date().getTime();
+      this.name = "Camera_" +this.id;
     }
     if (option.position) {
       this.position = option.position

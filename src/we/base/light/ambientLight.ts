@@ -8,7 +8,7 @@ export interface optionAmbientLight extends optionBaseLight {
 }
 
 export class AmbientLight extends BaseLight {
-    generateShadowMap(device: GPUDevice): false {
+    generateShadowMap(_device: GPUDevice): false {
         return false;
     }
 

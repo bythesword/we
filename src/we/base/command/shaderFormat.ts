@@ -2,7 +2,7 @@
 // import  wgsl_main from "../shader/system.wgsl?raw"
 // import * as wgsl_main from "../shader/system.wgsl?raw"
 
-export function getReplaceVertexConstantsVS(code: string, entryPoint: string,   wgsl_main: string): string {
+export function getReplaceVertexConstantsVS(code: string, _entryPoint: string,   wgsl_main: string): string {
   // export function getReplaceVertexConstants(code: string, entryPoint: string, groupAllbind: string, wgsl_main: string): string {
   //   let group0 = `
   // struct SystemMVP {
@@ -43,7 +43,7 @@ export function getReplaceVertexConstantsVS(code: string, entryPoint: string,   
 
   return codeNewString;
 }
-export function getReplaceVertexConstantsFS(code: string, entryPoint: string,   wgsl_main: string): string {
+export function getReplaceVertexConstantsFS(code: string, _entryPoint: string,   wgsl_main: string): string {
   // export function getReplaceVertexConstants(code: string, entryPoint: string, groupAllbind: string, wgsl_main: string): string {
   //   let group0 = `
   // struct SystemMVP {

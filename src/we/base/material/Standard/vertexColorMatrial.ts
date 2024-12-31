@@ -30,7 +30,7 @@ export class VertexColorMaterial extends BaseMaterial {
         this._already = true;
     }
 
-    getCodeFS(startBinding:number) {
+    getCodeFS(_startBinding:number) {
         if (this.input.code) {
             return this.input.code;
         }

@@ -46,7 +46,7 @@ export class ArcballCameraControl extends CamreaControl {
     init() {
         // throw new Error('Method not implemented.');
     }
-    update(deltaTime: number, startTime: number, lastTime: number) {
+    update(deltaTime: number, _startTime: number, _lastTime: number) {
         if (typeof this.camera !== 'boolean') {
             let input = this.inputHandler(this);
 
@@ -63,7 +63,7 @@ export class ArcballCameraControl extends CamreaControl {
                 this.angularVelocity = 0;
             } else {//衰减角速度
                 // Dampen any existing angular velocity
-                this.angularVelocity *= Math.pow(1 - this.frictionCoefficient, deltaTime, startTime, lastTime);
+                this.angularVelocity *= Math.pow(1 - this.frictionCoefficient, deltaTime);
                 // console.log(this.angularVelocity)
             }
 

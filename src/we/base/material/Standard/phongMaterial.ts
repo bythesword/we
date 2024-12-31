@@ -132,7 +132,8 @@ export class PhongMaterial extends PhongColorMaterial {
         //     }    )
         //     ;
         let scope = this;
-        const response = new Promise((resolve, reject) => {
+        // const response =
+         new Promise((resolve) => {
             resolve(fetch(res));
         }).then(
             async (res) => {

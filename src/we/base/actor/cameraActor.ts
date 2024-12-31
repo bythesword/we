@@ -6,12 +6,13 @@ import {
 } from "../control/cameracCntrol";
 import { BaseCamera } from "../camera/baseCamera";
 import { stageName } from "../const/coreConst";
+import { WeGenerateID } from "../math/baseFunction";
 
 
 export interface optionCameraActor extends optionActor {
     lookAt?: Vec3,
     camera: BaseCamera,
-    control: CamreaControl,
+    control?: CamreaControl,
     stages?: string[],
 }
 
@@ -20,13 +21,13 @@ export class CameraActor extends BaseActor {
 
     declare input: optionCameraActor;
     _camera: BaseCamera;
-    _control: CamreaControl;
+    _control: CamreaControl | undefined;
     stagesName: stageName;
 
     globalPosition!: boolean;
     constructor(option: optionCameraActor) {
         super(option);
-        this.id = Date.now();
+        this.id = WeGenerateID();
         if (typeof option.lookAt == "undefined") {
             option.lookAt = vec3.create(0, 0, 0);
         }
@@ -49,9 +50,11 @@ export class CameraActor extends BaseActor {
         this._camera = this.input.camera as BaseCamera;
         // this.cameras.push(this._camera);
         // }
-        this._control = this.input.control as CamreaControl;
-        if (this.control.camera == undefined) {
-            this.control.camera = this.camera;
+        if (option.control) {
+            this._control = this.input.control as CamreaControl;
+            if (this._control.camera == undefined) {
+                this._control.camera = this.camera;
+            }
         }
         if (option.stages) {
             this.stagesName = option.stages;
@@ -74,9 +77,11 @@ export class CameraActor extends BaseActor {
 
     }
     async update(deltaTime: number, startTime: number, lastTime: number) {
-        this.control.update(deltaTime, startTime, lastTime);
-        if (this.input.update) {
-            this.input.update(this, deltaTime, startTime, lastTime);
+        if (this._control) {
+            this._control.update(deltaTime, startTime, lastTime);
+            if (this.input.update) {
+                this.input.update(this, deltaTime, startTime, lastTime);
+            }
         }
     }
 
@@ -101,12 +106,13 @@ export class CameraActor extends BaseActor {
     get camera(): BaseCamera {
         return this._camera;
     }
-    get control(): CamreaControl {
+    get control(): CamreaControl | undefined {
         return this._control;
     }
 
     set camera(camera: BaseCamera) {
-        this.control.camera = camera;
+        if (this._control)
+            this._control.camera = camera;
         this._camera = camera;
     }
     set control(control: CamreaControl) {

@@ -21,3 +21,12 @@ export function rotate(vec: Vec3, axis: Vec3, angle: number): Vec3 {
 export function lerp(a: Vec3, b: Vec3, s: number): Vec3 {
     return vec3.addScaled(a, vec3.sub(b, a), s);
 }
+
+
+export function WERandomInt(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min)) + min;
+}
+
+export function WeGenerateID(){
+    return Date.now() * 1000 + WERandomInt(1, 1000);
+}

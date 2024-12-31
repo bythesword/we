@@ -11,7 +11,7 @@ export class ColorMaterial extends BaseMaterial {
         this._already=true;
     }
 
-    getCodeFS(startBinding:number) {
+    getCodeFS(_startBinding:number) {
         let code = colorOnlyFS
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
@@ -26,7 +26,7 @@ export class ColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(startBinding:number): false {
+    getUniform(_startBinding:number): false {
         // throw new Error("Method not implemented.");
         return false;
     }

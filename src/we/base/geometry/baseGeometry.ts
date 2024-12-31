@@ -162,10 +162,10 @@ export abstract class BaseGeometry {
     }
     /**
      * 获取线框shaderCode
-     * @param color 线框颜色
+     * @param _color 线框颜色
      * @returns shader code
      */
-    getWireFrameShdaerCodeVS(color: coreConst.color4F): string {
+    getWireFrameShdaerCodeVS(_color: coreConst.color4F): string {
         let code = framelineVS;
         return code;
     }

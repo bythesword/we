@@ -79,7 +79,6 @@ export class SphereGeometry extends BaseGeometry {
         let vertices = this.buffer.position;
         let normals = this.buffer.normal;
         let uvs = this.buffer.uv;
-        let materialStep = this.buffer.materialStep;
 
         let heightSegments = input.heightSegments!;
         let widthSegments = input.widthSegments!;

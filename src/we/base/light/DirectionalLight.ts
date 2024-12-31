@@ -19,7 +19,7 @@ export class DirectionalLight extends BaseLight {
 
     }
 
-    generateShadowMap(device: GPUDevice): shadowMap {
+    generateShadowMap(_device: GPUDevice): shadowMap {
         throw new Error("Method not implemented.");
     }
 

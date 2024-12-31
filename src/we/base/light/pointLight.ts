@@ -27,7 +27,7 @@ export class PointLight extends BaseLight {
         super(input, lightType.point);
     }
 
-    generateShadowMap(device: GPUDevice): shadowMapBox {
+    generateShadowMap(_device: GPUDevice): shadowMapBox {
         throw new Error("Method not implemented.");
     }
 

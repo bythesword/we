@@ -1,4 +1,4 @@
-import { vec3 } from "wgpu-matrix";
+
 import {
     BaseGeometry,
     optionBaseGemetry,

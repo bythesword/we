@@ -81,7 +81,7 @@ export function generateNormals(
     );
   }
 
-  let tempVerts = {};
+  let tempVerts:{[key:string]:any} = {};
   let tempVertNdx = 0;
 
   // this assumes vertex positions are an exact match

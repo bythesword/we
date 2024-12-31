@@ -1,6 +1,5 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
-import { ShadowMaterial } from "../material/shadow/shadowMaterial";
 import { BaseStage } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
 import { Root } from "../const/root";
@@ -383,11 +382,11 @@ export abstract class BaseEntity extends Root {
             this.generateBox();
             for (let i of this.scene.cameraActors) {
                 if (this.deferRenderDepth) this._init = this.createDCCDeferRenderDepth(parent, i.id.toString());
-                this._init = this.createDCC(parent, i.id.toString());
+                this._init = this.createDCC(parent, i.id.toString(),"camera");
             }
-            for(let i of this.scene.lights){
+            // for (let i of this.scene.lights) {
 
-            }
+            // }
         }
     }
 
@@ -399,12 +398,12 @@ export abstract class BaseEntity extends Root {
         return this._transparent;
     }
 
-    /**
-     * 创建this._vertexAndMaterialGroup对应的DrawCommand组
+    /** camera: string,camera or light 的id（string形式）
      * 
+     * type:string ,"camera"|"light",default="camera"
      */
-    abstract createDCC(parent: BaseStage, camera: string): initStateEntity
-    abstract createDCCDeferRenderDepth(parent: BaseStage, camera: string): initStateEntity
+    abstract createDCC(parent: BaseStage, camera: string, kind?: string): initStateEntity
+    abstract createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity
 
 
 
@@ -417,7 +416,7 @@ export abstract class BaseEntity extends Root {
     }
 
     /**todo */
-    addLOD(lod: geometryBufferOfEntity, level: number) {
+    addLOD(_lod: geometryBufferOfEntity, _level: number) {
         // this._LOD[level]
     }
 
@@ -604,7 +603,7 @@ export abstract class BaseEntity extends Root {
         return this.commmands;
     }
 
-    updateChilden(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number, updateForce: boolean = false): commmandType[] {
+    updateChilden(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number, _updateForce: boolean = false): commmandType[] {
         return [];
     }
     /**
@@ -666,7 +665,7 @@ export abstract class BaseEntity extends Root {
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
     // abstract
-    updateUniformBuffer(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): any {
+    updateUniformBuffer(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): any {
 
         for (let i = 0; i < this.numInstances; i++) {
             let perMatrix = mat4.identity();
@@ -706,13 +705,13 @@ export abstract class BaseEntity extends Root {
      * 2、如果没有更新直接返回DCC的数组
      * 
      * 
-     * @param parent 
-     * @param deltaTime 
-     * @param startTime 
-     * @param lastTime 
+     * @param _parent 
+     * @param _deltaTime 
+     * @param _startTime 
+     * @param _lastTime 
      * @returns commandsOfEntity, 返回this.commmands 包括多个camera和light的renderCommands 每个renderCommands中包括3个类型的commands
      */
-     updateDCC(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): commandsOfEntity{
+    updateDCC(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): commandsOfEntity {
         return this.commmands;
     }
 

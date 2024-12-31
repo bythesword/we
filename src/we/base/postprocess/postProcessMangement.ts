@@ -1,4 +1,3 @@
-import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { commmandType } from "../scene/baseScene";
 import { Scene } from "../scene/scene"
 import { optionBasePostprocessEffectStep2, PostProcessEffect } from "./postProcessEffect";

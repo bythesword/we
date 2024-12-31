@@ -63,7 +63,7 @@ export abstract class InputControl {
 
 
 
-    registerKeyboardEvent(register: registerEventOfWE) {
+    registerKeyboardEvent(_register: registerEventOfWE) {
 
     }
     abstract createInputHandler(

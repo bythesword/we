@@ -1,6 +1,6 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import cubeSky from "../../shader/sky/cubeSky.fs.wgsl?raw"
-import { uniformBufferPart, uniformEntries } from "../../command/baseCommand";
+import { uniformEntries } from "../../command/baseCommand";
 import { weSamplerKind } from "../../resource/weResource";
 
 export interface optionCubeSkyMaterial extends optionBaseMaterial {
@@ -56,8 +56,9 @@ export class CubeSkyMaterial extends BaseMaterial {
         let scope = this;
         let imgSrcs = this.input.cubeTexture.texture;
         let aaa: any[] = [];
-        const promises = imgSrcs.map(async (src) => {
-            const response = new Promise((resolve, reject) => {
+        
+        imgSrcs.map(async (src) => {
+            const response = new Promise((resolve) => {
                 resolve(fetch(src));
             }).then(
                 async (srcR) => {
@@ -67,7 +68,8 @@ export class CubeSkyMaterial extends BaseMaterial {
             );
             aaa.push(response);
         });
-        const imageBitmaps1 = Promise.all(aaa).then(imageBitmaps => {
+       
+         Promise.all(aaa).then(imageBitmaps => {
             // console.log(imageBitmaps)
             this.skyTexture = this.device.createTexture({
                 dimension: '2d',
@@ -98,7 +100,8 @@ export class CubeSkyMaterial extends BaseMaterial {
     }
     generateTextureByString(res: string, id: string) {
         let scope = this;
-        const response = new Promise((resolve, reject) => {
+        // const response = 
+        new Promise((resolve) => {
             resolve(fetch(res));
         }).then(
             async (res) => {
@@ -163,7 +166,7 @@ export class CubeSkyMaterial extends BaseMaterial {
     }
     getUniform(startBinding: number): uniformEntries[] {
         let binding = startBinding;
-        let scope = this;
+        // let scope = this;
         if (this.sampler == undefined) {
             let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
             if (this.scene.resources.sampler[weSamplerKind.linear]) {

@@ -1,10 +1,4 @@
-import {
-    Mat4,
-    Vec3,
-    // Vec4,
-    mat4,
-    vec3
-} from 'wgpu-matrix';
+import { mat4 } from 'wgpu-matrix';
 
 
 import { BaseCamera, cameraRayValues, projectionOptions } from "./baseCamera"
@@ -83,5 +77,5 @@ export class PerspectiveCamera extends BaseCamera {
         this.projectionMatrix = mat4.perspective(option.fov, option.aspect, option.near, option.far);
     }
 
-    set aspect(aspect:number){(this.option as optionPerspProjection).aspect=aspect}
+    set aspect(aspect: number) { (this.option as optionPerspProjection).aspect = aspect }
 }

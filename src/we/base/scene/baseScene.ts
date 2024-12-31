@@ -5,6 +5,7 @@ import * as coreConst from "../const/coreConst"
 import { DrawCommand } from '../command/DrawCommand';
 import { ComputeCommand } from '../command/ComputeCommand';
 import { CopyCommandT2T } from '../command/copyCommandT2T';
+import { CameraActor } from '../actor/cameraActor';
 
 export type commmandType = DrawCommand | ComputeCommand | CopyCommandT2T;
 export declare interface sceneJson {
@@ -131,18 +132,21 @@ export abstract class BaseScene {
     //     depthCompare: 'less',
     //     format: 'depth24plus',
     // };
-    renderPassDescriptor!: GPURenderPassDescriptor
-    /**GBuffer 收集器*/
-    GBuffers!: {
-        /**name= camera  的 id */
-        [name: string]: coreConst.GBuffers,
+    /**cameras 的RPD */
+    renderPassDescriptor!: {
+        [name: string]: GPURenderPassDescriptor
     };
+    /**GBuffer 收集器*/
+    GBuffers!: coreConst.MultiGBuffers;
 
     constructor(input: sceneJson) {
         this.input = input;
         this.commands = [];
         this.commandsDepth = [];
         this.commandsColor = [];
+        this.renderPassDescriptor = {};
+        this.GBuffers = {};
+
         this.depthDefaultFormat = 'depth32float';
         if (input.depthDefaultFormat) {
             this.depthDefaultFormat = input.depthDefaultFormat;
@@ -160,7 +164,7 @@ export abstract class BaseScene {
             else if (input.deferRender.type == "color")
                 this.deferRenderColor = true;
         }
-        this.GBuffers = {};
+
         this._maxlightNumber = coreConst.lightNumber;
         this._lastNumberOfLights = 0;
 
@@ -189,7 +193,7 @@ export abstract class BaseScene {
     abstract init(): any
 
     /** 前向渲染renderPassDescriptor(GPURenderPassDescriptor) */
-    async createRenderPassDescriptor(camera:string) {
+    async createRenderPassDescriptor(camera: string) {
         let colorAttachments: GPURenderPassColorAttachment[] = [];
         this.colorAttachmentTargets = [];
         Object.entries(coreConst.GBuffersRPDAssemble).forEach(([key, value]) => {
@@ -281,7 +285,7 @@ export abstract class BaseScene {
         throw Error(msg);
     }
     /** 获取前向渲染的渲染通道描述: GPURenderPassDescriptor         */
-    abstract getRenderPassDescriptor(): GPURenderPassDescriptor
+    abstract getRenderPassDescriptor(camera: string, kind?: string): GPURenderPassDescriptor
     /**
     * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
     * 
@@ -299,8 +303,8 @@ export abstract class BaseScene {
      * 
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    abstract createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline): GPUBindGroup
-    abstract getMVP(): GPUBuffer
+    abstract createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, scope: any, camera?: string, kind?: string): GPUBindGroup
+    abstract getMVP(one: CameraActor): Promise<GPUBuffer>
     /**每个继承类的更新入口 */
     abstract update(deltaTime: number, startTime: number, lastTime: number): any
     /**scene 、stage都是从baseScene基础，其核心渲染的全局wgsl可能不同 */
@@ -341,19 +345,19 @@ export abstract class BaseScene {
         // this.GBuffers = localGBuffers;
         return localGBuffers;
     }
-    async reInitGBuffers(width: number, height: number) {
+    async reInitGBuffers(_width: number, _height: number) {
 
-        let GBufferABC = this.GBuffers;
-        this.GBuffers = await this.initGBuffers(width, height);
+        // let GBufferABC = this.GBuffers;
+        // this.GBuffers = await this.initGBuffers(width, height);
 
-        this.renderPassDescriptor = await this.createRenderPassDescriptor();
+        // this.renderPassDescriptor = await this.createRenderPassDescriptor();
         // this.destoryGBuffers(GBufferABC);
         return true;
     }
     destoryGBuffers(GBuffers: coreConst.GBuffers) {
         this.commands = [];
         for (let i in GBuffers) {
-            let oneCameraGBuffer=GBuffers[i];
+            let oneCameraGBuffer = GBuffers[i];
             for (let j in oneCameraGBuffer) {
                 // let name=oneCameraGBuffer[i];
                 this.GBuffers[i][j].destroy();

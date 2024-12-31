@@ -42,7 +42,7 @@ export class ShaderMaterial extends BaseMaterial {
     * 
     * 主要是，texture，simple，uniform，storage
     */
-    getCodeFS(startBinding: number) {
+    getCodeFS(_startBinding: number) {
         let code = this.shaderCodeFS + codeOnlyFS;
         code = this.shaderCodeProcess(code);
 
@@ -57,7 +57,7 @@ export class ShaderMaterial extends BaseMaterial {
      * 
      * 主要是，texture，simple，uniform，storage
      */
-    getUniform(startBinding: number): uniformEntries[] | false {
+    getUniform(_startBinding: number): uniformEntries[] | false {
         if (this.input && this.input.unifroms)
             return this.input.unifroms;
         return false;

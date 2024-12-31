@@ -57,7 +57,7 @@ export class WASDCameraControl extends CamreaControl {
         this.recalculateAngles(this.camera.back);
         // throw new Error('Method not implemented.');
     }
-    update(deltaTime: number, startTime: number, lastTime: number) {
+    update(deltaTime: number, _startTime: number, _lastTime: number) {
         let input = this.inputHandler(this);
         const sign = (positive: boolean, negative: boolean) =>
             (positive ? 1 : 0) - (negative ? 1 : 0);

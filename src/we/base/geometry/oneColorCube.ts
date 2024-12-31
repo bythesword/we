@@ -37,7 +37,7 @@ export class OneColorCube extends BoxGeometry {
 
 
 
-    generateColorArray(length: number, color = [1, 1, 1]) {
+    generateColorArray(_length: number, _color = [1, 1, 1]) {
         /*
           4 ——————————————  1
           / |          / |

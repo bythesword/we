@@ -1,6 +1,6 @@
 import { DrawCommand, drawMode, DrawOptionOfCommand } from "../command/DrawCommand";
 import { unifromGroup } from "../command/baseCommand";
-import { GBuffers, GBuffersRPDAssemble, stagesOfSystem } from "../const/coreConst";
+import { GBuffers, GBuffersRPDAssemble } from "../const/coreConst";
 import { Scene } from "./scene";
 import { SingleRender, optionSingleRender } from "./singleRender";
 
@@ -14,7 +14,7 @@ export interface optionGBPP extends optionSingleRender {
     GBuffers: GBuffers,
     parent: Scene,
     copyToTarget: GPUTexture,
-    camera:string,
+    camera: string,
 }
 
 interface renderPassDescriptorAndTaget {
@@ -45,13 +45,13 @@ export class GBufferPostProcess extends SingleRender {
 
     _isReversedZ!: boolean;
     /**GBuffer 对应的camera */
-    camera:string;
+    camera: string;
 
     constructor(input: optionGBPP) {
         super(input);
-        this.camera=input.camera;
+        this.camera = input.camera;
         // this.parent = input.parent;
-        this.renderPassDescriptor = this.parent.renderPassDescriptor;
+        // this.renderPassDescriptor = this.parent.renderPassDescriptor;
         this.GBuffers = input.GBuffers;
         this.presentationFormat = this.parent.presentationFormat;
         this.depthDefaultFormat = this.parent.depthDefaultFormat;
@@ -85,106 +85,135 @@ export class GBufferPostProcess extends SingleRender {
         // let shaderDepthAndID: string;
         // let shaderOpaque: string;
         // let shaderTransparent: string;
-
-        let values: drawMode = {
-            vertexCount: 6
-        };
-        let uniformsOpaque: unifromGroup[] = this.getTexturesOfUniformFromStageForID();
-        let far = this._isReversedZ ? 0 : 1;
-        let optionsOpaque: DrawOptionOfCommand = {
-            label: "GBuffers render ID",
-            vertex: {
-                code: shaderDepthAndID,
-                entryPoint: "vs",
-            },
-            fragment: {
-                code: shaderDepthAndID,
-                entryPoint: "fs",
-                targets: this.colorAttachmentTargetsOfID,
-                constants: {
-                    // far: far,
-                    //count_of_stage: 4,
-                    canvasSizeWidth: this.surfaceSize.width,
-                    canvasSizeHeight: this.surfaceSize.height,
-                    reversedZ: this._isReversedZ,
+        if (this.parent.stageStatus == "all") {
+            let values: drawMode = {
+                vertexCount: 6
+            };
+            let uniformsOpaque: unifromGroup[] = this.getTexturesOfUniformFromStageForID();
+            // let far = this._isReversedZ ? 0 : 1;
+            //合并所有stage的Depth和ID
+            let optionsOpaque: DrawOptionOfCommand = {
+                label: "GBuffers render ID",
+                vertex: {
+                    code: shaderDepthAndID,
+                    entryPoint: "vs",
+                },
+                fragment: {
+                    code: shaderDepthAndID,
+                    entryPoint: "fs",
+                    targets: this.colorAttachmentTargetsOfID,
+                    constants: {
+                        // far: far,
+                        //count_of_stage: 4,
+                        canvasSizeWidth: this.surfaceSize.width,
+                        canvasSizeHeight: this.surfaceSize.height,
+                        reversedZ: this._isReversedZ,
+                    }
+                },
+                draw: {
+                    mode: "draw",
+                    values: values
+                },
+                parent: this.parent,
+                uniforms: uniformsOpaque,
+                primitive: {
+                    topology: 'triangle-list',
+                    cullMode: "back",
+                },
+                rawUniform: true,
+                renderPassDescriptor: this.renderPassDescriptorOfID,
+                depthStencilState: {
+                    depthWriteEnabled: true,
+                    depthCompare: this._isReversedZ ? "greater" : 'less',
+                    format: this.depthDefaultFormat//'depth32float',
                 }
-            },
-            draw: {
-                mode: "draw",
-                values: values
-            },
-            parent: this.parent,
-            uniforms: uniformsOpaque,
-            primitive: {
-                topology: 'triangle-list',
-                cullMode: "back",
-            },
-            rawUniform: true,
-            renderPassDescriptor: this.renderPassDescriptorOfID,
-            depthStencilState: {
-                depthWriteEnabled: true,
-                depthCompare: this._isReversedZ ? "greater" : 'less',
-                format: this.depthDefaultFormat//'depth32float',
-            }
-        };
-        let DC_Opaque = new DrawCommand(optionsOpaque);
-        this.commands.push(DC_Opaque);
+            };
+            let DC_Opaque = new DrawCommand(optionsOpaque);
+            this.commands.push(DC_Opaque);
 
 
-        let run_i = 0;
-        for (let i of this.parent.stagesOrders) {
-            let name = this.parent.stagesOfSystem[i];
-            if (this.parent.stages[name].opaque && name != "UI"
-                //  && name=="World"
-            ) {
-                let uniformsOther: unifromGroup[] = this.getTexturesOfUniformFromStageForOther(name);
-                let optionsOther: DrawOptionOfCommand = {
-                    label: "GBuffers render Other",
-                    vertex: {
-                        code: shaderOpaque,
-                        entryPoint: "vs",
-                    },
-                    fragment: {
-                        code: shaderOpaque,
-                        entryPoint: "fs",
-                        targets: this.colorAttachmentTargetsOfOther,
-                        constants: {
-                            // far: far,
-                            // count_of_stage: 4,
-                            canvasSizeWidth: this.surfaceSize.width,
-                            canvasSizeHeight: this.surfaceSize.height,
-                            // reversedZ: this._isReversedZ,
-                        }
-                    },
-                    draw: {
-                        mode: "draw",
-                        values: values
-                    },
-                    parent: this.parent,
-                    uniforms: uniformsOther,
-                    primitive: {
-                        topology: 'triangle-list',
-                        cullMode: "back",
-                    },
-                    rawUniform: true,
-                    renderPassDescriptor: this.renderPassDescriptorOfOther,
-                };
-                let DC_Other = new DrawCommand(optionsOther);
-                this.commands.push(DC_Other);
+            //跟进ID合并stage的其他GBuffers
+            // let run_i = 0;
+            for (let i of this.parent.stagesOrders) {
+                let name = this.parent.stagesOfSystem[i];
+                if (this.parent.stages[name].opaque && name != "UI"
+                    //  && name=="World"
+                ) {
+                    let uniformsOther: unifromGroup[] = this.getTexturesOfUniformFromStageForOther(name);
+                    let optionsOther: DrawOptionOfCommand = {
+                        label: "GBuffers render Other",
+                        vertex: {
+                            code: shaderOpaque,
+                            entryPoint: "vs",
+                        },
+                        fragment: {
+                            code: shaderOpaque,
+                            entryPoint: "fs",
+                            targets: this.colorAttachmentTargetsOfOther,
+                            constants: {
+                                // far: far,
+                                // count_of_stage: 4,
+                                canvasSizeWidth: this.surfaceSize.width,
+                                canvasSizeHeight: this.surfaceSize.height,
+                                // reversedZ: this._isReversedZ,
+                            }
+                        },
+                        draw: {
+                            mode: "draw",
+                            values: values
+                        },
+                        parent: this.parent,
+                        uniforms: uniformsOther,
+                        primitive: {
+                            topology: 'triangle-list',
+                            cullMode: "back",
+                        },
+                        rawUniform: true,
+                        renderPassDescriptor: this.renderPassDescriptorOfOther,
+                    };
+                    let DC_Other = new DrawCommand(optionsOther);
+                    this.commands.push(DC_Other);
+                }
+                // if(run_i++ ==2 ) break;
             }
-            // if(run_i++ ==2 ) break;
+
+            //copy GBuffer的color到target
+            let copyToColorTexture = new CopyCommandT2T(
+                {
+                    A: this.GBuffers["color"],
+                    B: this.colorTexture,
+                    size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
+                    device: this.device
+                }
+            );
+            this.commands.push(copyToColorTexture);
         }
-
-        let copyToColorTexture = new CopyCommandT2T(
-            {
-                A: this.GBuffers["color"],
-                B: this.colorTexture,
-                size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-                device: this.device
+        else if (this.parent.stageStatus == "world") {
+            //copy GBuffer的color到target
+            for (let i in this.GBuffers) {
+                let copyToColorTexture = new CopyCommandT2T(
+                    {
+                        A: this.parent.stages["World"].opaque!.GBuffers[this.camera][i],
+                        B: this.GBuffers[i],
+                        size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
+                        device: this.device
+                    }
+                );
+                this.commands.push(copyToColorTexture);
             }
-        );
-        this.commands.push(copyToColorTexture);
-
+            let copyToColorTexture = new CopyCommandT2T(
+                {
+                    A: this.GBuffers["color"],
+                    B: this.colorTexture,
+                    size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
+                    device: this.device
+                }
+            );
+            this.commands.push(copyToColorTexture);
+        }
+        else {
+            console.error("GBuffer post process init() error!");
+        }
         //20241212,todo:将透明层由合并改为比较depth的油画法
         // //只有color，一个DC，stage在uniform中
         // let uniformsTransparent: unifromGroup[] = this.getTexturesOfUniformFromStageForTransparent();
@@ -430,7 +459,7 @@ export class GBufferPostProcess extends SingleRender {
         let normals: GPUTexture[] = [];
         for (let i in this.parent.stagesOrders) {
             const perList = this.parent.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = stagesOfSystem[perList];
+            const name = this.parent.stagesOfSystem[perList];
             if (this.parent.stages[name].opaque) {
                 let stage = this.parent.stages[name].opaque!;
                 depths.push(stage.GBuffers[this.camera]["depth"]);
