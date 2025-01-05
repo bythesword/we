@@ -1,5 +1,5 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, boundingBox, boundingSphere, initStateEntity, optionBaseEntity } from "../baseEntity";
+import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
@@ -44,17 +44,6 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
-    //todo :20241219
-    generateBox(): boundingBox {
-        // throw new Error("Method not implemented.");
-        return {
-            min: [0, 0, 0],
-            max: [0, 0, 0],
-        }
-    }
-    generateSphere(): boundingSphere {
-        throw new Error("Method not implemented.");
-    }
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
@@ -121,6 +110,12 @@ export class Mesh extends BaseEntity {
 
     }
 
+    generateBoxAndSphere() {
+        if (this.checkStatus()) {
+            this.boundingBox = this.generateBox(this._geometry.buffer.position);
+            this.boundingSphere = this.generateSphere(this.boundingBox);
+        }
+    }
     /**
      * 覆写了父类的这个function
      * 
@@ -158,7 +153,7 @@ export class Mesh extends BaseEntity {
 
         ///////////////////////////////
 
-        const renderPassDescriptor=this.stage!.getRenderPassDescriptor(camera);
+        const renderPassDescriptor = this.stage!.getRenderPassDescriptor(camera);
         /////////////////////box  
         let shader;
         let binding = 0;
@@ -215,7 +210,7 @@ export class Mesh extends BaseEntity {
             }
 
             //////////////////////////////////////////////////////////////////////
-         
+
 
             let options: DrawOptionOfCommand = {
                 label: this.name == "" ? "Mesh" : this.name,
@@ -247,7 +242,7 @@ export class Mesh extends BaseEntity {
                 renderForID: camera,
                 renderForType: kind,
                 systemUniforms: parent.createSystemUnifromGroupForPerShader,
-                renderPassDescriptor:renderPassDescriptor,
+                renderPassDescriptor: renderPassDescriptor,
             };
 
             let DC = new DrawCommand(options);
@@ -333,7 +328,7 @@ export class Mesh extends BaseEntity {
     createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity {
         let scope = this;
         ///////////////////////////////
-        const renderPassDescriptor=this.stage!.getRenderPassDescriptor_ForDeferDepth(camera, kind);
+        const renderPassDescriptor = this.stage!.getRenderPassDescriptor_ForDeferDepth(camera, kind);
         /////////////////////box  
         let shader = this._geometry.getCodeVS();
         shader = this.shaderCodeProcess(shader);

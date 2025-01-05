@@ -2,12 +2,14 @@ import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
 import { BaseStage } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
-import { Root } from "../const/root";
+import { Root } from "../scene/root";
 
 import partAdd_st_entity_VS from "../shader/entities/part_add.st_entity.vs.wgsl?raw"
 import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.VertexShaderOutput.vs.wgsl?raw"
 import partReplace_VertexShaderOutput_VS from "../shader/entities/part_replace.VertexShaderOutput.vs.wgsl?raw"
 import { commmandType } from "../scene/baseScene";
+import { boundingBox, Box3, generateBox3 } from "../math/Box";
+import { boundingSphere, generateSphereFromBox3, Sphere } from "../math/sphere";
 
 export interface renderCommands {
     forward: commmandType[],
@@ -15,14 +17,16 @@ export interface renderCommands {
     color: commmandType[],
 }
 
-export interface boundingSphere {
-    position: [number, number, number],
-    radius: number,
-}
-export interface boundingBox {
-    min: [number, number, number],
-    max: [number, number, number],
-}
+// export interface boundingSphere {
+//     position: [number, number, number],
+//     radius: number,
+// }
+// export interface boundingBox {
+//     min: [number, number, number],
+//     max: [number, number, number],
+// }
+
+
 
 export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
 export interface geometryBufferOfEntity {
@@ -285,7 +289,7 @@ export abstract class BaseEntity extends Root {
 
 
     boundingBox!: boundingBox;//initDCC中赋值
-    boundingSphere!: boundingSphere;//20241219，未使用
+    boundingSphere!: boundingSphere;
 
     constructor(input: optionBaseEntity) {
         super();
@@ -379,16 +383,17 @@ export abstract class BaseEntity extends Root {
         let already = this.checkStatus();
         if (already) {
             this._init = initStateEntity.initializing;
-            this.generateBox();
+            this.generateBoxAndSphere();
             for (let i of this.scene.cameraActors) {
                 if (this.deferRenderDepth) this._init = this.createDCCDeferRenderDepth(parent, i.id.toString());
-                this._init = this.createDCC(parent, i.id.toString(),"camera");
+                this._init = this.createDCC(parent, i.id.toString(), "camera");
             }
             // for (let i of this.scene.lights) {
 
             // }
         }
     }
+    abstract generateBoxAndSphere(): void
 
     set transparent(transparent: boolean) {
         this._transparent = transparent;
@@ -407,10 +412,34 @@ export abstract class BaseEntity extends Root {
 
 
 
-    /** todo */
-    abstract generateBox(): boundingBox
-    abstract generateSphere(): boundingSphere
+    /** 世界坐标的Box */
+    generateBox(position: number[]): boundingBox {
+        let box = generateBox3(position);
+        // box.min[0] += this.Positon[0];
+        // box.min[1] += this.Positon[1];
+        // box.min[2] += this.Positon[2];
+        // box.max[0] += this.Positon[0];
+        // box.max[1] += this.Positon[1];
+        // box.max[2] += this.Positon[2];
+        const min = vec3.transformMat4(box.min, this.matrixWorld);
+        const max = vec3.transformMat4(box.max, this.matrixWorld);
+        box.max[0] = max[0];
+        box.max[1] = max[1];
+        box.max[2] = max[2];
+        box.min[0] = min[0];
+        box.min[1] = min[1];
+        box.min[2] = min[2];
+        return box;
+    }
+    /**世界坐标的sphere */
+    generateSphere(box: boundingBox): boundingSphere {
+        if (this.boundingBox == undefined) {
+            console.error("boundingBox 没有计算");
+        }
 
+        return generateSphereFromBox3(box);
+    }
+    /** */
     addContent(name: string, vm: entityContentOfVertexAndMaterial) {
         this._vertexAndMaterialGroup[name] = vm;
     }
@@ -458,6 +487,7 @@ export abstract class BaseEntity extends Root {
         return false;
     }
 
+    /** 绕任意轴旋转 */
     rotate(axis: Vec3, angle: number) {
         ////这里注销到的是因为，for操作的是instance的每个个体
         // for (let i = 0; i < this.numInstances; i++) {
@@ -465,29 +495,41 @@ export abstract class BaseEntity extends Root {
         // }
         this.matrix = mat4.axisRotate(this.matrix, axis, angle, this.matrix);
     }
+    /**绕X轴(100)旋转 */
     rotateX(angle: number) {
         this.rotate([1, 0, 0], angle);
     }
+    /**绕y轴(010)旋转 */
     rotateY(angle: number) {
         this.rotate([0, 1, 0], angle);
     }
+    /**绕z轴(001)旋转 */
     rotateZ(angle: number) {
         this.rotate([0, 0, 1], angle);
     }
     /**
-         * 将entity的矩阵应用POS的位置变换，是在原有矩阵
+     * 在现有matrix（原有的position）上增加pos的xyz，
+         * 将entity的矩阵应用POS的位置变换，是在原有矩阵上增加
          * @param pos :Vec3
          */
     translate(pos: Vec3,) {
-        this.matrix = mat4.setTranslation(this.matrix, pos);
+        this.matrix = mat4.translate(this.matrix, pos);
+    }
+    /** 创建单位矩阵，矩阵的xyz(12,13,14)=pos
+    * @param pos :Vec3
+    */
+    translation(pos: Vec3,) {
+        this.matrix = mat4.translation(this.matrix, pos);
     }
     /**
-     * 将entity的位置变为POS,等价wgpu-matrix的mat4的translation
+     * 替换pos的位置（matrix的:12,13,14），其他的matrix数据不变，
+     * 将entity的位置变为POS,等价wgpu-matrix的mat4的translation，是替换，不是增加
      * @param pos :Vec3
      */
-    translation(pos: Vec3,) {
+    setTranslation(pos: Vec3,) {
         this.matrix = mat4.setTranslation(this.matrix, pos);
     }
+    /**scale */
     scale(vec: Vec3) {
         this.matrix = mat4.scale(this.matrix, vec);
     }
@@ -514,7 +556,7 @@ export abstract class BaseEntity extends Root {
         if (this.input?.rotate)
             this.rotate(this.input.rotate.axis, this.input.rotate.angleInRadians);
         if (this.input?.position)
-            this.translation(this.input.position);
+            this.setTranslation(this.input.position);
 
         this.matrixWorld = this.updateMatrixWorld();
         this.updateUniformBuffer(this.stage as BaseStage, 0, 0, 0);

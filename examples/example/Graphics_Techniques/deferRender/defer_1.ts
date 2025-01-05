@@ -96,7 +96,7 @@ let boxEntity1 = new Mesh(
       //   1,
       //   scope.matrix
       // );
-      scope.translation(scope.input.position);
+      scope.setTranslation(scope.input.position);
       scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
 
       return true;
@@ -123,7 +123,7 @@ let boxEntity2 = new Mesh(
       //   scope.matrix
       // );
       scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);
-      scope.translation(scope.input.position);
+      scope.setTranslation(scope.input.position);
 
       return true;
     },

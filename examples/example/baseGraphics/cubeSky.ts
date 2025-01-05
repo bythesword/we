@@ -10,7 +10,7 @@ import { VertexColorMaterial } from "../../../src/we/base/material/Standard/vert
 import { mat4, vec3 } from "wgpu-matrix"
 import { CubeSkyMaterial } from "../../../src/we/base/material/sky/cubeSkyMaterial"
 import { WASDCameraControl } from "../../../src/we/base/control/wasdCameraControl"
- 
+
 
 
 declare global {
@@ -89,13 +89,13 @@ let cubeMaterial = new CubeSkyMaterial({
 //box实体
 let boxEntity = new Mesh(
   {
-    scale:[100,100,100],
+    scale: [100, 100, 100],
     geometry: boxGeometry,
     material: cubeMaterial,
     wireFrame: false,
     dynamicPostion: true,
     cullmode: "front",
-
+    name: "sky"
   }
 );
 //增加实体到scene

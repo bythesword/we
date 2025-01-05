@@ -6,6 +6,8 @@ import { DrawCommand } from '../command/DrawCommand';
 import { ComputeCommand } from '../command/ComputeCommand';
 import { CopyCommandT2T } from '../command/copyCommandT2T';
 import { CameraActor } from '../actor/cameraActor';
+import { boundingBox, generateBox3ByArrayBox3s, } from '../math/Box';
+import { boundingSphere, generateSphereFromBox3, } from '../math/sphere';
 
 export type commmandType = DrawCommand | ComputeCommand | CopyCommandT2T;
 export declare interface sceneJson {
@@ -69,6 +71,7 @@ export abstract class BaseScene {
     // about lights
     /** lights array ,only for scene,stage use lightsIndex[]*/
     lights: BaseLight[];
+ 
     /**stage 和 scene都可以有
      * scene的是全局的
      * stage的是自己的
@@ -139,14 +142,20 @@ export abstract class BaseScene {
     /**GBuffer 收集器*/
     GBuffers!: coreConst.MultiGBuffers;
 
+
+    boundingBox!: boundingBox;
+    boundingSphere!: boundingSphere;
+    Box3s: boundingBox[];
+
     constructor(input: sceneJson) {
         this.input = input;
+        // this.lightsIndexID = 0;
         this.commands = [];
         this.commandsDepth = [];
         this.commandsColor = [];
         this.renderPassDescriptor = {};
         this.GBuffers = {};
-
+        this.Box3s = [];
         this.depthDefaultFormat = 'depth32float';
         if (input.depthDefaultFormat) {
             this.depthDefaultFormat = input.depthDefaultFormat;
@@ -286,12 +295,14 @@ export abstract class BaseScene {
     }
     /** 获取前向渲染的渲染通道描述: GPURenderPassDescriptor         */
     abstract getRenderPassDescriptor(camera: string, kind?: string): GPURenderPassDescriptor
-    /**
-    * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
-    * 
-    * 这个需要确保每帧只更新一次
-    */
-    abstract updateSystemUniformBuffer(): any
+
+    // 作废 20250103
+    // /**
+    // * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
+    // * 
+    // * 这个需要确保每帧只更新一次
+    // */
+    // abstract updateSystemUniformBuffer(): any
 
     /**
      * 每个shader绑定system的group0；
@@ -304,7 +315,7 @@ export abstract class BaseScene {
      * uniform of system  bindGroup to  group  0 for pershader
      */
     abstract createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, scope: any, camera?: string, kind?: string): GPUBindGroup
-    abstract getMVP(one: CameraActor): Promise<GPUBuffer>
+    // abstract getMVP(one: CameraActor): Promise<GPUBuffer>
     /**每个继承类的更新入口 */
     abstract update(deltaTime: number, startTime: number, lastTime: number): any
     /**scene 、stage都是从baseScene基础，其核心渲染的全局wgsl可能不同 */
@@ -365,15 +376,6 @@ export abstract class BaseScene {
         }
     }
     /**
-     * 环境光设置，更新环境光
-     * @param values : optionAmbientLight,默认强度=0，即不存在环境光
-     */
-    setAmbientLight(values: optionAmbientLight = { color: { red: 1, green: 1, blue: 1 }, intensity: 0 }) {
-        let light = new AmbientLight(values)
-        this.ambientLight = light;
-    }
-
-    /**
      * GPUTexture 之间的copy
      * 
      * A、B这个两个GPUTexture在一个frame ，不能同时是GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC，否则会产生同步错误
@@ -397,6 +399,17 @@ export abstract class BaseScene {
         );
         const commandBuffer = commandEncoder.finish();
         this.device.queue.submit([commandBuffer]);
+    }
+
+    /** 世界坐标的Box */
+    generateBox(): boundingBox {
+        this.boundingBox = generateBox3ByArrayBox3s(this.Box3s);
+        return this.boundingBox;
+    }
+    /**世界坐标的sphere */
+    generateSphere(): boundingSphere {
+        this.boundingSphere = generateSphereFromBox3(this.boundingBox);
+        return this.boundingSphere;
     }
 
 }

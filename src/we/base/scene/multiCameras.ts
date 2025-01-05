@@ -39,6 +39,7 @@ export class MultiCameras extends SingleRender {
     destroy(): void {
         throw new Error("Method not implemented.");
     }
+    /** mulity camera DCCC create */
     async check(cameraActorID: string) {
         // this.commands = [];
         let values: drawMode = {

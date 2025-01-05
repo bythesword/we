@@ -1,6 +1,7 @@
 import * as coreConst from "../const/coreConst";
-import { Vec3, } from "wgpu-matrix";
-import { Root } from "../const/root";
+import { mat4, Mat4, Vec3, } from "wgpu-matrix";
+import { Root } from "../scene/root";
+import { WeGenerateID } from "../math/baseFunction";
 
 // export interface optionBaseLightSize{
 
@@ -56,7 +57,9 @@ export interface optionBaseLight extends coreConst.optionUpdate {
 /**
  * 光源的uniform的尺寸，ArrayBuffer的大小(byte) 
  */
-export var lightStructSize = 96;
+export var lightStructSize = 112;//20240104 change 96->112,add some about shadow 
+export var lightStructSizeOfShadowMapMVP = 80;//20240104 change 96->112,add some about shadow 
+export var lightStructSizeForRenderOfBindGroup = 80;//20240104 change 96->112,add some about shadow 
 
 /**
  * 输出的uniform的buffer的类型，float32Array，大小(length)以float32(4个字节)计算=lightStructSize/4
@@ -71,7 +74,10 @@ export type structBaselight = Float32Array;
 export interface shadowMap {
     map: GPUTexture,
 }
-export abstract class BaseLight extends Root {
+
+
+
+export abstract class BaseLight/* extends Root */ {
     _kind!: number;
     /**
      * 
@@ -81,9 +87,17 @@ export abstract class BaseLight extends Root {
     NID!: number;
     /**输入参数=input */
     input: optionBaseLight;
+    id: number;
+    MVP: Mat4;
+    enable:boolean;
+    
+
     constructor(input: optionBaseLight, kind: number = -1) {
-        super();
+        // super();
+        this.enable=false;
         this.input = input;
+        this.MVP = mat4.identity();
+        this.id = WeGenerateID();
         if (this.input.position == undefined) this.input.position = [0.0, 0.0, 0.0];
         if (this.input.color == undefined) this.input.color = { red: 1, green: 1, blue: 1 };
         if (this.input.distance == undefined) this.input.distance = 0.0;
@@ -161,27 +175,56 @@ export abstract class BaseLight extends Root {
     color3UTo3F(color: coreConst.color3U) {
         return [color.red / 255, color.green / 255, color.blue / 255];
     }
-    set id(id: number) {
-        this._id = id;
+    set ID(id: number) {
+        this.id = id;
     }
-    get id(): number { return this._id; }
+    get ID(): number { return this.id; }
     async update(deltaTime: number, startTime: number, lastTime: number) {
         let scope = this;
         if (this.input.update) {
             await scope.input.update!(scope, deltaTime, startTime, lastTime);
-            scope.updateStructBuffer();
         }
+        this._buffer = scope.updateStructBuffer();
+        this.MVP = this.updateMVP();
     }
+    /**更新光源MVP */
+    updateMVP(): Mat4 {
+        let m4 = mat4.identity();
+
+
+
+        return m4;
+    }
+    getMVP(): Mat4 {
+        return this.MVP;
+    }
+
     getStructBuffer(): structBaselight {
         if (this._buffer == undefined) {
             this._buffer = this.updateStructBuffer();
         }
         return this._buffer;
     }
-    //todo ：未完成，20241103
+    /** 更新当前light的 structBuffer
+     * 
+     * wgsl中的ST_Light
+     */
     updateStructBuffer(): structBaselight {
         // const ST_LightValues = new ArrayBuffer(size);
         let ST_LightValues = new ArrayBuffer(lightStructSize);
+        // const ST_LightViews = {
+        //     position: new Float32Array(ST_LightValues, 0, 3),
+        //     decay: new Float32Array(ST_LightValues, 12, 1),
+        //     color: new Float32Array(ST_LightValues, 16, 3),
+        //     intensity: new Float32Array(ST_LightValues, 28, 1),
+        //     direction: new Float32Array(ST_LightValues, 32, 3),
+        //     distance: new Float32Array(ST_LightValues, 44, 1),
+        //     angle: new Float32Array(ST_LightValues, 48, 2),
+        //     shadow: new Int32Array(ST_LightValues, 56, 1),
+        //     visible: new Int32Array(ST_LightValues, 60, 1),
+        //     size: new Float32Array(ST_LightValues, 64, 4),
+        //     kind: new Int32Array(ST_LightValues, 80, 1),
+        // };
         const ST_LightViews = {
             position: new Float32Array(ST_LightValues, 0, 3),
             decay: new Float32Array(ST_LightValues, 12, 1),
@@ -194,8 +237,13 @@ export abstract class BaseLight extends Root {
             visible: new Int32Array(ST_LightValues, 60, 1),
             size: new Float32Array(ST_LightValues, 64, 4),
             kind: new Int32Array(ST_LightValues, 80, 1),
+            id: new Uint32Array(ST_LightValues, 84, 1),
+            shadow_map_type: new Uint32Array(ST_LightValues, 88, 1),//1=one depth,6=cube,0=none
+            shadow_map_array_index: new Int32Array(ST_LightValues, 92, 1),//-1 = 没有shadowmap,other number=开始的位置，从0开始
+            shadow_map_array_lenght: new Uint32Array(ST_LightValues, 96, 1),//1 or 6
         };
 
+        //种类
         ST_LightViews.kind[0] = this.getKind();
 
         let position = this.getPosition();
@@ -231,6 +279,13 @@ export abstract class BaseLight extends Root {
 
         ST_LightViews.shadow[0] = this.getShadowEnable() ? 1 : 0;
         ST_LightViews.visible[0] = this.getVisible() ? 1 : 0;
+
+        //todo
+        /*
+        size
+        id
+        shadowmap
+        */
 
         return new Float32Array(ST_LightValues);
     }

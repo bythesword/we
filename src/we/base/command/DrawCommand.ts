@@ -4,6 +4,7 @@ import {
 import { TypedArray } from 'webgpu-utils';
 import { getReplaceVertexConstantsVS, getReplaceVertexConstantsFS } from './shaderFormat';
 import { BaseStage } from '../stage/baseStage';
+import { renderKindForDCCCC } from '../const/coreConst';
 
 
 /** VS的buffer的typearray的结构 
@@ -145,9 +146,9 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
     /**pipeline中的深度处理描述  GPUDepthStencilState */
     depthStencilState?: GPUDepthStencilState,
     // systemUniforms?: GPUBindGroup,
-    systemUniforms?: (pipeline: GPURenderPipeline, stage: BaseStage, id?: string, kind?: string) => GPUBindGroup,
+    systemUniforms?: (pipeline: GPURenderPipeline, stage: BaseStage, id?: string, kind?: renderKindForDCCCC) => GPUBindGroup,
     renderForID?: string,
-    renderForType?: string,
+    renderForType?: renderKindForDCCCC,
     // systemUniforms?: (pipeline: GPURenderPipeline) => GPUBindGroup,
 }
 /**

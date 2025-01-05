@@ -2,7 +2,7 @@ import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseStage } from "../../stage/baseStage";
-import { BaseEntity, boundingBox, boundingSphere, initStateEntity, optionBaseEntity } from "../baseEntity";
+import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
 import simpleModelVS from "../../shader/model/simpleModel.vs.wgsl?raw"
 
 interface modelData {
@@ -18,6 +18,11 @@ export interface optionSimpleModel extends optionBaseEntity {
 }
 
 export class SimpleModel extends BaseEntity {
+
+    generateBoxAndSphere() {
+        this.boundingBox = this.generateBox(this.modelData.positions.flat());
+        this.boundingSphere = this.generateSphere(this.boundingBox);
+    }
 
     modelData: modelData;
     _material: BaseMaterial;
@@ -214,20 +219,7 @@ export class SimpleModel extends BaseEntity {
     checkStatus(): boolean {
         return this._material.getReady();
     }
-    // updateDCC(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): renderCommands {
-    //     return this.commmands;
-    // }
-    //todo :20241219
-    generateBox(): boundingBox {
-        // throw new Error("Method not implemented.");
-        return {
-            min: [0, 0, 0],
-            max: [0, 0, 0],
-        }
-    }
-    generateSphere(): boundingSphere {
-        throw new Error("Method not implemented.");
-    }
+
     destroy() {
         this._destroy = true;
         this.modelData = {

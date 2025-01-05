@@ -10,7 +10,7 @@ import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, stageGroup } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
-import { BaseLight, lightStructSize } from "../light/baseLight";
+import { BaseLight, lightStructSize, lightStructSizeOfShadowMapMVP } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
 import { GBufferPostProcess, optionGBPP } from "./GBufferPostProcess";
 import { PostProcessMangement } from "../postprocess/postProcessMangement";
@@ -20,7 +20,17 @@ import { InputControl, typeOfInputControl } from "../control/inputControl";
 import { CamreaControl } from "../control/cameracCntrol";
 import { PostProcessEffect } from "../postprocess/postProcessEffect";
 import { MultiCameras, optionMulitCameras } from "./multiCameras";
+import { boundingBox, generateBox3ByArrayBox3s } from "../math/Box";
+import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
+import { renderKindForDCCCC } from "../const/coreConst";
+import { LightsManagement } from "../light/lightsManagement";
 
+
+declare global {
+    interface Window {
+        WEConst: any
+    }
+}
 
 export interface cameraViewport {
     cameraActorName: string,
@@ -36,44 +46,8 @@ export interface cameraViewport {
 
 
 
-
+/** stage 数量 */
 type stageStatus = "all" | "world";// | "userdefine"
-/**
- * stageStatus是快速初始化stage状态用的
- * 
- * sceneStageInit: 这个部分是为编辑器使用定义的
- * */
-export interface sceneStageInput {
-
-    stageStatus: stageStatus,
-    // sceneStageInit?: {
-    //     /**定义stage列表 
-    //       stages: stageName = [
-    //         "Actor",//角色
-    //         "DynamicEntities",//水、树、草等
-    //         "World",//静态
-    //         "Sky",//天空盒
-    //         "UI",
-    //         ];
-    //      * 
-    //     */
-    //     stages: coreConst.stageName,
-    //     /**stage DeferRender  */
-    //     stagesOfDeferRender: boolean[]
-    //     /**定义stage 显示排序
-    //      * 
-    //      *  [0, 1, 2, 3, 4]
-    //      */
-    //     stagesOrders: [],
-    //     /**默认stage名称
-    //      * 
-    //      * stages[] 中的一个名称,exp:"World"
-    //      */
-    //     defaultStageName: string,
-    // }
-}
-
-
 
 interface updateObjectOfRootOfScene { update: coreConst.userFN }
 /**
@@ -93,14 +67,12 @@ export interface sceneInputJson extends sceneJson {
     /**Debug  */
     // Debug?: WE_Debug,
     /**自定义stage */
-    stageSetting: sceneStageInput,
+    stageSetting: stageStatus,
     /**出现的camera显示，没有的不显示，按照数组的先后顺序进行render，0=最底层，数组最后的在最上层 
      * 
      * multiCameraViewport 与GBuffer可视化不可同时使用，multiCameraViewport优先级高
     */
     multiCameraViewport?: cameraViewport[],
-
-
 }
 
 /**scene 中配置是否使用GBuffer可视化的interface，
@@ -169,9 +141,7 @@ class Scene extends BaseScene {
     // stages!: BaseStage[];
     stagesOrders!: coreConst.stagesOrderByRender// number[];
     stageNameOfGroup!: coreConst.stageName;
-
     stageStatus: stageStatus;
-
     ////////////////////////////////////////////////////////////////////////////////
     /**cameras 默认摄像机 */
     defaultCamera!: BaseCamera;
@@ -191,26 +161,23 @@ class Scene extends BaseScene {
      */
     multiCamera: boolean;
     multiCameraViewport: cameraViewport[];
-    multtiCameras!: MultiCameras;
+    multiCameras!: MultiCameras;
     ////////////////////////////////////////////////////////////////////////////////
     /** actor group */
     actors: actorGroup;
     /**单独更新的在root中的更新对象 */
     root: updateObjectOfRootOfScene[];
 
-
     /** default actor
      *  一般的场景是CameraActor
      *  也可以是人物Actor
      */
     defaultActor!: BaseActor;
-
     ////////////////////////////////////////////////////////////////////////////////
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray!: userDefineUpdateCall[];
     /**资源类 */
     resources!: WeResource;
-
     ////////////////////////////////////////////////////////////////////////////////
     /** 是否进行实时渲染*/
     _realTimeRender!: boolean;
@@ -218,11 +185,8 @@ class Scene extends BaseScene {
     set realTimeRender(value: boolean) { this._realTimeRender = value; }
     /**获取实时渲染状态 */
     get realTimeRender() { return this._realTimeRender }
-
     ////////////////////////////////////////////////////////////////////////////////
     inputControl!: InputControl | CamreaControl;
-
-
     ////////////////////////////////////////////////////////////////////////////////
     /**resize Observer 标注位  */
     _reSize!: boolean;
@@ -260,7 +224,7 @@ class Scene extends BaseScene {
     /**GBuffer 可视化的配置interface  */
     _GBuffersVisualize: GBuffersVisualizeViewport;
     /**最终copy到surface的最后一个GPUTexture */
-    sourceOfcopyToSurface!: { [name: string]: GPUTexture };
+    sourceOfcopyToSurface: { [name: string]: GPUTexture };
 
     ////////////////////////////////////////////////////////////////////////////////
     /** for raw */
@@ -274,8 +238,9 @@ class Scene extends BaseScene {
     finalTarget!: GPUTexture;
     /**system uniform（）的GPUBindGroupLayout */
     layoutOfSystemUniform!: GPUBindGroupLayout;
-
-
+    ////////////////////////////////////////////////////////////////////////////////
+    //lights
+    lightsManagement!: LightsManagement;
     ////////////////////////////////////////////////////////////////////////////////
     // function
     ////////////////////////////////////////////////////////////////////////////////
@@ -284,6 +249,7 @@ class Scene extends BaseScene {
         this.root = [];
         this.cameraActors = [];
         this.actors = {};
+        this.sourceOfcopyToSurface = {}
         this.stagesOfSystem = coreConst.stagesOfSystem;
         this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage];
         this.multiCamera = false;
@@ -302,8 +268,8 @@ class Scene extends BaseScene {
         //     this.stageStatus = "userdefine";
         // }
         // else
-        if (input.stageSetting && input.stageSetting.stageStatus) {
-            this.stageStatus = input.stageSetting.stageStatus;
+        if (input.stageSetting) {
+            this.stageStatus = input.stageSetting;
             if (this.stageStatus == "world") {
                 this.stagesOfSystem = ["World"];
                 this.defaultStageName = "World";
@@ -342,12 +308,6 @@ class Scene extends BaseScene {
         };
         this.clock = new Clock();
         this.input = input;
-        if (input.ambientLight) {
-            this.setAmbientLight(input.ambientLight);
-        }
-        else {
-            this.setAmbientLight();
-        }
         return this;
     }
     ////////////////////////////////////////////////////////////////////////////////
@@ -396,9 +356,8 @@ class Scene extends BaseScene {
             alphaMode: 'premultiplied',//预乘透明度
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
-        this.sourceOfcopyToSurface = {}
-        // this.sourceOfcopyToSurface["default"] = this.createSourceOfcopyToSurface("default");
-
+        
+        
 
         this.aspect = canvas.width / canvas.height;
         this.resources = new WeResource(this);
@@ -408,14 +367,17 @@ class Scene extends BaseScene {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
         });
         await this.initStages();
-        // this.GBuffers["default"] = await this.initGBuffers(canvas.width, canvas.height);
-
-        this.initActors();
-        // this.initGBuffersPostProcess();
+        this.lightsManagement = new LightsManagement({ scene: this });
+        if (this.input.ambientLight) {
+            this.lightsManagement.setAmbientLight(this.input.ambientLight);
+        }
+        else {
+            this.lightsManagement.setAmbientLight();
+        }
+        this.initActors();        
         this.initMultiCameras()
         this.initPostProcess();
-        this.initPickup();
-        // this.initForRAW();//20241229,未使用 
+        this.initPickup();        
         this.observer();
     }
     async createSourceOfcopyToSurface(camera: string) {
@@ -443,7 +405,7 @@ class Scene extends BaseScene {
                 MultiGBuffers: this.GBuffers,
                 CameraActors: this.cameraActors,
             };
-            this.multtiCameras = new MultiCameras(values);
+            this.multiCameras = new MultiCameras(values);
         }
     }
     /**
@@ -499,7 +461,10 @@ class Scene extends BaseScene {
         return GBuffers;
     }
 
-    /**GBuffer的后处理，在scene中合并 */
+    /**GBuffer的后处理，在scene中合并
+     * 
+     * 每个摄像机都有一组GBuffer 的后处理合并
+     */
     async initGBuffersPostProcess(camera: string) {
 
         if (this.GBufferPostprocess == undefined) this.GBufferPostprocess = {};
@@ -608,38 +573,62 @@ class Scene extends BaseScene {
      *  
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, _scope?: BaseScene, camera?: string, _kind?: string): GPUBindGroup {
-        let ID = this.defaultCameraActor.id.toString();
-        if (camera != undefined) {
-            ID = camera;
-        }
+    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, _scope?: BaseScene, camera?: string, _kind?: renderKindForDCCCC): GPUBindGroup {
+        let groupDesc: GPUBindGroupDescriptor;
         const bindLayout = pipeline.getBindGroupLayout(0);
-        let groupDesc: GPUBindGroupDescriptor = {
-            label: "global Group bind to 0",
-            layout: bindLayout,
-            entries:
-                [
-                    {
-                        binding: 0,
-                        resource: {
-                            buffer: this.systemUniformBuffers["MVP"]![ID],
-                        },
-                    },
-                    {
-                        binding: 1,
-                        resource: {
-                            buffer: this.systemUniformBuffers["lights"]!,
+        if (_kind == renderKindForDCCCC.light) {
+            let ID = camera!;
+            groupDesc = {
+                label: "global Group bind to 0 ,light MVP for shadow map ",
+                layout: bindLayout,
+                entries:
+                    [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: this.lightsManagement.getOneLightsMVP(ID),
+                            },
                         }
-                    }
-                ],
+                    ],
+            }
+
         }
+        //    if (_kind == renderKindForDCCCC.camera)
+        else {
+
+            let ID = this.defaultCameraActor.id.toString();
+            if (camera != undefined) {
+                ID = camera;
+            }
+            groupDesc = {
+                label: "global Group bind to 0 , camera+lights",
+                layout: bindLayout,
+                entries:
+                    [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: this.systemUniformBuffers["MVP"]![ID],
+                            },
+                        },
+                        {
+                            binding: 1,
+                            resource: {
+                                buffer: this.lightsManagement.lightsUniformGPUBuffer,
+                                // buffer: this.systemUniformBuffers["lights"]!,
+                            }
+                        }
+                    ],
+            }
+        }
+
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
 
-    getLightNumbers() {
-        return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
-    }
+    // getLightNumbers() {
+    //     return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
+    // }
 
     /**
      * DrawCommand 的  createPipeline() 调用
@@ -658,6 +647,7 @@ class Scene extends BaseScene {
     /**
      * 循环入口
      */
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     run(userRun: coreConst.userPromiseFN) {
         let scope = this;
         this.clock.update();
@@ -674,9 +664,6 @@ class Scene extends BaseScene {
                     await scope.copyToSurface();
                     if (userRun !== undefined)
                         await userRun(scope);
-                    // if (scope._updateForce === true) {
-                    //     scope._updateForce = false;
-                    // }
                 }
                 else {
                     // await scope.reSize();
@@ -697,48 +684,38 @@ class Scene extends BaseScene {
      * 3、更新实体 entity
      */
     async update(deltaTime: number, startTime: number, lastTime: number) {
-
-
-        this.updateCameraActor(deltaTime, startTime, lastTime);
-        await this.updateSystemUniformBufferForCameras();//更新其他cameras，20241229，增加多cameras
-
+        await this.updateUserDefine();
+        await this.updateCameraActor(deltaTime, startTime, lastTime);
         //todo
         // 四个中间点，稍稍延迟
         // let rays = this.defaultCamera!.getCameraRays();
         // 四个中间点，稍稍延迟
         // this.updateBVH(rays)
-
-        await this.updateLights(deltaTime, startTime, lastTime);
-        this.updateSystemUniformBufferForlights();//更新lights的uniform ，for shadowmapping
-
+        await this.lightsManagement.update(deltaTime, startTime, lastTime);
         this.updateActor(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
         this.updateEntities(deltaTime, startTime, lastTime);//更新实体状态，比如水，树，草等动态的
         this.updateStagesCommand(deltaTime, startTime, lastTime);
-        await this.updateUserDefine();
         await this.updatePostProcess(deltaTime, startTime, lastTime);
     }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //render 
 
     /**  stage 透明深度与合并
     * 
     * sky、UI的合并与顺序
     * */
     async oneFrameRender() {
-        this.renderSceneCommands();//render scene commands
-        this.renderShadowMap();
+        this.lightsManagement.renderShadowMap();
         this.renderStagesCommand();//render  stages commands
-
+        this.renderSceneCommands();//render scene commands
         for (let i in this.GBufferPostprocess) {
-            this.GBufferPostprocess[i].render();   //合并GBuffer
+            this.GBufferPostprocess[i].render();   //render GBuffer
         }
         this.postProcessManagement.render();  //进行后处理
         this.showMultiCamera();
         await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
     }
-    /**render perlight's shadowmap  */
-    renderShadowMap() {
-
-    }
-
     /**render perstage  */
     renderStagesCommand() {
         for (let i in this.stagesOrders) {
@@ -761,118 +738,87 @@ class Scene extends BaseScene {
             one.update();
         }
     }
-    async updateLights(deltaTime: number, startTime: number, lastTime: number) {
-        for (let i of this.lights) {
-            await i.update(deltaTime, startTime, lastTime);
-        }
-    }
+    ////////////////////////////////////////////////////////////////
+    //render ：output
 
     /**
-    * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
-    * 这个需要确保每帧只更新一次
-    */
-    updateSystemUniformBuffer() {
-        // if (this.defaultCamera)
-        //     this.systemUniformBuffers["MVP"] = this.getMVP();
-        // this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
+     * 多摄像机viewport显示
+     */
+    showMultiCamera() {
+        //多camera
+        if (this.multiCamera) {
+            this.multiCameras.render();
+        }
+        else {
+            this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        }
+        //测试多camera
+        // for (let i in this.sourceOfcopyToSurface) {
+        //     if (i == this.defaultCameraActor.id.toString()) {
+        //         // console.log("相同", i, this.defaultCameraActor.id.toString());
+        //         this.copyTextureToTexture(this.sourceOfcopyToSurface[i], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        //     }
+        //     else {
+        //         // console.log("不相同", i, this.defaultCameraActor.id.toString());
+        //     }
+        // }
+        //基础测试World
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers[this.defaultCameraActor.id]["color"], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
     }
+    /**每帧渲染的最后步骤 */
+    async copyToSurface() {
+        this.copyTextureToTexture(this.finalTarget, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
+
+        //直接测试：world -->scene
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+
+        //中转测试：world-->  scene
+        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
+        // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+    }
+    /** 20241229 ,未使用
+     * 这个是准备做WE tory （类似shadertoy）使用的
+     */
+    copyRawToSurface() {
+        this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+    }
+
+    ////////////////////////////////////////////////////////////////
+    //update camera 
+    async updateCameraActor(deltaTime: number, startTime: number, lastTime: number) {
+        if (this.cameraActors)
+            for (let i in this.cameraActors) {
+                if (this.defaultActor && this.cameraActors[i] != this.defaultCameraActor) {
+                    this.cameraActors[i].update(deltaTime, startTime, lastTime);
+                }
+                else {
+                    this.cameraActors[i].update(deltaTime, startTime, lastTime);
+                }
+            }
+        await this.updateSystemUniformBufferForCameras();
+    }
+
     /**更新所有camera的MVP */
     async updateSystemUniformBufferForCameras() {
         for (let i of this.cameraActors) {
             const id = i.id.toString();
             if (this.systemUniformBuffers["MVP"]![id] == undefined) {
-                this.systemUniformBuffers["MVP"]![id] = await this.getMVP(i);
+                this.systemUniformBuffers["MVP"]![id] = await this.updatePerCameraMVP(i);
             }
             else {
-                await this.getMVP(i);
+                await this.updatePerCameraMVP(i);
             }
         }
-    }
-    updateSystemUniformBufferForlights() {
-        this.systemUniformBuffers["lights"] = this.getUniformOfSystemLights();
     }
     /**
-     * 在WGSL是一个struct ，参见“system.wgsl”中的 ST_Lights结构。
-     * 
-     * @returns 光源的GPUBuffer,大小=16 + 16 + lightNumber * 96,
+     * 获取camera MVP矩阵
+     * @returns MVP(16*4)
      */
-    getUniformOfSystemLights(): GPUBuffer {
-        let size = lightStructSize;
-        let lightNumber = coreConst.lightNumber;
-        let lightRealNumberOfSystem = this.getLightNumbers();
-
-        let lightsGPUBuffer: GPUBuffer;
-
-        if (lightNumber == this._lastNumberOfLights)
-            //generate GPUBuffer
-            if (this.systemUniformBuffers["lights"]) {
-                lightsGPUBuffer = this.systemUniformBuffers["lights"];
-            }
-            else {
-                lightsGPUBuffer = this.device.createBuffer({
-                    label: 'lightsGPUBuffer',
-                    size: 16 + 16 + lightNumber * size,
-                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-                });
-            }
-        else {//不同，注销并新建
-            if (this.systemUniformBuffers["lights"]) {
-                this.systemUniformBuffers["lights"].destroy();
-            }
-            lightsGPUBuffer = this.device.createBuffer({
-                label: 'lightsGPUBuffer',
-                size: 16 + 16 + lightNumber * size,
-                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-            });
-            this._lastNumberOfLights = lightNumber;
-        }
-
-        //总arraybuffer
-        let buffer = new ArrayBuffer(16 + 16 + lightNumber * size);
-
-        //第一个16，是光源数量
-        let ST_lightNumber = new Uint32Array(buffer, 0, 1);
-        ST_lightNumber[0] = lightRealNumberOfSystem;
-
-        //第二个16，是当前的环境光参数（每个stage的环境光可能不同，室内外）
-        let ST_AmbientLightViews = {
-            color: new Float32Array(buffer, 16, 3),
-            intensity: new Float32Array(buffer, 16 + 12, 1),
-        };
-        ST_AmbientLightViews.color[0] = this.ambientLight._color[0];
-        ST_AmbientLightViews.color[1] = this.ambientLight._color[1];
-        ST_AmbientLightViews.color[2] = this.ambientLight._color[2];
-        ST_AmbientLightViews.intensity[0] = this.ambientLight._intensity;
-
-        //第三部分，lightNumber * size
-        //映射到每个viewer上，并写入新的数据（无论是否有变化）
-        for (let i = 0; i < this.lights.length; i++) {
-            let StructBuffer = new Float32Array(buffer, 16 + 16 + size * i, size / 4);//todo，20241117，需要确认是否/4(byte*4 -->float32*1)
-            let lightStructBuffer = this.lights[i].getStructBuffer();
-            for (let j = 0; j < size; j++) {
-                StructBuffer[i * size + j] = lightStructBuffer[j];
-            }
-        }
-
-        //生成浮点数据队列
-        let bufferFloat32Array = new Float32Array(buffer);
-        // let bufferFloat32Array = buffer;
-        //将新生成的浮点数据写入到GPUBuffer中，
-        this.device.queue.writeBuffer(
-            lightsGPUBuffer,
-            0,
-            bufferFloat32Array.buffer,
-            bufferFloat32Array.byteOffset,
-            bufferFloat32Array.byteLength
-        );
-        return lightsGPUBuffer;
-    }
-    /**
-     * 获取单位MVP，如果有传入的MVP，则更新
-     * @param mvp Mat4[] | boolean = false 
-     * @returns GPUBuffer
-     */
-    async getUnitMVP(mvp: Mat4[] | boolean = false, id: string): Promise<GPUBuffer> {
+    async updatePerCameraMVP(one: CameraActor): Promise<GPUBuffer> {
+        let mvp = one.camera.getMVP();
+        const id = one.id.toString();
         const uniformBufferSize = 4 * 4 * 4 * 4;//MVP 
         let MVP: GPUBuffer;
         let MVP_buffer = new Float32Array([
@@ -886,12 +832,12 @@ class Scene extends BaseScene {
         }
         else {
             MVP = this.device.createBuffer({
-                label: 'system MVP',
+                label: "camera (" + id + ") MVP",
                 size: uniformBufferSize,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             });
         }
-        if (mvp !== false) {
+        if (mvp) {
             let model = new Float32Array(MVP_buffer.buffer, 4 * 4 * 4 * 0, 16);
             mat4.copy((<Mat4[]>mvp)[0], model);
 
@@ -925,19 +871,9 @@ class Scene extends BaseScene {
         return MVP;
     }
 
-    /**
-     * 获取MVP矩阵
-     * @returns MVP(16*4)
-     */
-    async getMVP(one: CameraActor): Promise<GPUBuffer> {
-        let mvpArray = one.camera.getMVP();
-        return this.getUnitMVP(mvpArray, one.id.toString());
-    }
 
-    /**todo */
-    updateBVH(_cameraValues: cameraRayValues) {
-
-    }
+    ////////////////////////////////////////////////////////////////
+    //update Actor 
     /**更新Actor
      * 循环所有actor ，并执行update
      * todo：
@@ -959,17 +895,14 @@ class Scene extends BaseScene {
                 }
             }
     }
-    updateCameraActor(deltaTime: number, startTime: number, lastTime: number) {
-        if (this.cameraActors)
-            for (let i in this.cameraActors) {
-                if (this.defaultActor && this.cameraActors[i] != this.defaultCameraActor) {
-                    this.cameraActors[i].update(deltaTime, startTime, lastTime);
-                }
-                else {
-                    this.cameraActors[i].update(deltaTime, startTime, lastTime);
-                }
-            }
+    ////////////////////////////////////////////////////////////////
+    //update
+    /**todo */
+    updateBVH(_cameraValues: cameraRayValues) {
+
     }
+    ////////////////////////////////////////////////////////////////
+    //update
     /**todo
      * 实体更新 
      * 
@@ -989,7 +922,8 @@ class Scene extends BaseScene {
 
     }
 
-
+    ////////////////////////////////////////////////////////////////
+    //update Stages
     /**
      * 更新stage
      * 包括：
@@ -1001,6 +935,7 @@ class Scene extends BaseScene {
     updateStagesCommand(deltaTime: number, startTime: number, lastTime: number) {
         //scene的root更新，特殊的，非baseentity的
         this.commands = [];
+        this.Box3s = [];
         for (let one of this.root) {
             for (let commandInOne of one.update(this))
                 this.commands.push(commandInOne);
@@ -1014,6 +949,7 @@ class Scene extends BaseScene {
             {//每个stageGroup进行update，包含透明和不透明两个stage 
                 if (this.stages[name].opaque) {
                     this.stages[name].opaque!.update(deltaTime, startTime, lastTime);
+                    this.Box3s.push(this.stages[name].opaque.generateBox());
                 }
                 //20241212:透明render移动到GBufferPostprocess中进行油画法
                 // if (this.stages[name].transparent) {
@@ -1022,6 +958,8 @@ class Scene extends BaseScene {
             }
         }
     }
+    ////////////////////////////////////////////////////////////////
+    //update PostProcess
     /** 初始化 后处理    */
     async updatePostProcess(deltaTime: number, startTime: number, lastTime: number) {
 
@@ -1029,6 +967,8 @@ class Scene extends BaseScene {
 
         //  this.copyTextureToTexture(this.stages["World"]!.opaque!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
     }
+    ////////////////////////////////////////////////////////////////
+    //output :BuffersVisualize
     /**显示GBuffer可视化 
      * 
      * 只进行defaultcamera的GBuffer可视化
@@ -1099,61 +1039,6 @@ class Scene extends BaseScene {
             }
         }
         console.error("GBuffer可视化输入参数错误!");
-    }
-    /** 设置multiCamera是否有效 */
-    setMultiCamera(enable: boolean) {
-        this.multiCamera = enable;
-    }
-    /**
-     * 多摄像机viewport显示
-     */
-    showMultiCamera() {
-
-        //多camera
-        if (this.multiCamera) {
-            this.multtiCameras.render();
-        }
-        else {
-            this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
-        }
-
-
-
-        //测试多camera
-        // for (let i in this.sourceOfcopyToSurface) {
-        //     if (i == this.defaultCameraActor.id.toString()) {
-        //         // console.log("相同", i, this.defaultCameraActor.id.toString());
-        //         this.copyTextureToTexture(this.sourceOfcopyToSurface[i], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
-        //     }
-        //     else {
-        //         // console.log("不相同", i, this.defaultCameraActor.id.toString());
-        //     }
-        // }
-
-        //基础测试World
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers[this.defaultCameraActor.id]["color"], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
-
-
-        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
-    }
-    /**每帧渲染的最后步骤 */
-    async copyToSurface() {
-        this.copyTextureToTexture(this.finalTarget, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
-        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
-
-
-        //直接测试：world -->scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-
-        //中转测试：world-->  scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
-        // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-    }
-    /** 20241229 ,未使用
-     * 这个是准备做WE tory （类似shadertoy）使用的
-     */
-    copyRawToSurface() {
-        this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1248,7 +1133,7 @@ class Scene extends BaseScene {
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // add function
+    // add and set  function 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     addToScene(one: updateObjectOfRootOfScene) {
         this.root.push(one);
@@ -1291,7 +1176,6 @@ class Scene extends BaseScene {
         if (this.cameraActors.length == 0) {
             isDefault = true;
         }
-
         const id = one.id.toString();
         this.cameraActors.push(one);//增加cameraActor数组中
         this.sourceOfcopyToSurface[id] = await this.createSourceOfcopyToSurface(id);
@@ -1299,22 +1183,23 @@ class Scene extends BaseScene {
         for (let i in this.stages) {
             await this.stages[i].opaque?.initCameraGBuffer(id);
         }
-
         await this.initGBuffersPostProcess(id);
-        if (this.multiCamera)
-            await this.multtiCameras.check(id);
-
+        if (this.multiCamera)//若多camera，check是多
+            await this.multiCameras.check(id);
         if (isDefault === true) {
             this.setDefaultActor(one);//CameraActor 调用setDefault,设置defaultCamera
             this.defaultCameraActor = one;
         }
         else {
-
         }
         // console.log(" instance of CameraActor:",one instanceof CameraActor);
     }
     setDefaultCameraActor(one: CameraActor) {
         this.defaultCameraActor = one;
+    }
+    /** 设置multiCamera是否有效 */
+    setEnableMultiCamera(enable: boolean) {
+        this.multiCamera = enable;
     }
     /**
      * 增加actor，
@@ -1339,16 +1224,12 @@ class Scene extends BaseScene {
         }
     }
 
-    addLight(oneLight: BaseLight) {
-        oneLight.setRootScene(this);
-        this.lights.push(oneLight);
+    addLight(one: BaseLight) {
+        this.lightsManagement.addLights(one);
     }
     addPostProcess(one: PostProcessEffect) {
         this.postProcessManagement.add(one);
     }
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // get  
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1473,6 +1354,23 @@ class Scene extends BaseScene {
             scope._reSize = false;//在this.reSize()中
         });
         resizeObserver.observe(this.canvas);
+    }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //   boundingBox
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /** 世界坐标的Box */
+    generateBox(): boundingBox {
+
+        this.boundingBox = generateBox3ByArrayBox3s(this.Box3s);
+        return this.boundingBox;
+    }
+    /**世界坐标的sphere */
+    generateSphere(): boundingSphere {
+        if (this.boundingBox == undefined) {
+            this.generateBox();
+        }
+        this.boundingSphere = generateSphereFromBox3(this.boundingBox);
+        return this.boundingSphere;
     }
 }
 /**用户自定义 update interface */

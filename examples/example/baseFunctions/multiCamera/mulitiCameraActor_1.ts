@@ -26,9 +26,7 @@ let input: sceneInputJson = {
     blue: 0.1,
     alpha: 1
   },
-  stageSetting: {
-    stageStatus: "world"
-  },
+  stageSetting:  "world",
   multiCameraViewport:[
     {
       cameraActorName: "camera_0",
@@ -73,7 +71,7 @@ const cameraOption1: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.1,
   far: 100,
-  position: [0, 0, -4],
+  position: [0, 0, -5],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机

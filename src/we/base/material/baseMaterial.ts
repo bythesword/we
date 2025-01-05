@@ -1,11 +1,11 @@
 import { uniformEntries } from "../command/baseCommand";
 import * as coreConst from "../const/coreConst"
-import { Root } from "../const/root";
+import { Root } from "../scene/root";
 import { Scene } from "../scene/scene";
 import partHead_GBuffer_Add_FS from "../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.fs.wgsl?raw"
-import { BaseScene } from "../scene/baseScene";
+
 import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
 
 export type textureType = ImageBitmap | string | GPUTexture;
@@ -20,7 +20,7 @@ export interface optionBaseMaterial {
      * 
      * 3、加载场景模式，原则上是通过加载器带入parent参数。todo
      */
-    parent?: BaseScene,
+    // parent?: BaseScene,
     /**基础颜色 */
     color?: coreConst.color4F//number[],
     /**顶点颜色，boolean */

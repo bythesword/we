@@ -1,4 +1,4 @@
-import { Scene } from "../scene/scene";
+import { Scene } from "./scene";
 import { BaseStage } from "../stage/baseStage";
 
 export abstract class Root {

@@ -13,7 +13,13 @@ export interface optionUpdate {
     // update?: (scope: any, deltaTime: number,startTime:number,lastTime:number) => {},
     // update?: (scope: any, deltaTime: number,startTime:number,lastTime:number) => Promise<any>,
 }
+////////////////////////////////////////////////////////////////////////////////////////
+//shadow map
 
+export enum renderKindForDCCCC {
+    "camera" = "camrea",
+    "light" = "light"
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //stage 
@@ -96,16 +102,70 @@ export enum GBufferName {
     normal = "normal",
     uv = "uv",
 }
-
-
 /**GBuffer的 GPUTexture集合 */
 export interface GBuffers {
     [name: string]: GPUTexture
 };
-export interface MultiGBuffers{
+/**多cameras中，多个摄像机对应的GBuffer */
+export interface MultiGBuffers {
     /**name= camera  的 id */
     [name: string]: GBuffers,
 }
+/**GBuffer 的render Pass Descriptor ,对应GPURenderPassDescriptor
+ * 
+ * format: GPUTextureFormat|"system"; 
+ *      
+ *      WEsystem:表示当前OS/浏览器/canvas支持的首选格式
+ *      
+ *      WEdepth:WE使用的depth描述格式，统一的
+ * 
+ * usage :GPUTextureUsage 
+ */
+export interface GBufferRenderPassDescriptor {
+    label: string,
+    format: GPUTextureFormat | "WEsystem" | "WEdepth",
+    usage: number,
+    clearValue?: []
+}
+/**GBuffers 的RenderPassDescriptor的集合的类型描述(type) */
+export type GBuffersRPD = {
+    [name in GBufferName]: GBufferRenderPassDescriptor;
+};
+
+/** 实例化的 GBufferRenderPassDescriptor 的集合
+ * 
+ * (GBuffer 合并使用的Render Pass Descriptor)
+ */
+export var GBuffersRPDAssemble: GBuffersRPD = {
+    [GBufferName.color]: {
+        label: "color texture of colorAttachments",
+        format: "WEsystem",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+    [GBufferName.depth]: {
+        label: "color texture of colorAttachments",
+        format: "WEdepth",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+    [GBufferName.entityID]: {
+        label: "color texture of colorAttachments",
+        format: "r32uint",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+    [GBufferName.normal]: {
+        label: "color texture of colorAttachments",
+        format: "WEsystem",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    },
+    [GBufferName.uv]: {
+        label: "color texture of colorAttachments",
+        format: "WEsystem",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    }
+}
+////////////////////////////////////////////////////////////
+//GBuffer可视化
+
 /**GBuffers viewport集合的类型描述(type) */
 export type GBufferLayout = {
     [name in GBufferName]: viewPort;
@@ -114,7 +174,7 @@ export type GBufferLayout = {
 export interface GBuffersVisualizeLayout {
     [name: string]: GBufferLayout
 }
-/** 实例化的GBffers 的布局类型的集合 */
+/**多窗口模式的GBuffer可视化中，实例化的GBffers 的布局类型的集合 */
 export var GBuffersVisualizeLayoutAssemble: GBuffersVisualizeLayout = {
     default: {
         [GBufferName.color]: {
@@ -169,6 +229,7 @@ export interface shaderCodeOfGBuffersVisualizeLayout {
 import shaderCodeDepth from "../shader/GBuffersVisualize/depth.wgsl?raw";
 import shaderCodeEID from "../shader/GBuffersVisualize/entityID.wgsl?raw";
 import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";
+/**定义多窗口模式的GBuffer可视化，每个GBbuffer对应的shader */
 export var varOfshaderCodeOfGBuffersVisualizeLayout: shaderCodeOfGBuffersVisualizeLayout = {
     "default": {
         "color": shaderCodeVec4f,
@@ -178,63 +239,13 @@ export var varOfshaderCodeOfGBuffersVisualizeLayout: shaderCodeOfGBuffersVisuali
         "uv": shaderCodeVec4f
     }
 }
+/**单窗口模式的GBuffer可视化，每个GBbuffer对应的shader */
 export var varOfshaderCodeSingleOfGBuffersVisualizeLayout: { [name: string]: string } = {
     "depth": shaderCodeDepth,
     "entityID": shaderCodeEID,
     "normal": shaderCodeVec4f,
     "uv": shaderCodeVec4f
 }
-/**GBuffer 的render Pass Descriptor ,对应GPURenderPassDescriptor
- * 
- * format: GPUTextureFormat|"system"; 
- *      
- *      WEsystem:表示当前OS/浏览器/canvas支持的首选格式
- *      
- *      WEdepth:WE使用的depth描述格式，统一的
- * 
- * usage :GPUTextureUsage 
- */
-export interface GBufferRenderPassDescriptor {
-    label: string,
-    format: GPUTextureFormat | "WEsystem" | "WEdepth",
-    usage: number,
-    clearValue?: []
-}
-/**GBuffers 的RenderPassDescriptor的集合的类型描述(type) */
-export type GBuffersRPD = {
-    [name in GBufferName]: GBufferRenderPassDescriptor;
-};
 
-/** 实例化的 GBufferRenderPassDescriptor 的集合
- * 
- * (GBuffer 合并使用的Render Pass Descriptor)
- */
-export var GBuffersRPDAssemble: GBuffersRPD = {
-    [GBufferName.color]: {
-        label: "color texture of colorAttachments",
-        format: "WEsystem",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [GBufferName.depth]: {
-        label: "color texture of colorAttachments",
-        format: "WEdepth",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [GBufferName.entityID]: {
-        label: "color texture of colorAttachments",
-        format: "r32uint",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [GBufferName.normal]: {
-        label: "color texture of colorAttachments",
-        format: "WEsystem",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    },
-    [GBufferName.uv]: {
-        label: "color texture of colorAttachments",
-        format: "WEsystem",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-    }
-}
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 //

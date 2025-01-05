@@ -1,4 +1,4 @@
-import { Root } from "../const/root";
+import { Root } from "../scene/root";
 
 //todo:20241126,还有多种组合模式，等待扩展
 export enum weSamplerKind {
@@ -71,5 +71,8 @@ export class WeResource extends Root {
         this.images[name] = target;
     }
 
+    destroy(){
+
+    }
 
 }

@@ -27,6 +27,6 @@ export function WERandomInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
-export function WeGenerateID(){
-    return Date.now() * 1000 + WERandomInt(1, 1000);
+export function WeGenerateID() {
+    return Date.now() * 10000 + WERandomInt(1000, 10000)  + WERandomInt(1, 1000);
 }
