@@ -384,13 +384,14 @@ export abstract class BaseEntity extends Root {
         if (already) {
             this._init = initStateEntity.initializing;
             this.generateBoxAndSphere();
+            for (let i of this.scene.lightsManagement.lights) {
+
+            }
             for (let i of this.scene.cameraActors) {
                 if (this.deferRenderDepth) this._init = this.createDCCDeferRenderDepth(parent, i.id.toString());
                 this._init = this.createDCC(parent, i.id.toString(), "camera");
             }
-            // for (let i of this.scene.lights) {
 
-            // }
         }
     }
     abstract generateBoxAndSphere(): void
@@ -409,6 +410,7 @@ export abstract class BaseEntity extends Root {
      */
     abstract createDCC(parent: BaseStage, camera: string, kind?: string): initStateEntity
     abstract createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity
+    abstract createDCCForShadowMap(parent: BaseStage, camera: string, kind?: string): initStateEntity
 
 
 

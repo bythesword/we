@@ -241,11 +241,17 @@ class Scene extends BaseScene {
     ////////////////////////////////////////////////////////////////////////////////
     //lights
     lightsManagement!: LightsManagement;
+
+
+
+    lastCommand:coreConst.SimpleFunction[];
+
     ////////////////////////////////////////////////////////////////////////////////
     // function
     ////////////////////////////////////////////////////////////////////////////////
     constructor(input: sceneInputJson) {
         super(input);
+        this.lastCommand=[];
         this.root = [];
         this.cameraActors = [];
         this.actors = {};
@@ -653,6 +659,7 @@ class Scene extends BaseScene {
         this.clock.update();
         async function run() {
             if (scope.realTimeRender) {//是否开启实时更新
+                scope.onBegin();
                 if (scope._reSize === false) {//是否resize中
                     //时间更新
                     scope.clock.update();
@@ -671,9 +678,20 @@ class Scene extends BaseScene {
                     // console.log("run:", scope._reSize);
                 }
             }
-            requestAnimationFrame(run)
+            scope.onFinish();
+            requestAnimationFrame(run);
         }
         requestAnimationFrame(run)
+    }
+    onBegin(){
+        this.lastCommand=[];
+    }
+    onFinish(){
+        for(let i of this.lastCommand){
+            if(typeof i == "function"){
+                i();
+            }
+        }
     }
 
 

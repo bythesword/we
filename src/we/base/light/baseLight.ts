@@ -3,20 +3,7 @@ import { mat4, Mat4, Vec3, } from "wgpu-matrix";
 import { Root } from "../scene/root";
 import { WeGenerateID } from "../math/baseFunction";
 
-// export interface optionBaseLightSize{
 
-// }
-export interface optionLightShadow extends coreConst.optionUpdate {
-    /**
-     * 是否产生阴影
-     * 默认=false
-     */
-    castShadow?: boolean,
-    mapSize?: {
-        width: number,
-        height: number
-    }
-}
 export enum lightType {
     directional,
     point,
@@ -40,7 +27,7 @@ export interface optionBaseLight extends coreConst.optionUpdate {
     decay?: number,
     angle?: number,
     angleOut?: number,
-    shadow?: optionLightShadow,
+    shadow?: boolean,
     size?: number,
     visible?: boolean
     /**
@@ -78,7 +65,7 @@ export interface shadowMap {
 
 
 export abstract class BaseLight/* extends Root */ {
-    _kind!: number;
+    _kind!: lightType;
     /**
      * 
      */
@@ -88,15 +75,17 @@ export abstract class BaseLight/* extends Root */ {
     /**输入参数=input */
     input: optionBaseLight;
     id: number;
-    MVP: Mat4;
-    enable:boolean;
-    
+    MVP: Mat4[];
+    enable: boolean;
+    shadow: boolean;
+    visible: boolean;
 
-    constructor(input: optionBaseLight, kind: number = -1) {
+
+    constructor(input: optionBaseLight, kind: lightType) {
         // super();
-        this.enable=false;
+        this.enable = false;
         this.input = input;
-        this.MVP = mat4.identity();
+        this.MVP = [];
         this.id = WeGenerateID();
         if (this.input.position == undefined) this.input.position = [0.0, 0.0, 0.0];
         if (this.input.color == undefined) this.input.color = { red: 1, green: 1, blue: 1 };
@@ -105,15 +94,10 @@ export abstract class BaseLight/* extends Root */ {
         if (this.input.visible == undefined) this.input.visible = true;
         if (this.input.intensity == undefined) this.input.intensity = 1.0;
         this._kind = kind;
-
-        if (this.input.shadow != undefined)
-            if (this.input.shadow.castShadow === true)
-                if (this.input.shadow.mapSize == undefined) {
-                    this.input.shadow.mapSize = {
-                        width: coreConst.shadowMapSize,
-                        height: coreConst.shadowMapSize,
-                    }
-                }
+        this.shadow = false;
+        if (input.shadow) this.shadow = input.shadow;
+        this.visible = false;
+        if (input.visible) this.visible = input.visible;
         this._buffer = this.updateStructBuffer();
     }
 
@@ -188,14 +172,15 @@ export abstract class BaseLight/* extends Root */ {
         this.MVP = this.updateMVP();
     }
     /**更新光源MVP */
-    updateMVP(): Mat4 {
-        let m4 = mat4.identity();
+    abstract updateMVP(): Mat4[];
+    //     {
+    //         let m4 = mat4.identity();
 
+    // //mat4.identity()
 
-
-        return m4;
-    }
-    getMVP(): Mat4 {
+    //         return m4;
+    //     }
+    getMVP(): Mat4[] {
         return this.MVP;
     }
 
@@ -241,6 +226,7 @@ export abstract class BaseLight/* extends Root */ {
             shadow_map_type: new Uint32Array(ST_LightValues, 88, 1),//1=one depth,6=cube,0=none
             shadow_map_array_index: new Int32Array(ST_LightValues, 92, 1),//-1 = 没有shadowmap,other number=开始的位置，从0开始
             shadow_map_array_lenght: new Uint32Array(ST_LightValues, 96, 1),//1 or 6
+            shadow_map_enable: new Int32Array(ST_LightValues, 100, 1),//depth texture array 会在light add之后的下一帧生效，这个是标志位。因为GPUTexture会重建
         };
 
         //种类
@@ -289,4 +275,30 @@ export abstract class BaseLight/* extends Root */ {
 
         return new Float32Array(ST_LightValues);
     }
+    setShdowMapValues(index: number, count: number, kind: number) {
+        let ST_LightValues = this._buffer.buffer;
+        const ST_LightViews = {
+            position: new Float32Array(ST_LightValues, 0, 3),
+            decay: new Float32Array(ST_LightValues, 12, 1),
+            color: new Float32Array(ST_LightValues, 16, 3),
+            intensity: new Float32Array(ST_LightValues, 28, 1),
+            direction: new Float32Array(ST_LightValues, 32, 3),
+            distance: new Float32Array(ST_LightValues, 44, 1),
+            angle: new Float32Array(ST_LightValues, 48, 2),
+            shadow: new Int32Array(ST_LightValues, 56, 1),
+            visible: new Int32Array(ST_LightValues, 60, 1),
+            size: new Float32Array(ST_LightValues, 64, 4),
+            kind: new Int32Array(ST_LightValues, 80, 1),
+            id: new Uint32Array(ST_LightValues, 84, 1),
+            shadow_map_type: new Uint32Array(ST_LightValues, 88, 1),//1=one depth,6=cube,0=none
+            shadow_map_array_index: new Int32Array(ST_LightValues, 92, 1),//-1 = 没有shadowmap,other number=开始的位置，从0开始
+            shadow_map_array_lenght: new Uint32Array(ST_LightValues, 96, 1),//1 or 6
+            shadow_map_enable: new Int32Array(ST_LightValues, 100, 1),//depth texture array 会在light add之后的下一帧生效，这个是标志位。因为GPUTexture会重建
+        };
+        ST_LightViews.shadow_map_type[0] = kind;
+        ST_LightViews.shadow_map_array_index[0] = index;
+        ST_LightViews.shadow_map_array_lenght[0] = count;
+        ST_LightViews.shadow_map_enable[0] = 1;//todo ,20250105，如果是动态管理shadowmap texture大小，这个需要适配
+    }
+    
 }

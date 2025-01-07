@@ -1,6 +1,6 @@
 import { lightType, optionBaseLight, shadowMap } from "./baseLight";
 import { BaseLight } from "./baseLight"; 
-import { Vec3 } from "wgpu-matrix";
+import { Mat4, Vec3 } from "wgpu-matrix";
 
 export interface optionDirectionalLight extends optionBaseLight {
     // color: coreConst.color3F,
@@ -14,6 +14,9 @@ export interface optionDirectionalLight extends optionBaseLight {
 
 
 export class DirectionalLight extends BaseLight {
+    updateMVP(): Mat4[] {
+        // throw new Error("Method not implemented.");
+    }
     constructor(input: optionDirectionalLight) {
         super(input, lightType.directional);
 

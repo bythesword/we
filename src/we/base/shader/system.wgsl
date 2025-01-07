@@ -28,6 +28,7 @@ struct ST_Light {
   shadow_map_type: u32,//1=one depth,6=cube,0=none
   shadow_map_array_index: i32,//-1 = 没有shadowmap,other number=开始的位置，从0开始
   shadow_map_array_lenght: u32, //1 or 6
+  shadow_map_enable:i32,//depth texture array 会在light add之后的下一帧生效，这个是标志位
 };
 struct ST_Lights {
   lightNumber: u32,

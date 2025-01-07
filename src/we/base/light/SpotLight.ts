@@ -1,4 +1,4 @@
-import { Vec3 } from "wgpu-matrix";
+import { Mat4, Vec3 } from "wgpu-matrix";
 import { lightType, optionBaseLight, shadowMap } from "./baseLight";
 import { BaseLight } from "./baseLight"; 
 
@@ -28,7 +28,9 @@ export class SpotLight extends BaseLight {
         throw new Error("Method not implemented.");
     }
 
-
+    updateMVP(): Mat4[] {
+        throw new Error("Method not implemented.");
+    }
 
 
 }

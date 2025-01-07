@@ -53,6 +53,26 @@ export interface uniformBufferPart extends uniformBufferPartBase {
     binding: number,
 
 }
+// /**动态返回 uniform的GPUBindingResource
+//  * 
+//  * 用于GPUBindingResource资源可以被更新的情况（更新可能是新的texture，或者texture被destroy并重新创建）
+//  * 
+//  * 比如：textture的大小变化了等
+//  */
+// export interface dynGPUBindGroupEntry {
+//     /**
+//      * A unique identifier for a resource binding within the {@link GPUBindGroup}, corresponding to a
+//      * {@link GPUBindGroupLayoutEntry#binding|GPUBindGroupLayoutEntry.binding} and a @binding
+//      * attribute in the {@link GPUShaderModule}.
+//      */
+//     binding: GPUIndex32;
+//     dynGPUBindGroupEntry: true,
+//     /**
+//      * The resource to bind, which may be a {@link GPUSampler}, {@link GPUTextureView},
+//      * {@link GPUExternalTexture}, or {@link GPUBufferBinding}.
+//      */
+//     resource: () => GPUBindingResource;
+// }
 
 export interface storageBufferPart extends uniformBufferPart {
     /** buffer 类型,storage */
@@ -64,7 +84,7 @@ export interface storageBufferPart extends uniformBufferPart {
     update: boolean,
 }
 /**  unifrom 入口的数组格式  */
-export type uniformEntries = GPUBindGroupEntry | uniformBufferPart | storageBufferPart;
+export type uniformEntries = GPUBindGroupEntry | uniformBufferPart | storageBufferPart ;//| dynGPUBindGroupEntry;
 /**
  * RAW模式使用，自定义layout绑定组，自定义binding编号，自定义shader code
  * unifromGroup  只进行绑定，不负责更新，更新在WObject中进行

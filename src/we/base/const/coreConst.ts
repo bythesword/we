@@ -2,7 +2,7 @@
 //
 export type userFN = (scope: any) => any;
 export type userPromiseFN = (scope: any) => Promise<any>;
-
+export type SimpleFunction = () => void;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //单体对象的用户自定义的interface
