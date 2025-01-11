@@ -145,7 +145,23 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
 
     /**pipeline中的深度处理描述  GPUDepthStencilState */
     depthStencilState?: GPUDepthStencilState,
-    // systemUniforms?: GPUBindGroup,
+    
+    /**获取systemUnifroms的bindGroup,两种情况
+     * 1、场景渲染，forward，depth等。可缺省，即默认的
+     * 2、生成shadowmap的。不可缺失
+     * 
+     * @param pipeline ,当前已经创建的pipelne，有两种方式，
+     *          1、是目前这种，先创建pipeline，然后将pipeline给bindGroup，获取pipeline的getBindGroupLayout(0),然后创建bindGroup,再回传
+     *          2、是创建grouplayout-->pipeline
+     *                             -->bindGroup
+     *                               保持两者的bindGroupLayout在bindGroup和pipeline中的一致
+     * 
+     * @param stage  
+     * @param id    camereID or lightID
+     * @param kind  
+     * @returns 
+     */
+    
     systemUniforms?: (pipeline: GPURenderPipeline, stage: BaseStage, id?: string, kind?: renderKindForDCCCC) => GPUBindGroup,
     renderForID?: string,
     renderForType?: renderKindForDCCCC,

@@ -9,6 +9,7 @@ import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 import { BaseStage } from "../../stage/baseStage";
+import { renderKindForDCCCC } from "../../const/coreConst";
 
 
 
@@ -140,7 +141,7 @@ export class Mesh extends BaseEntity {
      * @param parent 
      * @returns 完成标志位：initStateEntity.finished
      */
-    createDCC(parent: BaseStage, cameraActorID: string, kind: string = "camera"): initStateEntity {
+    createDCC(parent: BaseStage, cameraActorID: string, kind:string= renderKindForDCCCC.camera): initStateEntity {
         let camera = cameraActorID;
         if (this.commmands[camera] == undefined) {
             this.commmands[camera] = {
@@ -240,7 +241,7 @@ export class Mesh extends BaseEntity {
                 },
                 indexBuffer: indexBuffer as indexBuffer,
                 renderForID: camera,
-                renderForType: kind,
+                renderForType: kind as renderKindForDCCCC,
                 systemUniforms: parent.createSystemUnifromGroupForPerShader,
                 renderPassDescriptor: renderPassDescriptor,
             };
@@ -307,7 +308,7 @@ export class Mesh extends BaseEntity {
                 indexBuffer: wireFrameIndexBuffer as indexBuffer,
                 // instanceCount: this.numInstances,
                 renderForID: camera,
-                renderForType: kind,
+                renderForType: kind as renderKindForDCCCC,
                 systemUniforms: parent.createSystemUnifromGroupForPerShader,
                 renderPassDescriptor,
             }
@@ -378,7 +379,7 @@ export class Mesh extends BaseEntity {
 
             renderPassDescriptor,
             renderForID: camera,
-            renderForType: kind,
+            renderForType: kind as renderKindForDCCCC,
             systemUniforms: parent.createSystemUnifromGroupForPerShader,
             // depthStencilState: {
             //     depthWriteEnabled: true,

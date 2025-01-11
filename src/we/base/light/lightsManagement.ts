@@ -450,6 +450,9 @@ export class LightsManagement {
     }
     /////////////////////////////////////////////////
     /**render perlight's shadowmap  */
+    render() {
+
+    }
     renderShadowMap() {
 
     }

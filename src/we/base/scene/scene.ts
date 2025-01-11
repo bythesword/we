@@ -724,7 +724,7 @@ class Scene extends BaseScene {
     * sky、UI的合并与顺序
     * */
     async oneFrameRender() {
-        this.lightsManagement.renderShadowMap();
+        this.lightsManagement.render();
         this.renderStagesCommand();//render  stages commands
         this.renderSceneCommands();//render scene commands
         for (let i in this.GBufferPostprocess) {
