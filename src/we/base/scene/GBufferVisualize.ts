@@ -74,7 +74,10 @@ export class GBuffersVisualize extends SingleRender {
      * 2、生成copy command，push到commands
      */
     init() {
-        if (this.input.layout.layout!.single === true) {
+        if (this.input.layout.forOtherDepth) {
+            this.initSingleForOtherDepthTextureView();
+        }
+        else if (this.input.layout.layout!.single === true) {
             this.initSingle();
         }
         else {
@@ -89,6 +92,67 @@ export class GBuffersVisualize extends SingleRender {
             }
         );
         this.commands.push(copyToColorTexture);
+    }
+
+    initSingleForOtherDepthTextureView() {
+        let shaderCode = coreConst.varOfshaderCodeSingleOfGBuffersVisualizeLayout["depth"];
+
+        let values: drawMode = {
+            vertexCount: 6
+        };
+        let uniforms: unifromGroup[];
+
+        uniforms = [
+            {
+                layout: 0,
+                entries: [
+
+                    {
+                        binding: 0,
+                        resource: this.input.layout.forOtherDepth!.depthTextureView,
+                    },
+                    {
+                        binding: 1,
+                        resource: this.sampler,
+                    },
+                ]
+            }
+        ];
+
+
+
+        let option: DrawOptionOfCommand = {
+            label: "GBuffers render  ForOtherDepthTextureView",
+            vertex: {
+                code: shaderCode,
+                entryPoint: "vs",
+            },
+            fragment: {
+                code: shaderCode,
+                entryPoint: "fs",
+                targets: [
+                    //color
+                    { format: this.presentationFormat }
+                ],
+
+            },
+            draw: {
+                mode: "draw",
+                values: values
+            },
+            parent: this.parent,
+            uniforms: uniforms,
+            primitive: {
+                topology: 'triangle-list',
+                cullMode: "back",
+            },
+            rawUniform: true,
+            renderPassDescriptor: this.renderPassDescriptor,
+
+
+        };
+        let DC = new DrawCommand(option);
+        this.commands.push(DC);
     }
     /**single，全屏模式的可视化 */
     initSingle() {

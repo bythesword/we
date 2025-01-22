@@ -7,7 +7,7 @@
     var vsOutput : VertexShaderOutput;
 
     //这个没有使用替换内容
-    vsOutput.position = matrix_z * projectionMatrix * viewMatrix * modelMatrix * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
+    vsOutput.position = matrix_z * MVP * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
     vsOutput.uv = vec2f(1);
     vsOutput.normal = vec3f(1);
     vsOutput.color = vec3f(1);

@@ -1,5 +1,6 @@
 // declare global { interface Window { scene: any } }
 import wgsl_main from "../shader/system.wgsl?raw"
+import wgsl_main_light from "../shader/shadow/systemForLight.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
 import { Clock } from '../scene/clock';
@@ -9,7 +10,7 @@ import { BaseCamera } from "../camera/baseCamera"
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage, stageGroup } from '../stage/baseStage';
-import { BaseEntity } from "../entity/baseEntity";
+import { BaseEntity, valuesForCreateDCCC } from "../entity/baseEntity";
 import { BaseLight, lightStructSize, lightStructSizeOfShadowMapMVP } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
 import { GBufferPostProcess, optionGBPP } from "./GBufferPostProcess";
@@ -22,7 +23,7 @@ import { PostProcessEffect } from "../postprocess/postProcessEffect";
 import { MultiCameras, optionMulitCameras } from "./multiCameras";
 import { boundingBox, generateBox3ByArrayBox3s } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
-import { renderKindForDCCCC } from "../const/coreConst";
+import { renderKindForDCCC } from "../const/coreConst";
 import { LightsManagement } from "../light/lightsManagement";
 
 
@@ -97,6 +98,10 @@ export interface GBuffersVisualizeViewport {
         single: boolean,
         // singleType?: ,
     },
+    /**其他深度纹理的可视化 */
+    forOtherDepth?: {
+        depthTextureView: GPUTextureView,
+    }
     /**状态：boolan，layout布局是否更改过的状态,人工保障正确性 */
     statueChange?: boolean,
 }
@@ -109,6 +114,8 @@ export declare interface systemUniformBuffer {
     MVP?: { [name: string]: GPUBuffer },
     /** stroage buffer */
     lights?: GPUBuffer,
+    shadowMapMatrix?: GPUBuffer,
+    shdowMapDepthTexture?: GPUTexture,
     /**uint32 *2 */
     time?: GPUBuffer,
 }
@@ -244,14 +251,14 @@ class Scene extends BaseScene {
 
 
 
-    lastCommand:coreConst.SimpleFunction[];
+    lastCommand: coreConst.SimpleFunction[];
 
     ////////////////////////////////////////////////////////////////////////////////
     // function
     ////////////////////////////////////////////////////////////////////////////////
     constructor(input: sceneInputJson) {
         super(input);
-        this.lastCommand=[];
+        this.lastCommand = [];
         this.root = [];
         this.cameraActors = [];
         this.actors = {};
@@ -362,8 +369,8 @@ class Scene extends BaseScene {
             alphaMode: 'premultiplied',//预乘透明度
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
-        
-        
+
+
 
         this.aspect = canvas.width / canvas.height;
         this.resources = new WeResource(this);
@@ -380,10 +387,10 @@ class Scene extends BaseScene {
         else {
             this.lightsManagement.setAmbientLight();
         }
-        this.initActors();        
+        this.initActors();
         this.initMultiCameras()
         this.initPostProcess();
-        this.initPickup();        
+        this.initPickup();
         this.observer();
     }
     async createSourceOfcopyToSurface(camera: string) {
@@ -579,53 +586,68 @@ class Scene extends BaseScene {
      *  
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, _scope?: BaseScene, camera?: string, _kind?: renderKindForDCCCC): GPUBindGroup {
+    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, /*_scope?: BaseScene , */ camera?: string, _kind?: renderKindForDCCC): GPUBindGroup {
         let groupDesc: GPUBindGroupDescriptor;
         const bindLayout = pipeline.getBindGroupLayout(0);
-        if (_kind == renderKindForDCCCC.light) {
-            let ID = camera!;
-            groupDesc = {
-                label: "global Group bind to 0 ,light MVP for shadow map ",
-                layout: bindLayout,
-                entries:
-                    [
-                        {
-                            binding: 0,
-                            resource: {
-                                buffer: this.lightsManagement.getOneLightsMVP(ID),
-                            },
-                        }
-                    ],
-            }
 
+
+        let ID = this.defaultCameraActor.id.toString();
+        if (camera != undefined) {
+            ID = camera;
         }
-        //    if (_kind == renderKindForDCCCC.camera)
-        else {
-
-            let ID = this.defaultCameraActor.id.toString();
-            if (camera != undefined) {
-                ID = camera;
-            }
-            groupDesc = {
-                label: "global Group bind to 0 , camera+lights",
-                layout: bindLayout,
-                entries:
-                    [
-                        {
-                            binding: 0,
-                            resource: {
-                                buffer: this.systemUniformBuffers["MVP"]![ID],
-                            },
+        groupDesc = {
+            label: "global Group bind to 0 , camera+lights",
+            layout: bindLayout,
+            entries:
+                [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.systemUniformBuffers["MVP"]![ID],
                         },
-                        {
-                            binding: 1,
-                            resource: {
-                                buffer: this.lightsManagement.lightsUniformGPUBuffer,
-                                // buffer: this.systemUniformBuffers["lights"]!,
-                            }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: this.lightsManagement.lightsUniformGPUBuffer,
+                            // buffer: this.systemUniformBuffers["lights"]!,
                         }
-                    ],
-            }
+                    }
+                ],
+        }
+
+
+        const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
+        return bindGroup;
+    }
+    /** shadow map 使用的light的 uniform
+     * 
+     * @param pipeline 
+     * @param _scope 
+     * @param id 
+     * @param kind 
+     * @param matrixIndex 
+     * @returns 
+     */
+    createSystemUnifromGroupForShadowMapPerShader(pipeline: GPURenderPipeline, /*_scope: BaseScene,*/ id: string, matrixIndex: number): GPUBindGroup {
+        let groupDesc: GPUBindGroupDescriptor;
+        const bindLayout = pipeline.getBindGroupLayout(0);
+        const buffer = this.lightsManagement.getOneLightsMVP(id, matrixIndex);
+        if (buffer === false) {
+            throw new Error("createSystemUnifromGroupForShadowMapPerShader(),  call this.lightsManagement.getOneLightsMVP(id,matrixIndex) is false ");
+        }
+        groupDesc = {
+            label: "global Group bind to 0 ,light MVP for shadow map ",
+            layout: bindLayout,
+            entries:
+                [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: buffer as GPUBuffer,
+                        },
+                    }
+                ],
         }
 
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
@@ -642,7 +664,11 @@ class Scene extends BaseScene {
      * 为每个DrawCommand，生成systemWGSL string，raw模式除外
      * @returns 
      */
-    getWGSLOfSystemShader(): string {
+    getWGSLOfSystemShader(renderType: renderKindForDCCC): string {
+        if (renderType == renderKindForDCCC.light) {
+            let code = wgsl_main_light.toString();
+            return code;
+        }
         let lightNumber = this._maxlightNumber.toString();
         let code = wgsl_main.toString();
         code = code.replaceAll("$lightNumber", lightNumber);
@@ -683,12 +709,12 @@ class Scene extends BaseScene {
         }
         requestAnimationFrame(run)
     }
-    onBegin(){
-        this.lastCommand=[];
+    onBegin() {
+        this.lastCommand = [];
     }
-    onFinish(){
-        for(let i of this.lastCommand){
-            if(typeof i == "function"){
+    onFinish() {
+        for (let i of this.lastCommand) {
+            if (typeof i == "function") {
                 i();
             }
         }
@@ -713,6 +739,8 @@ class Scene extends BaseScene {
         this.updateActor(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
         this.updateEntities(deltaTime, startTime, lastTime);//更新实体状态，比如水，树，草等动态的
         this.updateStagesCommand(deltaTime, startTime, lastTime);
+        this.generateBox();
+        this.generateSphere();
         await this.updatePostProcess(deltaTime, startTime, lastTime);
     }
 
@@ -724,7 +752,8 @@ class Scene extends BaseScene {
     * sky、UI的合并与顺序
     * */
     async oneFrameRender() {
-        this.lightsManagement.render();
+        // this.renderShadowMap();
+        this.lightsManagement.render();//render light's shadow map
         this.renderStagesCommand();//render  stages commands
         this.renderSceneCommands();//render scene commands
         for (let i in this.GBufferPostprocess) {
@@ -733,6 +762,15 @@ class Scene extends BaseScene {
         this.postProcessManagement.render();  //进行后处理
         this.showMultiCamera();
         await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
+    }
+    renderShadowMap() {
+        for (let i in this.stagesOrders) {
+            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
+            const name = this.stagesOfSystem[perList];
+            if (this.stages[name].opaque) {
+                this.stages[name].opaque!.renderForLightsShadowMap();
+            }
+        }
     }
     /**render perstage  */
     renderStagesCommand() {
@@ -994,6 +1032,10 @@ class Scene extends BaseScene {
     async showGBuffersVisualize() {
         if (this.multiCamera === false)//多摄像机时不显示GBuffer可视化
             if (this._GBuffersVisualize.enable) {
+                let GBuffers = this.GBuffers[this.defaultCameraActor.id.toString()];
+                if (this._GBuffersVisualize.forOtherDepth) {
+
+                }
                 if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//有可视化，且状态改变（layout不同）
                     this.GBuffersVisualize.destroy();
                     this.GBuffersVisualize != undefined;
@@ -1002,7 +1044,7 @@ class Scene extends BaseScene {
                     this.GBuffersVisualize = new GBuffersVisualize({
                         parent: this,
                         device: this.device,
-                        GBuffers: this.GBuffers[this.defaultCameraActor.id.toString()],
+                        GBuffers: GBuffers,// this.GBuffers[this.defaultCameraActor.id.toString()],
                         surfaceSize: {
                             width: this.canvas.width,
                             height: this.canvas.height,
@@ -1014,6 +1056,7 @@ class Scene extends BaseScene {
                     this._GBuffersVisualize.statueChange = false;//更新statue状态
                 }
                 this.GBuffersVisualize.render();
+
             }
             else {
                 if (this.GBuffersVisualize && this._GBuffersVisualize.statueChange === true) {//关闭可视化，且layout也改变（这种应用少，即：关闭可视化，且改变布局）
@@ -1031,7 +1074,7 @@ class Scene extends BaseScene {
         else if ((input as GBuffersVisualizeViewport).enable === true && (input as GBuffersVisualizeViewport).layout || (input as GBuffersVisualizeViewport).enable === false) {
             let name = (input as GBuffersVisualizeViewport).layout!.name;
             let isOK = false;
-            if ((input as GBuffersVisualizeViewport).layout!.single === true && name != "color") {
+            if ((input as GBuffersVisualizeViewport).layout!.single === true && name != "color") {//single 模式
                 for (const key in coreConst.GBufferName) {
                     if (key === name) {
                         isOK = true;
@@ -1056,7 +1099,13 @@ class Scene extends BaseScene {
                 }
             }
         }
-        console.error("GBuffer可视化输入参数错误!");
+        else if ((input as GBuffersVisualizeViewport).forOtherDepth) {//其他深度纹理的可视化，与GBuffer无关
+            this._GBuffersVisualize = (input as GBuffersVisualizeViewport);
+            this._GBuffersVisualize.statueChange! = true;//无论是否更改了input，都是新的
+            return;
+        }
+        else
+            console.error("GBuffer可视化输入参数错误!");
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1382,12 +1431,18 @@ class Scene extends BaseScene {
         this.boundingBox = generateBox3ByArrayBox3s(this.Box3s);
         return this.boundingBox;
     }
+    getBoundingBox() {
+        return this.boundingBox;
+    }
     /**世界坐标的sphere */
     generateSphere(): boundingSphere {
         if (this.boundingBox == undefined) {
             this.generateBox();
         }
         this.boundingSphere = generateSphereFromBox3(this.boundingBox);
+        return this.boundingSphere;
+    }
+    getBoundingSphere() {
         return this.boundingSphere;
     }
 }

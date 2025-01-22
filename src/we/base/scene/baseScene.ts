@@ -8,6 +8,7 @@ import { CopyCommandT2T } from '../command/copyCommandT2T';
 import { CameraActor } from '../actor/cameraActor';
 import { boundingBox, generateBox3ByArrayBox3s, } from '../math/Box';
 import { boundingSphere, generateSphereFromBox3, } from '../math/sphere';
+import { renderKindForDCCC } from '../const/coreConst';
 
 export type commmandType = DrawCommand | ComputeCommand | CopyCommandT2T;
 export declare interface sceneJson {
@@ -319,7 +320,7 @@ export abstract class BaseScene {
     /**每个继承类的更新入口 */
     abstract update(deltaTime: number, startTime: number, lastTime: number): any
     /**scene 、stage都是从baseScene基础，其核心渲染的全局wgsl可能不同 */
-    abstract getWGSLOfSystemShader(): string
+    abstract getWGSLOfSystemShader(renderType:renderKindForDCCC): string
     /**初始化GBuffer
      * 
      * 在baseScene中没有调用,需要在scene或者stage进行显示初始化调用

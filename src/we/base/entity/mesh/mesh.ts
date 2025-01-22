@@ -1,5 +1,5 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
+import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
@@ -9,7 +9,7 @@ import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 import { BaseStage } from "../../stage/baseStage";
-import { renderKindForDCCCC } from "../../const/coreConst";
+import { renderKindForDCCC } from "../../const/coreConst";
 
 
 
@@ -45,6 +45,7 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
+
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
@@ -120,7 +121,7 @@ export class Mesh extends BaseEntity {
     /**
      * 覆写了父类的这个function
      * 
-     * 目的：判断是否完成准备工作，如果完成执行createDCC()
+     * 目的：判断是否完成准备工作，如果完成执行createDCCC()
      * 
      * @param parent 
      */
@@ -128,8 +129,8 @@ export class Mesh extends BaseEntity {
     //     let already = this.checkStatus();
     //     if (already) {
     //         this._init = initStateEntity.initializing;
-    //         if (this.deferRenderDepth) this._init = this.createDCCDeferRenderDepth(parent);
-    //         this._init = this.createDCC(parent);
+    //         if (this.deferRenderDepth) this._init = this.createDCCCDeferRenderDepth(parent);
+    //         this._init = this.createDCCC(parent);
     //         this.generateBox();
     //     }
     // }
@@ -141,8 +142,16 @@ export class Mesh extends BaseEntity {
      * @param parent 
      * @returns 完成标志位：initStateEntity.finished
      */
-    createDCC(parent: BaseStage, cameraActorID: string, kind:string= renderKindForDCCCC.camera): initStateEntity {
-        let camera = cameraActorID;
+    // createDCCC(parent: BaseStage, cameraActorID: string, kind:string= renderKindForDCCC.camera): initStateEntity {
+    createDCCC(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+        const parent: BaseStage = valuesOfDCCC.parent;
+        const camera: string = valuesOfDCCC.id;
+        const kind: string = valuesOfDCCC.kind
+        let matrixIndex = 0;
+        if (valuesOfDCCC.matrixIndex) {
+            matrixIndex = valuesOfDCCC.matrixIndex;
+        }
+
         if (this.commmands[camera] == undefined) {
             this.commmands[camera] = {
                 forward: [],
@@ -241,7 +250,7 @@ export class Mesh extends BaseEntity {
                 },
                 indexBuffer: indexBuffer as indexBuffer,
                 renderForID: camera,
-                renderForType: kind as renderKindForDCCCC,
+                renderForType: kind as renderKindForDCCC,
                 systemUniforms: parent.createSystemUnifromGroupForPerShader,
                 renderPassDescriptor: renderPassDescriptor,
             };
@@ -308,7 +317,7 @@ export class Mesh extends BaseEntity {
                 indexBuffer: wireFrameIndexBuffer as indexBuffer,
                 // instanceCount: this.numInstances,
                 renderForID: camera,
-                renderForType: kind as renderKindForDCCCC,
+                renderForType: kind as renderKindForDCCC,
                 systemUniforms: parent.createSystemUnifromGroupForPerShader,
                 renderPassDescriptor,
             }
@@ -326,7 +335,14 @@ export class Mesh extends BaseEntity {
     //     return this.commmands;
     // }
     /**DCC push 到this.commmands.depth中 */
-    createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity {
+    createDCCCDeferRenderDepth(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+        const parent: BaseStage = valuesOfDCCC.parent;
+        const camera: string = valuesOfDCCC.id;
+        const kind: string = valuesOfDCCC.kind
+        let matrixIndex = 0;
+        if (valuesOfDCCC.matrixIndex) {
+            matrixIndex = valuesOfDCCC.matrixIndex;
+        }
         let scope = this;
         ///////////////////////////////
         const renderPassDescriptor = this.stage!.getRenderPassDescriptor_ForDeferDepth(camera, kind);
@@ -379,7 +395,7 @@ export class Mesh extends BaseEntity {
 
             renderPassDescriptor,
             renderForID: camera,
-            renderForType: kind as renderKindForDCCCC,
+            renderForType: kind as renderKindForDCCC,
             systemUniforms: parent.createSystemUnifromGroupForPerShader,
             // depthStencilState: {
             //     depthWriteEnabled: true,
@@ -399,6 +415,95 @@ export class Mesh extends BaseEntity {
             };
         }
         this.commmands[camera].depth.push(DC);
+
+        return initStateEntity.initializing;
+    }
+    createDCCCForShadowMap(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+        const parent: BaseStage = valuesOfDCCC.parent;
+
+        const kind: string = valuesOfDCCC.kind
+        let matrixIndex = 0;
+        if (valuesOfDCCC.matrixIndex) {
+            matrixIndex = valuesOfDCCC.matrixIndex;
+        }
+        const id: string = valuesOfDCCC.id + "_" + matrixIndex;
+        if (this.commandsOfShadow[id] == undefined) {
+            this.commandsOfShadow[id] = [];
+        }
+        let scope = this;
+
+        //////////////////////////////////////////////////
+        //RPD 
+        const renderPassDescriptor = parent.getRenderPassDescriptorOfLight(valuesOfDCCC);
+        if (renderPassDescriptor === false) {
+            console.error("获取renderPassDescriptor失败");
+        }
+        else {
+            let shader = this._geometry.getCodeVS();
+
+            shader = this.shaderCodeProcess(shader);
+
+            let vsa = this._geometry.getAttribute();
+            let indexBuffer = this._geometry.getIndeices();
+            let counts = this._geometry.getDrawCount();
+
+            let values: drawModeIndexed = {
+                indexCount: counts,
+                instanceCount: this.numInstances,
+            };
+            let uniforms: unifromGroup[] = [
+                {
+                    layout: 1,
+                    entries: [
+                        {
+                            label: "Mesh matrixWorld",
+                            binding: 0,
+                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                            get: () => { return scope.getUniformOfMatrix() },
+                        }
+                    ]
+                },
+            ];
+            let options: DrawOptionOfCommand = {
+                label: "Mesh For ShadowMap" + this.name,
+                parent: parent,
+                vertex: {
+                    code: shader,
+                    entryPoint: "vs",
+                    buffers: vsa
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    cullMode: this._cullMode,
+                },
+                uniforms: uniforms,
+                // rawUniform: true,
+                draw: {
+                    mode: "index",
+                    values: values,
+
+                },
+                indexBuffer: indexBuffer as indexBuffer,
+
+                renderPassDescriptor,
+                renderForID: id,//聚合了id和matrixIndex
+                renderForType: kind as renderKindForDCCC,//
+                systemUniforms: parent.createSystemUnifromGroupForShadowMapPerShader,
+                // depthStencilState: {
+                //     depthWriteEnabled: true,
+                //     depthCompare: 'less',
+                //     format: 'depth32float',
+                // },
+                // layout,
+
+            };
+
+            let DC = new DrawCommand(options);
+            if (this.commandsOfShadow[id] == undefined) {
+                this.commandsOfShadow[id] = [];
+            }
+            this.commandsOfShadow[id].push(DC);
+        }
 
         return initStateEntity.initializing;
     }

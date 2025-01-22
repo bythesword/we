@@ -4,7 +4,7 @@ import {
 import { TypedArray } from 'webgpu-utils';
 import { getReplaceVertexConstantsVS, getReplaceVertexConstantsFS } from './shaderFormat';
 import { BaseStage } from '../stage/baseStage';
-import { renderKindForDCCCC } from '../const/coreConst';
+import { renderKindForDCCC } from '../const/coreConst';
 
 
 /** VS的buffer的typearray的结构 
@@ -145,7 +145,7 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
 
     /**pipeline中的深度处理描述  GPUDepthStencilState */
     depthStencilState?: GPUDepthStencilState,
-    
+
     /**获取systemUnifroms的bindGroup,两种情况
      * 1、场景渲染，forward，depth等。可缺省，即默认的
      * 2、生成shadowmap的。不可缺失
@@ -161,10 +161,10 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
      * @param kind  
      * @returns 
      */
-    
-    systemUniforms?: (pipeline: GPURenderPipeline, stage: BaseStage, id?: string, kind?: renderKindForDCCCC) => GPUBindGroup,
+
+    systemUniforms?: (pipeline: GPURenderPipeline, stage: BaseStage, id?: string, kind?: renderKindForDCCC) => GPUBindGroup,
     renderForID?: string,
-    renderForType?: renderKindForDCCCC,
+    renderForType?: renderKindForDCCC,
     // systemUniforms?: (pipeline: GPURenderPipeline) => GPUBindGroup,
 }
 /**
@@ -358,6 +358,10 @@ export class DrawCommand extends BaseCommand {
      * @returns GPURenderPipeline
      */
     createPipeline() {
+        let  renderForType = renderKindForDCCC.camera;
+        if(this.input.renderForType != renderKindForDCCC.camera){
+            renderForType=this.input.renderForType!;
+        }
         let label = this.input.label;
         let device = this.device;
         // this.verticesBuffer
@@ -421,7 +425,7 @@ export class DrawCommand extends BaseCommand {
                 };
             }
             else {
-                let wgslOfSystem = this.parent.getWGSLOfSystemShader();
+                let wgslOfSystem = this.parent.getWGSLOfSystemShader(renderForType);
                 let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
                 let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
                 descriptor = {
@@ -466,7 +470,7 @@ export class DrawCommand extends BaseCommand {
                 };
             }
             else {
-                let wgslOfSystem = this.parent.getWGSLOfSystemShader();
+                let wgslOfSystem = this.parent.getWGSLOfSystemShader(renderForType);
                 let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
                 descriptor = {
                     label: label,

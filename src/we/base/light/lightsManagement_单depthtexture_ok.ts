@@ -54,7 +54,7 @@ export class LightsManagement {
 
     ////////////////////////////////////////////////////////////////////////////////
     // shadow map
-    /**MVP和depth texture使用，根据增加的光源的shadow而自增,从0开始（ GPUOrigin3DDict 的 depthOrArrayLayers） */
+    /**MVP和depth texture使用，根据增加的光源的shadow而自增,从1开始（ GPUOrigin3DDict 的 depthOrArrayLayers） */
     shadowIndexID: number;
 
     /** 光源的shadow map 和 MVP的存储结构*/
@@ -117,7 +117,7 @@ export class LightsManagement {
         });
         this._maxlightNumber = lightNumber;
 
-        this.shadowIndexID = 0;//MVP and depth texture index;
+        this.shadowIndexID = 1;//MVP and depth texture index;
         this.shadowMapTexture = this.generateShadowMapTexture();//todo 20250105,目前是固定的，后期改成动态
         this.ShadowMapUniformGPUBuffer = this.createShadowMapUniformGPUBuffer();
     }
@@ -144,7 +144,7 @@ export class LightsManagement {
             size: {
                 width: shadowMapSize,
                 height: shadowMapSize,
-                depthOrArrayLayers: lightNumber * 6,
+                // depthOrArrayLayers: lightNumber * 6,
             },
             format: "depth32float",
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
@@ -235,13 +235,12 @@ export class LightsManagement {
         const renderPassDescriptor: GPURenderPassDescriptor = {
             depthStencilAttachment: {
                 view: this.shadowMapTexture.createView(
-                    {
-                        label: "lights management shadowMapTexture array ,the index is :" + index + " offset is :" + selfIndex,
-                        dimension: "2d",
-                        // dimension:  "2d-array", 
-                        baseArrayLayer: index + selfIndex,
-                        arrayLayerCount: 1,
-                    }
+                    //     {
+                    //     label: "lights management shadowMapTexture array ,the index is :" + index + " offset is :" + selfIndex,
+                    //     dimension: "2d",//"2d-array",
+                    //     arrayLayerCount: index + selfIndex,
+
+                    // }
                 ),
                 depthClearValue: this.scene._isReversedZ ? this.scene.depthClearValueOfReveredZ : this.scene.depthClearValueOfZ, // 1.0,                
                 depthLoadOp: 'clear', // depthLoadOp: 'load',//这个可能有问题，如果clear的清空
@@ -583,5 +582,5 @@ export class LightsManagement {
                 }
             }
         }
-    }
+    } 
 }

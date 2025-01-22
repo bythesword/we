@@ -23,7 +23,7 @@ struct VertexShaderOutput_oneCube {
 @builtin(vertex_index) vertexIndex : u32
 ) -> VertexShaderOutput_oneCube {
     var vsOutput : VertexShaderOutput_oneCube;
-    vsOutput.position =matrix_z *  projectionMatrix * viewMatrix * modelMatrix * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
+    vsOutput.position =matrix_z *  MVP * entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0);
 
     vsOutput.uv = uv;
 

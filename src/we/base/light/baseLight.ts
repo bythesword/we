@@ -2,6 +2,7 @@ import * as coreConst from "../const/coreConst";
 import { mat4, Mat4, Vec3, } from "wgpu-matrix";
 import { Root } from "../scene/root";
 import { WeGenerateID } from "../math/baseFunction";
+import { Scene } from "../scene/scene";
 
 
 export enum lightType {
@@ -45,8 +46,8 @@ export interface optionBaseLight extends coreConst.optionUpdate {
  * 光源的uniform的尺寸，ArrayBuffer的大小(byte) 
  */
 export var lightStructSize = 112;//20240104 change 96->112,add some about shadow 
-export var lightStructSizeOfShadowMapMVP = 80;//20240104 change 96->112,add some about shadow 
-export var lightStructSizeForRenderOfBindGroup = 80;//20240104 change 96->112,add some about shadow 
+export var lightStructSizeOfShadowMapMVP = 80;//20240104 change 96->112,add some about shadow` 
+export var lightStructSizeForRenderOfBindGroup = 80;//20240104 change 96->112,add some about ` 
 
 /**
  * 输出的uniform的buffer的类型，float32Array，大小(length)以float32(4个字节)计算=lightStructSize/4
@@ -73,26 +74,28 @@ export abstract class BaseLight/* extends Root */ {
     /**数字ID，scene中的队列的id */
     NID!: number;
     /**输入参数=input */
-    input: optionBaseLight;
+    values: optionBaseLight;
     id: number;
     MVP: Mat4[];
     enable: boolean;
     shadow: boolean;
     visible: boolean;
+    /**为shadow map 的投影矩阵使用 */
+    epsilon = 0.01;
 
 
     constructor(input: optionBaseLight, kind: lightType) {
         // super();
         this.enable = false;
-        this.input = input;
+        this.values = input;
         this.MVP = [];
         this.id = WeGenerateID();
-        if (this.input.position == undefined) this.input.position = [0.0, 0.0, 0.0];
-        if (this.input.color == undefined) this.input.color = { red: 1, green: 1, blue: 1 };
-        if (this.input.distance == undefined) this.input.distance = 0.0;
-        if (this.input.decay == undefined) this.input.decay = 1;
-        if (this.input.visible == undefined) this.input.visible = true;
-        if (this.input.intensity == undefined) this.input.intensity = 1.0;
+        if (this.values.position == undefined) this.values.position = [0.0, 0.0, 0.0];
+        if (this.values.color == undefined) this.values.color = { red: 1, green: 1, blue: 1 };
+        if (this.values.distance == undefined) this.values.distance = 0.0;
+        if (this.values.decay == undefined) this.values.decay = 1;
+        if (this.values.visible == undefined) this.values.visible = true;
+        if (this.values.intensity == undefined) this.values.intensity = 1.0;
         this._kind = kind;
         this.shadow = false;
         if (input.shadow) this.shadow = input.shadow;
@@ -109,30 +112,30 @@ export abstract class BaseLight/* extends Root */ {
     }
     getPosition(): Vec3 | false {
         if (this._kind == lightType.point || this._kind == lightType.spot) {
-            return this.input.position!;
+            return this.values.position!;
         }
         return false;
     }
     getColor() {
-        return this.input.color as coreConst.color3F;
+        return this.values.color as coreConst.color3F;
     }
     getIntensity(): number {
-        return this.input.intensity!;
+        return this.values.intensity!;
     }
     /***
      * 光源的作用距离
      * 默认=0，一直起作用
      */
     getDistance(): number {
-        return this.input.distance!;
+        return this.values.distance!;
     }
     getShadowEnable(): boolean {
-        if (this.input.shadow && this.input.shadow.castShadow)
-            return this.input.shadow.castShadow;
+        if (this.values.shadow && this.values.shadow)
+            return this.values.shadow;
         return false;
     }
     getVisible(): boolean {
-        return this.input.visible! as boolean;
+        return this.values.visible! as boolean;
     }
 
     /**只有方向光返回值，其他返回false */
@@ -141,17 +144,17 @@ export abstract class BaseLight/* extends Root */ {
             return false;
         }
         else {
-            return this.input.direction!;
+            return this.values.direction!;
         }
-
     }
+
     getDecay() {
-        return this.input.decay!;
+        return this.values.decay!;
     }
     /**只有spot有值，其他false */
     getAngle(): number[] | false {
         if (this._kind == lightType.spot) {
-            return [this.input.angle!, this.input.angleOut!];
+            return [this.values.angle!, this.values.angleOut!];
         }
         return false;
     }
@@ -163,16 +166,16 @@ export abstract class BaseLight/* extends Root */ {
         this.id = id;
     }
     get ID(): number { return this.id; }
-    async update(deltaTime: number, startTime: number, lastTime: number) {
+    async update(scene: Scene, deltaTime: number, startTime: number, lastTime: number) {
         let scope = this;
-        if (this.input.update) {
-            await scope.input.update!(scope, deltaTime, startTime, lastTime);
+        if (this.values.update) {
+            await scope.values.update!(scope, deltaTime, startTime, lastTime);
         }
         this._buffer = scope.updateStructBuffer();
-        this.MVP = this.updateMVP();
+        this.MVP = this.updateMVP(scene);
     }
     /**更新光源MVP */
-    abstract updateMVP(): Mat4[];
+    abstract updateMVP(scene: Scene): Mat4[];
     //     {
     //         let m4 = mat4.identity();
 
@@ -183,7 +186,14 @@ export abstract class BaseLight/* extends Root */ {
     getMVP(): Mat4[] {
         return this.MVP;
     }
-
+    getMVPByIndex(index: number): Mat4 {
+        if (this.MVP[index])
+            return this.MVP[index];
+        else {
+            console.error("返回单位矩阵,未找到index=", index, "的MVP", this);
+            return mat4.identity();
+        }
+    }
     getStructBuffer(): structBaselight {
         if (this._buffer == undefined) {
             this._buffer = this.updateStructBuffer();
@@ -298,7 +308,7 @@ export abstract class BaseLight/* extends Root */ {
         ST_LightViews.shadow_map_type[0] = kind;
         ST_LightViews.shadow_map_array_index[0] = index;
         ST_LightViews.shadow_map_array_lenght[0] = count;
-        ST_LightViews.shadow_map_enable[0] = 1;//todo ,20250105，如果是动态管理shadowmap texture大小，这个需要适配
+        ST_LightViews.shadow_map_enable[0] = 1;//todo ,20250105，如果是动态管理shadowmap texture大小，这个需要适配，目前未使用
     }
-    
+
 }

@@ -2,8 +2,9 @@ import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseStage } from "../../stage/baseStage";
-import { BaseEntity, initStateEntity, optionBaseEntity } from "../baseEntity";
+import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import simpleModelVS from "../../shader/model/simpleModel.vs.wgsl?raw"
+import { renderKindForDCCC } from "../../const/coreConst";
 
 interface modelData {
     positions: [number, number, number][],
@@ -18,6 +19,9 @@ export interface optionSimpleModel extends optionBaseEntity {
 }
 
 export class SimpleModel extends BaseEntity {
+    createDCCCForShadowMap(values: valuesForCreateDCCC): initStateEntity {
+        throw new Error("Method not implemented.");
+    }
 
     generateBoxAndSphere() {
         this.boundingBox = this.generateBox(this.modelData.positions.flat());
@@ -46,7 +50,14 @@ export class SimpleModel extends BaseEntity {
     }
 
 
-    createDCC(parent: BaseStage, camera: string, kind: string = "camera"): initStateEntity {
+    createDCCC(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+        const parent: BaseStage = valuesOfDCCC.parent;
+        const camera: string = valuesOfDCCC.id;
+        const kind: string = valuesOfDCCC.kind
+        let matrixIndex = 0;
+        if (valuesOfDCCC.matrixIndex) {
+            matrixIndex = valuesOfDCCC.matrixIndex;
+        }
         if (this.commmands[camera] == undefined) {
             this.commmands[camera] = {
                 forward: [],
@@ -134,7 +145,7 @@ export class SimpleModel extends BaseEntity {
             },
             indexBuffer: indexBuffer as indexBuffer,
             renderForID: camera,
-            renderForType: kind,
+            renderForType: kind as renderKindForDCCC,
             systemUniforms: parent.createSystemUnifromGroupForPerShader,
             renderPassDescriptor: renderPassDescriptor,
         };
@@ -144,7 +155,14 @@ export class SimpleModel extends BaseEntity {
         return initStateEntity.finished;
     }
 
-    createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity {
+    createDCCCDeferRenderDepth(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+        const parent: BaseStage = valuesOfDCCC.parent;
+        const camera: string = valuesOfDCCC.id;
+        const kind: string = valuesOfDCCC.kind
+        let matrixIndex = 0;
+        if (valuesOfDCCC.matrixIndex) {
+            matrixIndex = valuesOfDCCC.matrixIndex;
+        }
         let scope = this;
         ///////////////////////////////
         const renderPassDescriptor = this.stage!.getRenderPassDescriptor_ForDeferDepth(camera, kind);
@@ -200,7 +218,7 @@ export class SimpleModel extends BaseEntity {
 
             renderPassDescriptor,
             renderForID: camera,
-            renderForType: kind,
+            renderForType: kind as renderKindForDCCC,
             systemUniforms: parent.createSystemUnifromGroupForPerShader,
 
         };

@@ -24,7 +24,8 @@ let input: sceneInputJson = {
     green: 0.1,
     blue: 0.1,
     alpha: 1
-  }
+  },
+  stageSetting: "all"
 }
 let scene = new Scene(input);
 await scene.init();
@@ -36,7 +37,7 @@ window.scene = scene;
 const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
-  near: 0.0001,
+  near: 0.1,
   far: 100,
   position: [0, 0, 3],
   lookAt: [0, 0, 0]
@@ -97,3 +98,5 @@ let boxEntity = new Mesh(
 //增加实体到scene
 scene.add(boxEntity)
 
+//运行场景
+scene.run()

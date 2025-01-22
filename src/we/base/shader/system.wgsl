@@ -81,7 +81,7 @@ fn initSystem() {
     modelMatrix = U_MVP.model;
     viewMatrix = U_MVP.view;
     projectionMatrix = U_MVP.projection;
-    MVP = modelMatrix * viewMatrix * projectionMatrix;
+    MVP = projectionMatrix * viewMatrix * modelMatrix;
     AmbientLight = U_lights.Ambient;
     if U_MVP.reversedZ == 1 {
         matrix_z = mat4x4f(

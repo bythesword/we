@@ -11,6 +11,7 @@ import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/l
 import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
 import { initScene } from "../../../../src/we/base/scene/initScene"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
+import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 
 declare global {
   interface Window {
@@ -33,7 +34,7 @@ let input: sceneInputJson = {
       green: 1,
       blue: 1
     },
-    intensity: 0.13
+    intensity: 0.25
   },
   stageSetting: "world"
 
@@ -48,7 +49,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.1,
   far: 30,
-  position: [0, 0, 3],
+  position: [-10, 10, 10],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -78,18 +79,18 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let Geometry = new SphereGeometry({
-  radius: 1,
-  widthSegments: 128,
-  heightSegments: 128
+let Geometry = new BoxGeometry({
+  width: 2,
+  height: 2,
+  depth: 2
 });
 //极简测试材质，red
 let redMaterial = new PhongLightsMaterial(
   {
     color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
-    Shininess: 32,
-    metalness: 0.1,
-    roughness: 1,
+    Shininess: 16,
+    metalness: 0.6,
+    roughness: 0.96,
   });
 //box实体
 let boxEntity = new Mesh(
@@ -138,9 +139,9 @@ let planeEntity = new Mesh({
 scene.add(planeEntity);
 let dirLight: DirectionalLight = new DirectionalLight(
   {
-    intensity: .50,
-    direction: [1.0, 1.0, 0.0],
-    shadow:true,
+    intensity: .52,
+    direction: [1.0, 1.0, 1.0],
+    shadow: true,
   }
 );
 

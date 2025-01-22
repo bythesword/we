@@ -16,7 +16,7 @@ export interface optionUpdate {
 ////////////////////////////////////////////////////////////////////////////////////////
 //shadow map
 
-export enum renderKindForDCCCC {
+export enum renderKindForDCCC {
     "camera" = "camrea",
     "light" = "light"
 }

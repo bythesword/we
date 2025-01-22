@@ -5,7 +5,6 @@ import { AmbientLight, optionAmbientLight } from "./ambientLight";
 import { BaseLight, lightStructSize, lightStructSizeOfShadowMapMVP, lightType } from "./baseLight";
 import { lightNumber, shadowMapSize } from "../const/coreConst";
 import { valuesForCreateDCCC } from "../entity/baseEntity";
-import { commmandType } from "../scene/baseScene";
 
 export interface optionLightSManagement {
     scene: Scene,
@@ -54,7 +53,7 @@ export class LightsManagement {
 
     ////////////////////////////////////////////////////////////////////////////////
     // shadow map
-    /**MVP和depth texture使用，根据增加的光源的shadow而自增,从0开始（ GPUOrigin3DDict 的 depthOrArrayLayers） */
+    /**MVP和depth texture使用，根据增加的光源的shadow而自增,从1开始（ GPUOrigin3DDict 的 depthOrArrayLayers） */
     shadowIndexID: number;
 
     /** 光源的shadow map 和 MVP的存储结构*/
@@ -97,17 +96,12 @@ export class LightsManagement {
     _maxlightNumber: number;
 
 
-    lightsCommands: {
-        [name: string]: commmandType[]
-    }
-
     constructor(input: optionLightSManagement) {
         this.scene = input.scene;
         this.device = input.scene.device;
         this.reNewLightsNumberOfShadow = false;
         this._lastNumberOfLights = 0;
         this.lights = [];
-        this.lightsCommands = {};
         this.ambientLight = {};
         this.shadowArrayOfDepthMapAndMVP = [];
         this.lightsUniformGPUBuffer = this.device.createBuffer({
@@ -117,7 +111,7 @@ export class LightsManagement {
         });
         this._maxlightNumber = lightNumber;
 
-        this.shadowIndexID = 0;//MVP and depth texture index;
+        this.shadowIndexID = 1;//MVP and depth texture index;
         this.shadowMapTexture = this.generateShadowMapTexture();//todo 20250105,目前是固定的，后期改成动态
         this.ShadowMapUniformGPUBuffer = this.createShadowMapUniformGPUBuffer();
     }
@@ -218,6 +212,7 @@ export class LightsManagement {
                     MVP: mat4.identity(),//GPUBuffer的来源MVP
                     GPUBuffer: oneGPUBuffer,//每个light的shadow map的MVP
                     RPD: this.createShadowMapRPD(this.shadowIndexID, i),//每个light的render shadow map 的RPD
+
                 }
                 this.shadowArrayOfDepthMapAndMVP.push(oneMVP)
             }
@@ -226,7 +221,7 @@ export class LightsManagement {
                 this.shadowIndexID += 6;
             }
             else {//other
-                this.shadowIndexID++;
+                this.shadowIndexID ++;
             }
         }
         this.lights.push(one);
@@ -234,17 +229,14 @@ export class LightsManagement {
     createShadowMapRPD(index: number, selfIndex: number): GPURenderPassDescriptor {
         const renderPassDescriptor: GPURenderPassDescriptor = {
             depthStencilAttachment: {
-                view: this.shadowMapTexture.createView(
-                    {
-                        label: "lights management shadowMapTexture array ,the index is :" + index + " offset is :" + selfIndex,
-                        dimension: "2d",
-                        // dimension:  "2d-array", 
-                        baseArrayLayer: index + selfIndex,
-                        arrayLayerCount: 1,
-                    }
-                ),
+                view: this.shadowMapTexture.createView({
+                    label: "lights management shadowMapTexture array ,the index is :" + index + " offset is :" + selfIndex,
+                    dimension: "2d",//"2d-array",
+                    arrayLayerCount: index + selfIndex,
+
+                }),
                 depthClearValue: this.scene._isReversedZ ? this.scene.depthClearValueOfReveredZ : this.scene.depthClearValueOfZ, // 1.0,                
-                depthLoadOp: 'clear', // depthLoadOp: 'load',//这个可能有问题，如果clear的清空
+                depthLoadOp: 'load', // depthLoadOp: 'load',//这个可能有问题，如果clear的清空
                 depthStoreOp: 'store',
             },
             colorAttachments: []
@@ -259,20 +251,11 @@ export class LightsManagement {
         }
         return false;
     }
-    gettShadowMapRPDByIdAndSelfIndex(id: number, matrixIndex: number): GPURenderPassDescriptor | false {
-        for (let i of this.shadowArrayOfDepthMapAndMVP) {
-            if (i.light_id == id && i.matrix_self_index == matrixIndex!) {
-                return i.RPD;
-            }
-        }
-        return false;
-    }
     getLightNumbers() {
         return this.lights.length;//这个需要进行可见性处理(enable,visible,stage)，todo 20241021
     }
     /**更新所有光源的入口 */
     async update(deltaTime: number, startTime: number, lastTime: number) {
-        this.lightsCommands = {};
         this.updateLights(deltaTime, startTime, lastTime);//更新光源属性
         await this.updateSystemUniformBufferForlights();//更新lights的system uniform ；@group(0) @binding(1)
         this.updateSytemUniformOfShadowMap();//更新shadowmap  uniform，@group(0) @binding(2)；同步更新每个光源生成shadow map用的MVP
@@ -566,22 +549,9 @@ export class LightsManagement {
     /////////////////////////////////////////////////
     /**render perlight's shadowmap  */
     render() {
-        for (let oneLightID_i in this.lightsCommands) {
-            let ID = oneLightID_i.split("_");
-            let id: number = parseInt(ID[0]);
-            let matrixIndex: number = parseInt(ID[1]);
-            for (let i in this.lightsCommands[oneLightID_i]) {
-                let RPD = this.gettShadowMapRPDByIdAndSelfIndex(id, matrixIndex);
-                if (RPD) {
-                    if (i == "0") {
-                        RPD.depthStencilAttachment!.depthLoadOp = "clear";
-                    }
-                    else if (i == "1") {
-                        RPD.depthStencilAttachment!.depthLoadOp = "load";
-                    }
-                    this.lightsCommands[oneLightID_i][i].update();
-                }
-            }
-        }
+
+    }
+    renderShadowMap() {
+
     }
 }

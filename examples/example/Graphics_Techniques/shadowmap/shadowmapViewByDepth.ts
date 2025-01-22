@@ -4,13 +4,17 @@ import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntr
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
 import { sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 
-import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/lightsphongMaterial"
 import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
-import { initScene } from "../../../../src/we/base/scene/initScene"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
+import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
+import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/lightsphongMaterial"
+import { initScene } from "../../../../src/we/base/scene/initScene"
+import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
+import { vec3 } from "wgpu-matrix"
+import { optionOrthProjection, OrthographicCamera } from "../../../../src/we/base/camera/orthographicCamera"
+
 
 declare global {
   interface Window {
@@ -35,24 +39,40 @@ let input: sceneInputJson = {
     },
     intensity: 0.13
   },
-  stageSetting: "world"
+  stageSetting: "world",
+  // reversedZ: true,
 
 }
 let scene = await initScene(input);
 window.scene = scene;
 
-
-//摄像机初始化参数
-const cameraOption: optionPerspProjection = {
-  fov: (2 * Math.PI) / 5,
-  aspect: scene.aspect,
-  near: 0.1,
-  far: 30,
-  position: [0, 0, 3],
+const cameraOption: optionOrthProjection = {
+  left: -2,
+  right: 2,
+  top: 2,
+  bottom: -2,
+  near: -10,
+  far: 10,
+  position: [0, 1, 1],
+  // position: [1, 1, 5],
   lookAt: [0, 0, 0]
 }
-//实例化摄像机
-let camera = new PerspectiveCamera(cameraOption);
+let camera = new OrthographicCamera(cameraOption);
+
+
+
+// //摄像机初始化参数
+// const cameraOption: optionPerspProjection = {
+//   fov: (2 * Math.PI) / 5,
+//   aspect: scene.aspect,
+//   near: 0.1,
+//   far: 10,
+//   position: [0, 0, 1],
+//   lookAt: [0, 0, 0]
+// }
+// //
+// //实例化摄像机
+// let camera = new PerspectiveCamera(cameraOption);
 
 
 //摄像机控制器
@@ -76,13 +96,14 @@ let actor = new CameraActor(ccOption)
 scene.addCameraActor(actor, true)
 
 
-////enities 初始化
 //box
-let Geometry = new SphereGeometry({
-  radius: 1,
-  widthSegments: 128,
-  heightSegments: 128
+let Geometry = new BoxGeometry({
+  width: 1,
+  height: 1,
+  depth: 1
 });
+
+
 //极简测试材质，red
 let redMaterial = new PhongLightsMaterial(
   {
@@ -98,18 +119,39 @@ let boxEntity = new Mesh(
     material: redMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
-    // position:vec3.create(1,0,0),
-    // scale:[2,2,1],
-    // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:0.15*Math.PI
-    // },
+    position: vec3.create(-0.50, 0, 0),
+    // scale:[0.5,0.5,0.5],
+    rotate: {
+      axis: [1, 1, 1],
+      angleInRadians: 0.15 * Math.PI
+    },
   }
 );
 //增加实体到scene
 scene.add(boxEntity)
 
+let sphereGeometry = new SphereGeometry({
+  radius: 0.5,
+  widthSegments: 128,
+  heightSegments: 128
+});
 
+let sphereEntity = new Mesh(
+  {
+    geometry: sphereGeometry,
+    material: redMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position: vec3.create(0.50, 0, 0.0),
+    // scale:[0.5,0.5,0.5],
+    // rotate:{
+    //   axis:[1,1,1],
+    //   angleInRadians:0.15*Math.PI
+    // },
+  }
+);
+//增加实体到scene
+scene.add(sphereEntity)
 
 let planeGeometry = new PlaneGeometry({
   width: 10,
@@ -136,13 +178,30 @@ let planeEntity = new Mesh({
 });
 
 scene.add(planeEntity);
+
+
 let dirLight: DirectionalLight = new DirectionalLight(
   {
     intensity: .50,
-    direction: [1.0, 1.0, 0.0],
-    shadow:true,
+    direction: [0.0, 1.0, 1.0],
+    // direction: [1.0, 1.0, 1.0],
+    shadow: true,
   }
 );
 
 scene.addLight(dirLight);
 
+
+scene.setGBuffersVisualize({
+  enable: true,
+  forOtherDepth: {
+    depthTextureView: scene.lightsManagement.shadowMapTexture.createView(
+      {
+        label: "lights management shadowMapTexture array 可视化",
+        dimension: "2d",
+        //  dimension:  "2d-array",
+        baseArrayLayer: 0,
+      }
+    ),
+  }
+});

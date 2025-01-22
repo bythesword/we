@@ -8,14 +8,20 @@ import partAdd_st_entity_VS from "../shader/entities/part_add.st_entity.vs.wgsl?
 import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.VertexShaderOutput.vs.wgsl?raw"
 import partReplace_VertexShaderOutput_VS from "../shader/entities/part_replace.VertexShaderOutput.vs.wgsl?raw"
 import { commmandType } from "../scene/baseScene";
-import { boundingBox, Box3, generateBox3 } from "../math/Box";
-import { boundingSphere, generateSphereFromBox3, Sphere } from "../math/sphere";
+import { boundingBox, generateBox3 } from "../math/Box";
+import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
+import { renderKindForDCCC } from "../const/coreConst";
 
 export interface renderCommands {
     forward: commmandType[],
     depth: commmandType[],
     color: commmandType[],
 }
+
+// export interface renderCommandsOfShadowMap {
+//     [shadowmap:number]: commmandType[],
+// }
+
 
 // export interface boundingSphere {
 //     position: [number, number, number],
@@ -26,6 +32,15 @@ export interface renderCommands {
 //     max: [number, number, number],
 // }
 
+/**createDCCC的参数
+ * 
+ */
+export interface valuesForCreateDCCC {
+    parent: BaseStage,
+    id: string,//camera id or light id 
+    kind: renderKindForDCCC,//enmu 
+    matrixIndex?: number,//matrix of light MVP[]
+}
 
 
 export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
@@ -115,7 +130,6 @@ export interface optionShadowEntity {
 }
 
 
-
 /**三段式初始化的第一步： input参数 */
 export interface optionBaseEntity extends coreConst.optionUpdate {
     /**
@@ -187,9 +201,16 @@ export interface optionBaseEntityStep2 {
     deferRenderColor: boolean,
     reversedZ: boolean,
 }
-/**为多摄像机和shadow map输出的commmand格式 */
+/**为多摄像机输出的commmand格式 */
 export interface commandsOfEntity {
     [name: string]: renderCommands
+}
+/**为多shadow map输出的commmand格式
+ * 
+ * name=light.id(转换后的string 格式)
+ */
+export interface commandsOfShadowOfEntity {
+    [name: string]: commmandType[]
 }
 export abstract class BaseEntity extends Root {
 
@@ -213,6 +234,7 @@ export abstract class BaseEntity extends Root {
     _shadow!: optionShadowEntity;
     // _shadowMaterail!: ShadowMaterial;
     commmands: commandsOfEntity;//commmandType[];
+    commandsOfShadow: commandsOfShadowOfEntity;
     _vertexAndMaterialGroup!: entityContentGroup;
     _position!: Vec3;
     _scale!: Vec3;
@@ -230,8 +252,8 @@ export abstract class BaseEntity extends Root {
     /**
      * 20241120，增加了matrix buffer，因为实例化可能是一个或多个，最终输出是一个buffer
      */
-    matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCC中进行字符串替换，每个子类单独进行
-    structUnifomrBuffer!: ArrayBuffer;//instance的uniform 数组数量，在createDCC中进行字符串替换，每个子类单独进行
+    matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
+    structUnifomrBuffer!: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
     /**for shader  */
     entity_id: Uint32Array;
     /**for shader */
@@ -315,6 +337,7 @@ export abstract class BaseEntity extends Root {
         this._LOD = [];
         this._destroy = false;
         this.commmands = {};
+        this.commandsOfShadow = {};
         this._vertexAndMaterialGroup = {};
         this.enable = true;
         this._position = vec3.create();
@@ -379,21 +402,6 @@ export abstract class BaseEntity extends Root {
         this.ID = values.ID;//这个在最后，update需要判断ID是否存在，以开始更新
     }
 
-    initDCC(parent: BaseStage) {
-        let already = this.checkStatus();
-        if (already) {
-            this._init = initStateEntity.initializing;
-            this.generateBoxAndSphere();
-            for (let i of this.scene.lightsManagement.lights) {
-
-            }
-            for (let i of this.scene.cameraActors) {
-                if (this.deferRenderDepth) this._init = this.createDCCDeferRenderDepth(parent, i.id.toString());
-                this._init = this.createDCC(parent, i.id.toString(), "camera");
-            }
-
-        }
-    }
     abstract generateBoxAndSphere(): void
 
     set transparent(transparent: boolean) {
@@ -408,10 +416,12 @@ export abstract class BaseEntity extends Root {
      * 
      * type:string ,"camera"|"light",default="camera"
      */
-    abstract createDCC(parent: BaseStage, camera: string, kind?: string): initStateEntity
-    abstract createDCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity
-    abstract createDCCForShadowMap(parent: BaseStage, camera: string, kind?: string): initStateEntity
-
+    abstract createDCCC(values: valuesForCreateDCCC): initStateEntity
+    abstract createDCCCDeferRenderDepth(values: valuesForCreateDCCC): initStateEntity
+    abstract createDCCCForShadowMap(values: valuesForCreateDCCC): initStateEntity
+    // abstract createDCCC(parent: BaseStage, camera: string, kind?: string): initStateEntity
+    // abstract createDCCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity
+    // abstract createDCCCForShadowMap(parent: BaseStage, camera: string, kind?: string): initStateEntity
 
 
     /** 世界坐标的Box */
@@ -589,11 +599,88 @@ export abstract class BaseEntity extends Root {
         // return this.matrixWorldBuffer;
         return new Float32Array(this.structUnifomrBuffer);
     }
+
+
+
+    initDCC(parent: BaseStage) {
+        let already = this.checkStatus();
+        if (already) {
+            this._init = initStateEntity.initializing;
+            this.generateBoxAndSphere();
+            this.upgradeLights(parent);
+            this.upgradeCameras(parent);
+
+            this._init = initStateEntity.finished;//this.createDCCC(valueOfCamera);
+        }
+    }
+    checkIdOfCommands(id: string, commands: commandsOfEntity | commandsOfShadowOfEntity): boolean {
+        for (let i in commands) {
+            if (i == id) return true;
+        }
+        return false;
+    }
+    /**更新(创建)关于cameras的DCCC commands
+     * 
+     * @param parent 
+     */
+    upgradeCameras(parent: BaseStage) {
+        for (let i of this.scene.cameraActors) {
+            const id = i.id.toString();
+            const already = this.checkIdOfCommands(id, this.commmands);//获取是否已经存在
+            if (already) {
+                continue;
+            }
+            else {
+                const valueOfCamera: valuesForCreateDCCC = {
+                    parent,
+                    id: id,
+                    kind: renderKindForDCCC.camera
+                };
+                if (this.deferRenderDepth) this._init = this.createDCCCDeferRenderDepth(valueOfCamera);
+                this.createDCCC(valueOfCamera);
+            }
+        }
+    }
+    /**更新(创建)关于lights的DCCC commands
+     * 
+     */
+    upgradeLights(parent: BaseStage) {
+        for (let i of this.scene.lightsManagement.getShdowMapsStructArray()) {
+            const id = i.light_id.toString();
+            const already = this.checkIdOfCommands(id, this.commandsOfShadow);//获取是否已经存在
+            if (already) {
+                continue;
+            }
+            else {
+                const valueOfLight: valuesForCreateDCCC = {
+                    parent,
+                    id: id,
+                    kind: renderKindForDCCC.light,
+                    matrixIndex: i.matrix_self_index
+                };
+                this.createDCCCForShadowMap(valueOfLight);
+            }
+
+        }
+    }
+    checkUpgradeCameras(parant: BaseStage) {
+        const countsOfCamerasCommand = Object.keys(this.commmands).length;
+        const countsOfCameraActors = this.scene.cameraActors.length;
+        if (countsOfCameraActors > countsOfCamerasCommand) {
+            this.upgradeCameras(parant)
+        }
+    }
+    checkUpgradeLights(parant: BaseStage) {
+        const countsOfCamerasCommand = Object.keys(this.commandsOfShadow).length;
+        const countsOfCameraActors = this.scene.lightsManagement.getShdowMapsStructArray().length;
+        if (countsOfCameraActors > countsOfCamerasCommand) {
+            this.upgradeLights(parant)
+        }
+    }
     /**
      * 1、完成初始化，进行DCC更新
      * 2、未完成初始化，返回空数组
      */
-
 
     /**每帧更新入口
      * 
@@ -628,6 +715,10 @@ export abstract class BaseEntity extends Root {
                 if (this._dynamicPostion === true) {
                     this.matrixWorld = this.updateMatrixWorld();
                 }
+                //检查是否有新摄像机，有进行更新
+                this.checkUpgradeCameras(parent);
+                //建设是否有新光源，有进行更新
+                this.checkUpgradeLights(parent);
                 if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
                     this.updateUniformBuffer(parent, deltaTime, startTime, lastTime);
                     this.commmands = this.updateDCC(parent, deltaTime, startTime, lastTime);
@@ -646,7 +737,28 @@ export abstract class BaseEntity extends Root {
 
         return this.commmands;
     }
-
+    /**
+     * 被update调用
+     * 更新this._vertexAndMaterialGroup对应的DrawCommand组
+     * 
+     * 1、主要是GPUBuffer和材质，是本class管理的（非DrawCommand自己管理范围内的，DC管理自己的）
+     *      A、uniform buffer，GPUBuffer，storageBuffer
+     * 
+     * 2、如果没有更新直接返回DCC的数组
+     * 
+     * 
+     * @param _parent 
+     * @param _deltaTime 
+     * @param _startTime 
+     * @param _lastTime 
+     * @returns commandsOfEntity, 返回this.commmands 包括多个camera和light的renderCommands 每个renderCommands中包括3个类型的commands
+     */
+    updateDCC(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): commandsOfEntity {
+        return this.commmands;
+    }
+    getCommandsOfShadowMap(): commandsOfShadowOfEntity {
+        return this.commandsOfShadow;
+    }
     updateChilden(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number, _updateForce: boolean = false): commmandType[] {
         return [];
     }
@@ -708,7 +820,6 @@ export abstract class BaseEntity extends Root {
      * 
      * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
      */
-    // abstract
     updateUniformBuffer(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): any {
 
         for (let i = 0; i < this.numInstances; i++) {
@@ -739,25 +850,7 @@ export abstract class BaseEntity extends Root {
     }
 
 
-    /**
-     * 被update调用
-     * 更新this._vertexAndMaterialGroup对应的DrawCommand组
-     * 
-     * 1、主要是GPUBuffer和材质，是本class管理的（非DrawCommand自己管理范围内的，DC管理自己的）
-     *      A、uniform buffer，GPUBuffer，storageBuffer
-     * 
-     * 2、如果没有更新直接返回DCC的数组
-     * 
-     * 
-     * @param _parent 
-     * @param _deltaTime 
-     * @param _startTime 
-     * @param _lastTime 
-     * @returns commandsOfEntity, 返回this.commmands 包括多个camera和light的renderCommands 每个renderCommands中包括3个类型的commands
-     */
-    updateDCC(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): commandsOfEntity {
-        return this.commmands;
-    }
+
 
     /**
      * 循环注销children

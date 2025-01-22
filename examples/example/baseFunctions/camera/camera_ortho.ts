@@ -25,7 +25,8 @@ let input: sceneInputJson = {
     green: 0.1,
     blue: 0.1,
     alpha: 1
-  }
+  },
+  stageSetting: "all"
 }
 let scene = new Scene(input);
 await scene.init();
@@ -40,7 +41,7 @@ const cameraOption: optionOrthProjection = {
   bottom: -2,
   near: 0.1,
   far: 100,
-  position: [0, 0, 5],
+  position: [1, 1, 5],
   lookAt: [0, 0, 0]
 }
 let camera = new OrthographicCamera(cameraOption);

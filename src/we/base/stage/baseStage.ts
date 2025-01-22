@@ -1,10 +1,10 @@
-import { BaseEntity } from "../entity/baseEntity";
+import { BaseEntity, valuesForCreateDCCC } from "../entity/baseEntity";
 import { BaseScene, commmandType, sceneJson } from "../scene/baseScene";
 import { BaseLight } from "../light/baseLight";
 import * as coreConst from "../const/coreConst"
 import { Scene } from "../scene/scene";
 import { CameraActor } from "../actor/cameraActor";
-import { renderKindForDCCCC } from "../const/coreConst";
+import { renderKindForDCCC } from "../const/coreConst";
 
 
 
@@ -264,17 +264,36 @@ export class BaseStage extends BaseScene {
     getRenderPassDescriptor_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.RPD_ForDeferDepth[camera];
     }
-    // 作废 20250103
-    // updateSystemUniformBuffer() {
-    //     return this.scene.updateSystemUniformBuffer();
-    // }
-    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, scope: BaseStage, camera?: string, kind?: renderKindForDCCCC): GPUBindGroup {
+ 
+    /** camera 获取bingGroup
+     * 
+     * @param pipeline 
+     * @param scope 
+     * @param camera 
+     * @param kind 
+     * @returns 
+     */
+    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, scope: BaseStage, camera?: string, kind?: renderKindForDCCC): GPUBindGroup {
         if (camera == undefined) {//默认摄像机
             return scope.scene.createSystemUnifromGroupForPerShader(pipeline);
         }
         else {
-            return scope.scene.createSystemUnifromGroupForPerShader(pipeline, scope.scene, camera, kind);
+            return scope.scene.createSystemUnifromGroupForPerShader(pipeline, /*scope.scene,*/ camera, kind);
         }
+    }
+
+    /**light的shadow map 获取 bindGroup
+     * 
+     * @param pipeline 
+     * @param scope 
+     * @param id 
+     * @param _kind 
+     * @returns 
+     */
+    createSystemUnifromGroupForShadowMapPerShader(pipeline: GPURenderPipeline, scope: BaseStage, id?: string, _kind?: renderKindForDCCC): GPUBindGroup {
+        let ID = id!.split("_");
+        return scope.scene.createSystemUnifromGroupForShadowMapPerShader(pipeline, /*scope.scene,*/ ID[0], parseInt(ID[1]));
+
     }
     //todo:20241212 ,为透明提供system uniform
     // createSystemUnifromGroupForPerShaderForDeferRenderDepth(pipeline: GPURenderPipeline): GPUBindGroup {
@@ -335,6 +354,24 @@ export class BaseStage extends BaseScene {
 
         //     }
         // }
+        for (let oneLightID_i in this.lightsCommands) {
+            const commands = this.lightsCommands[oneLightID_i];
+            // let IdAndIndex = oneLightID_i.split("_");
+            // let id = IdAndIndex[0];
+            // let index = IdAndIndex[1];
+            if (commands.length > 0) {
+                //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
+                for (let i in commands) {
+                    // if (i == "0") {
+                    //     this.scene.lightsManagement. [Ci].depthStencilAttachment!.depthLoadOp = "clear";
+                    // }
+                    // else if (i == "1") {
+                    //     this.RPD_ForDeferDepth[Ci].depthStencilAttachment!.depthLoadOp = "load";
+                    // }
+                    commands[i].update();
+                }
+            }
+        }
     }
     /**
      * render延迟单像素渲染的第一遍depth
@@ -424,6 +461,7 @@ export class BaseStage extends BaseScene {
                                 commandsColor: []
                             };
                         }
+                        //这里需要将BaseEntity中的renderCommands转换到cameraCommands
                         // if (oneCA.id == this.scene.defaultCameraActor.id) 
                         if (this.getRenderVisibleForCamera(oneCA, i)) {//获取entity的可视性
                             if (this.deferRenderDepth) {//单像素延迟渲染
@@ -440,6 +478,27 @@ export class BaseStage extends BaseScene {
                             //未涉及延迟渲染的color模式
                         }
                     }
+                const commandShadowMap = i.getCommandsOfShadowMap();
+                if (Object.keys(commandShadowMap).length) {
+                    for (let oneSM in commandShadowMap) {
+                        if (this.scene.lightsManagement.lightsCommands[oneSM] == undefined) {
+                            this.scene.lightsManagement.lightsCommands[oneSM] = [];
+                        }
+                        for (let i of commandShadowMap[oneSM]) {
+                            this.scene.lightsManagement.lightsCommands[oneSM].push(i);
+                        }
+                    }
+                }
+                // if (Object.keys(commandShadowMap).length) {
+                //     for (let oneSM in commandShadowMap) {
+                //         if (this.lightsCommands[oneSM] == undefined) {
+                //             this.lightsCommands[oneSM] = [];
+                //         }
+                //         for (let i of commandShadowMap[oneSM]) {
+                //             this.lightsCommands[oneSM].push(i);
+                //         }
+                //     }
+                // }
             }
         }
     }
@@ -486,8 +545,11 @@ export class BaseStage extends BaseScene {
     set cache(enable: boolean) {
         this._cache = enable;
     }
-    getWGSLOfSystemShader(): string {
-        return this.scene!.getWGSLOfSystemShader();
+    getWGSLOfSystemShader(renderType:renderKindForDCCC): string {
+        return this.scene!.getWGSLOfSystemShader(renderType);
+    }
 
+    getRenderPassDescriptorOfLight(values: valuesForCreateDCCC): GPURenderPassDescriptor | false {
+        return this.scene.lightsManagement.gettShadowMapRPD(values);
     }
 }
