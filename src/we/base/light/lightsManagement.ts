@@ -162,7 +162,7 @@ export class LightsManagement {
     createShadowMapUniformGPUBuffer(): GPUBuffer {
         return this.device.createBuffer({
             label: 'Shadow Map GPUBuffer',
-            size: lightNumber * ST_shadowMapMatrix_Size,
+            size: lightNumber *6* ST_shadowMapMatrix_Size,//这里是按照默认cube来计算size的，与dept texture 的*6相同//todo，20250122
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
     }

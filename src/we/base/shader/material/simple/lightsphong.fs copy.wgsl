@@ -1,10 +1,8 @@
 
 //start :lightsphong.fs.wgsl
-//@group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;//20241215 转移到TS中
-override shadowDepthTextureSize : f32 = 1024.0; 
+// @group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;//20241215 转移到TS中
 
-@fragment
-fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+@fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     $deferRender_Depth
     let shininess = u_bulinphong.shininess;
     let metalness = u_bulinphong.metalness;
@@ -24,12 +22,6 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
         {
             var onelightPhongColor : array<vec3f, 2>;
             let onelight = U_lights.lights[i ];
-            var visibility = 0.0;           //是否在阴影中
-
-            if (onelight.shadow ==1)
-            {
-                visibility = shadowMapVisibility(onelight,   fsInput.worldPosition);
-            }
 
 
             if (onelight.kind ==0)
@@ -45,45 +37,18 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             {
                 onelightPhongColor = phongColorOfSpotLight(fsInput.worldPosition, fsInput.normal, onelight.position, onelight.direction, onelight.color, onelight.intensity, onelight.angle, defaultCameraPosition, fsInput.uv);
             }
-            colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
-            colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
-
+            colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] + onelightPhongColor[0];
+            colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] + onelightPhongColor[1];
         }
     }
 
     var output : ST_GBuffer;
     $output
     output.color = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);
+
+
+
     return output;
-}
-fn shadowMapVisibility(onelight : ST_Light,   position : vec3f) -> f32{
-    let posFromLight = U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置
-    //Convert XY to (0, 1)
-    //Y is flipped because texture coords are Y-down.
-    let shadowPos = vec3(
-    posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5),
-    posFromLight.z
-    );
-
-    let oneOverShadowDepthTextureSize = 1.0 / shadowDepthTextureSize;
-    var visibility = 0.0; 
-    for (var y = -1; y <= 1; y++)
-    {
-        for (var x = -1; x <= 1; x++)
-        {
-            let offset = vec2f(vec2(x, y)) * oneOverShadowDepthTextureSize;
-
-            visibility += textureSampleCompare(
-            U_shadowMap_depth_texture,                  //t: texture_depth_2d_array
-            shadowSampler,                              //s: sampler_comparison,
-            shadowPos.xy + offset,                      //coords: vec2<f32>,
-            onelight.shadow_map_array_index,            //array_index: A,
-            shadowPos.z - 0.007                         //depth_ref: f32,
-            );
-        }
-    }
-    visibility /= 9.0;
-    return visibility;
 }
 
 fn PhongAmbientColor() -> vec3f

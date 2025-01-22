@@ -48,7 +48,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.1,
   far: 30,
-  position: [0, 0, 3],
+  position: [0, 1, 3],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -139,7 +139,7 @@ scene.add(planeEntity);
 let dirLight: DirectionalLight = new DirectionalLight(
   {
     intensity: .50,
-    direction: [1.0, 1.0, 0.0],
+    direction: [0.0, 0.50, 1.0],
     shadow:true,
   }
 );

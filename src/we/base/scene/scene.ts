@@ -612,7 +612,25 @@ class Scene extends BaseScene {
                             buffer: this.lightsManagement.lightsUniformGPUBuffer,
                             // buffer: this.systemUniformBuffers["lights"]!,
                         }
-                    }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: this.lightsManagement.ShadowMapUniformGPUBuffer,
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: this.lightsManagement.shadowMapTexture.createView(),
+
+                    },
+                    {
+                        binding: 4,
+                        resource: this.device.createSampler({
+                            compare: 'less',
+                        }),
+                    },
+
                 ],
         }
 
@@ -752,16 +770,18 @@ class Scene extends BaseScene {
     * sky、UI的合并与顺序
     * */
     async oneFrameRender() {
-        // this.renderShadowMap();
-        this.lightsManagement.render();//render light's shadow map
-        this.renderStagesCommand();//render  stages commands
-        this.renderSceneCommands();//render scene commands
-        for (let i in this.GBufferPostprocess) {
-            this.GBufferPostprocess[i].render();   //render GBuffer
+        if (this.lightsManagement && this.defaultCameraActor) {
+            // this.renderShadowMap();
+            this.lightsManagement.render();//render light's shadow map
+            this.renderStagesCommand();//render  stages commands
+            this.renderSceneCommands();//render scene commands
+            for (let i in this.GBufferPostprocess) {
+                this.GBufferPostprocess[i].render();   //render GBuffer
+            }
+            this.postProcessManagement.render();  //进行后处理
+            this.showMultiCamera();
+            await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
         }
-        this.postProcessManagement.render();  //进行后处理
-        this.showMultiCamera();
-        await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
     }
     renderShadowMap() {
         for (let i in this.stagesOrders) {

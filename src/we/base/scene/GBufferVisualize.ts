@@ -56,9 +56,18 @@ export class GBuffersVisualize extends SingleRender {
         this.GBuffers = input.GBuffers;
         this.presentationFormat = this.parent.presentationFormat;
         this.depthDefaultFormat = this.parent.depthDefaultFormat;
+        // this.sampler = this.device.createSampler({
+        //     magFilter: 'linear',
+        //     minFilter: 'linear',
+        // });
         this.sampler = this.device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear',
+            magFilter: 'nearest',
+            minFilter: 'nearest',
+            mipmapFilter: 'nearest', 
+            // 其他属性，如地址模式等
+            addressModeU: 'clamp-to-edge',
+            addressModeV: 'clamp-to-edge',
+            addressModeW: 'clamp-to-edge',
         });
         this.colorTexture = this.device.createTexture({
             size: [this.width, this.height],
