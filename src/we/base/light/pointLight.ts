@@ -31,7 +31,7 @@ export class PointLight extends BaseLight {
         throw new Error("Method not implemented.");
     }
     updateMVP(): Mat4[] {
-        throw new Error("Method not implemented.");
+        // throw new Error("Method not implemented.");
     }
 
 

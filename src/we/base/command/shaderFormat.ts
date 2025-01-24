@@ -33,7 +33,7 @@ export function getReplaceVertexConstantsVS(code: string, _entryPoint: string,  
 
   let split_2 = split_1[1].split("{");
 
-  let callFN: string = "\n initSystem(); \n";
+  let callFN: string = "\n initSystemOfVS(); \n";
   split_2[1] = callFN + split_2[1];
 
   split_1[1] = split_2.join("{");
@@ -74,7 +74,7 @@ export function getReplaceVertexConstantsFS(code: string, _entryPoint: string,  
 
   let split_2 = split_1[1].split("{");
 
-  let callFN: string = "\n initSystem(); \n";
+  let callFN: string = "\n initSystemOfFS(); \n";
   split_2[1] = callFN + split_2[1];
 
   split_1[1] = split_2.join("{");

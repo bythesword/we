@@ -1,5 +1,8 @@
 // declare global { interface Window { scene: any } }
 import wgsl_main from "../shader/system.wgsl?raw"
+import wgsl_main_VS from "../shader/system.vs.wgsl?raw"
+import wgsl_main_only_VS from "../shader/systemOnlyVS.wgsl?raw"
+import wgsl_main_FS from "../shader/system.fs.wgsl?raw"
 import wgsl_main_light from "../shader/shadow/systemForLight.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
@@ -596,7 +599,7 @@ class Scene extends BaseScene {
             ID = camera;
         }
         groupDesc = {
-            label: "global Group bind to 0 , camera+lights",
+            label: "global Group bind to 0 , camera + lights",
             layout: bindLayout,
             entries:
                 [
@@ -633,8 +636,38 @@ class Scene extends BaseScene {
 
                 ],
         }
+        const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
+        return bindGroup;
+    }
+    /**为只有VS的bindgroup使用，即：defer render的VS
+     * 
+     * @param pipeline 
+     * @param camera 
+     * @param _kind 
+     * @returns 
+     */
+    createSystemUnifromGroupForPerShaderForOnlyVS(pipeline: GPURenderPipeline, /*_scope?: BaseScene , */ camera?: string, _kind?: renderKindForDCCC): GPUBindGroup {
+        let groupDesc: GPUBindGroupDescriptor;
+        const bindLayout = pipeline.getBindGroupLayout(0);
 
 
+        let ID = this.defaultCameraActor.id.toString();
+        if (camera != undefined) {
+            ID = camera;
+        }
+        groupDesc = {
+            label: "global Group bind to 0 , camera Only VS(for defer render)",
+            layout: bindLayout,
+            entries:
+                [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.systemUniformBuffers["MVP"]![ID],
+                        },
+                    },
+                ],
+        }
         const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
         return bindGroup;
     }
@@ -647,15 +680,15 @@ class Scene extends BaseScene {
      * @param matrixIndex 
      * @returns 
      */
-    createSystemUnifromGroupForShadowMapPerShader(pipeline: GPURenderPipeline, /*_scope: BaseScene,*/ id: string, matrixIndex: number): GPUBindGroup {
+    createSystemUnifromGroupForPerShaderOfShadowMap(pipeline: GPURenderPipeline, /*_scope: BaseScene,*/ id: string, matrixIndex: number): GPUBindGroup {
         let groupDesc: GPUBindGroupDescriptor;
         const bindLayout = pipeline.getBindGroupLayout(0);
         const buffer = this.lightsManagement.getOneLightsMVP(id, matrixIndex);
         if (buffer === false) {
-            throw new Error("createSystemUnifromGroupForShadowMapPerShader(),  call this.lightsManagement.getOneLightsMVP(id,matrixIndex) is false ");
+            throw new Error("createSystemUnifromGroupForPerShaderOfShadowMap(),  call this.lightsManagement.getOneLightsMVP(id,matrixIndex) is false ");
         }
         groupDesc = {
-            label: "global Group bind to 0 ,light MVP for shadow map ",
+            label: "global Group bind to 0 ,light MVP (for shadow map )",
             layout: bindLayout,
             entries:
                 [
@@ -682,6 +715,36 @@ class Scene extends BaseScene {
      * 为每个DrawCommand，生成systemWGSL string，raw模式除外
      * @returns 
      */
+    // getWGSLOfSystemShaderFS(renderType: renderKindForDCCC): string {
+    //     if (renderType == renderKindForDCCC.light) {
+    //         let code = wgsl_main_light.toString();
+    //         return code;
+    //     }
+    //     let lightNumber = this._maxlightNumber.toString();
+    //     let code = wgsl_main_FS.toString();
+    //     code = code.replaceAll("$lightNumber", lightNumber);
+    //     return code;
+    // }
+    // getWGSLOfSystemShaderVS(renderType: renderKindForDCCC): string {
+    //     if (renderType == renderKindForDCCC.light) {
+    //         let code = wgsl_main_light.toString();
+    //         return code;
+    //     }
+    //     let lightNumber = this._maxlightNumber.toString();
+    //     let code = wgsl_main_VS.toString();
+    //     code = code.replaceAll("$lightNumber", lightNumber);
+    //     return code;
+    // }   
+    getWGSLOfSystemShaderOnlyVS(renderType: renderKindForDCCC): string {
+        if (renderType == renderKindForDCCC.light) {
+            let code = wgsl_main_light.toString();
+            return code;
+        }
+        let lightNumber = this._maxlightNumber.toString();
+        let code = wgsl_main_only_VS.toString();
+        code = code.replaceAll("$lightNumber", lightNumber);
+        return code;
+    }
     getWGSLOfSystemShader(renderType: renderKindForDCCC): string {
         if (renderType == renderKindForDCCC.light) {
             let code = wgsl_main_light.toString();
@@ -692,7 +755,6 @@ class Scene extends BaseScene {
         code = code.replaceAll("$lightNumber", lightNumber);
         return code;
     }
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 循环入口

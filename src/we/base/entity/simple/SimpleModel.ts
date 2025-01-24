@@ -219,7 +219,7 @@ export class SimpleModel extends BaseEntity {
             renderPassDescriptor,
             renderForID: camera,
             renderForType: kind as renderKindForDCCC,
-            systemUniforms: parent.createSystemUnifromGroupForPerShader,
+            systemUniforms: parent.createSystemUnifromGroupForPerShaderForOnlyVS,
 
         };
         if (this.commmands[camera] == undefined) {

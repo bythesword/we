@@ -1,7 +1,7 @@
 import { Scene } from "../scene/scene";
 import { lightType, optionBaseLight, shadowMap } from "./baseLight";
 import { BaseLight } from "./baseLight";
-import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
+import { mat4, Mat4, vec3, Vec3, vec4 } from "wgpu-matrix";
 
 export interface optionDirectionalLight extends optionBaseLight {
     // color: coreConst.color3F,
@@ -27,9 +27,10 @@ export class DirectionalLight extends BaseLight {
 
         if (this.shadow) {
 
-            const box3 = scene.getBoundingBox();
+            // const box3 = scene.getBoundingBox();//
+            const spshere = scene.getBoundingSphere();
 
-            if (box3) {
+            if (spshere) {
                 /** 第一行,X轴 */
                 let right = new Float32Array(matrix.buffer, 4 * 0, 4);
                 /** 第二行,Y轴 */
@@ -39,17 +40,38 @@ export class DirectionalLight extends BaseLight {
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
 
-                vec3.copy(vec3.normalize(this.values.direction!), back);
-                vec3.copy(vec3.normalize(vec3.cross(up, back)), right);
-                vec3.copy(vec3.normalize(vec3.cross(back, right)), up);
+                if (this.values.direction![0] == 0 && this.values.direction![1] == 1 && this.values.direction![2] == 0) {
+                    vec3.copy(this.values.direction!, back);
+                    vec3.copy(vec3.create(1, 0, 0), right);
+                    vec3.copy(vec3.create(0, 0, 1), up);
+                }
+                else {
+                    vec3.copy(vec3.normalize(this.values.direction!), back);
+                    vec3.copy(vec3.normalize(vec3.cross(up, back)), right);
+                    vec3.copy(vec3.normalize(vec3.cross(back, right)), up);
+                }
+
+                //todo,202501024,暂时使用sphere代替摄像机的视锥体可视范围
+                let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
+
+
+
+                //todo,20250124,四至这里目前先简单的写成固定的sphere
+                //todo，后期改为视锥体中所有boundingbox的聚会的boudingbox或boudingsphere
+                const projectionMatrix = mat4.ortho(
+                    p0[0] - spshere.radius - this.epsilon,
+                    p0[0] + spshere.radius + this.epsilon,
+
+                    p0[1] - spshere.radius - this.epsilon,
+                    p0[1] + spshere.radius + this.epsilon,
+
+                    p0[2] - spshere.radius - this.epsilon,
+                    p0[2] + spshere.radius + this.epsilon
+                );
+
 
                 //todo,20250114,四至与box3的关系随方向光的vec3而变化，这里目前先简单的写成固定的box3
-                const projectionMatrix = mat4.ortho(-2, 2, - 2, 2, -10, 10);
-                // const projectionMatrix = mat4.ortho(box3.min[0] * 2, box3.max[0] * 2, box3.min[1] * 2, box3.max[1] * 2, box3.max[2] * 2 + this.epsilon, box3.min[2] * 2 - this.epsilon);
-                // const projectionMatrix = mat4.ortho(box3.min[0], box3.max[0], box3.min[1], box3.max[1], -box3.min[2] + this.epsilon, -box3.max[2] - this.epsilon);
-
-                // const projectionMatrix  = mat4.perspective((2 * Math.PI) / 5, 1,  this.epsilon, box3.max[2]);
-
+                //  const projectionMatrix = mat4.ortho(-10, 10, -10, 10, -10, 10);//ok
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 return [MVP];
             }

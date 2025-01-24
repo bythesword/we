@@ -264,7 +264,7 @@ export class BaseStage extends BaseScene {
     getRenderPassDescriptor_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.RPD_ForDeferDepth[camera];
     }
- 
+
     /** camera 获取bingGroup
      * 
      * @param pipeline 
@@ -281,7 +281,14 @@ export class BaseStage extends BaseScene {
             return scope.scene.createSystemUnifromGroupForPerShader(pipeline, /*scope.scene,*/ camera, kind);
         }
     }
-
+    createSystemUnifromGroupForPerShaderForOnlyVS(pipeline: GPURenderPipeline, scope: BaseStage, camera?: string, kind?: renderKindForDCCC): GPUBindGroup {
+        if (camera == undefined) {//默认摄像机
+            return scope.scene.createSystemUnifromGroupForPerShaderForOnlyVS(pipeline);
+        }
+        else {
+            return scope.scene.createSystemUnifromGroupForPerShaderForOnlyVS(pipeline, /*scope.scene,*/ camera, kind);
+        }
+    }
     /**light的shadow map 获取 bindGroup
      * 
      * @param pipeline 
@@ -290,9 +297,9 @@ export class BaseStage extends BaseScene {
      * @param _kind 
      * @returns 
      */
-    createSystemUnifromGroupForShadowMapPerShader(pipeline: GPURenderPipeline, scope: BaseStage, id?: string, _kind?: renderKindForDCCC): GPUBindGroup {
+    createSystemUnifromGroupForPerShaderOfShadowMap(pipeline: GPURenderPipeline, scope: BaseStage, id?: string, _kind?: renderKindForDCCC): GPUBindGroup {
         let ID = id!.split("_");
-        return scope.scene.createSystemUnifromGroupForShadowMapPerShader(pipeline, /*scope.scene,*/ ID[0], parseInt(ID[1]));
+        return scope.scene.createSystemUnifromGroupForPerShaderOfShadowMap(pipeline, /*scope.scene,*/ ID[0], parseInt(ID[1]));
 
     }
     //todo:20241212 ,为透明提供system uniform
@@ -348,6 +355,7 @@ export class BaseStage extends BaseScene {
     //todo,stage 中的TAA，可以减少与非本stage的干扰
     copyForTAA() { }
 
+    //作废，20250123，
     renderForLightsShadowMap() {
         // if (Object.keys(this.lightsCommands).length) {
         //     for (let i of this.scene.lights) {
@@ -478,7 +486,9 @@ export class BaseStage extends BaseScene {
                             //未涉及延迟渲染的color模式
                         }
                     }
+                //获取shadowmap的commands
                 const commandShadowMap = i.getCommandsOfShadowMap();
+                //输出到light management的lightsCommands中,按照lightID
                 if (Object.keys(commandShadowMap).length) {
                     for (let oneSM in commandShadowMap) {
                         if (this.scene.lightsManagement.lightsCommands[oneSM] == undefined) {
@@ -545,7 +555,16 @@ export class BaseStage extends BaseScene {
     set cache(enable: boolean) {
         this._cache = enable;
     }
-    getWGSLOfSystemShader(renderType:renderKindForDCCC): string {
+    // getWGSLOfSystemShaderFS(renderType: renderKindForDCCC): string {
+    //     return this.scene!.getWGSLOfSystemShaderFS(renderType);
+    // }
+    // getWGSLOfSystemShaderVS(renderType: renderKindForDCCC): string {
+    //     return this.scene!.getWGSLOfSystemShaderVS(renderType);
+    // }
+    getWGSLOfSystemShaderOnlyVS(renderType: renderKindForDCCC): string {
+        return this.scene!.getWGSLOfSystemShaderOnlyVS(renderType);
+    }
+    getWGSLOfSystemShader(renderType: renderKindForDCCC): string {
         return this.scene!.getWGSLOfSystemShader(renderType);
     }
 

@@ -358,9 +358,9 @@ export class DrawCommand extends BaseCommand {
      * @returns GPURenderPipeline
      */
     createPipeline() {
-        let  renderForType = renderKindForDCCC.camera;
-        if(this.input.renderForType != renderKindForDCCC.camera){
-            renderForType=this.input.renderForType!;
+        let renderForType = renderKindForDCCC.camera;
+        if (this.input.renderForType != renderKindForDCCC.camera) {
+            renderForType = this.input.renderForType!;
         }
         let label = this.input.label;
         let device = this.device;
@@ -428,6 +428,11 @@ export class DrawCommand extends BaseCommand {
                 let wgslOfSystem = this.parent.getWGSLOfSystemShader(renderForType);
                 let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
                 let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
+               
+                // let wgslVsOfSystem = this.parent.getWGSLOfSystemShaderVS(renderForType);
+                // let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslVsOfSystem);
+                // let wgslFsOfSystem = this.parent.getWGSLOfSystemShaderFS(renderForType);
+                // let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslFsOfSystem);
                 descriptor = {
                     label: label,
                     layout: this.pipelineLayout,
@@ -470,8 +475,13 @@ export class DrawCommand extends BaseCommand {
                 };
             }
             else {
-                let wgslOfSystem = this.parent.getWGSLOfSystemShader(renderForType);
-                let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
+                // let wgslOfSystem = this.parent.getWGSLOfSystemShader(renderForType);
+                // let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
+
+                let wgslVsOfSystem = this.parent.getWGSLOfSystemShaderOnlyVS(renderForType);
+                let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslVsOfSystem);
+
+
                 descriptor = {
                     label: label,
                     layout: this.pipelineLayout,

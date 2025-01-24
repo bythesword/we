@@ -396,14 +396,7 @@ export class Mesh extends BaseEntity {
             renderPassDescriptor,
             renderForID: camera,
             renderForType: kind as renderKindForDCCC,
-            systemUniforms: parent.createSystemUnifromGroupForPerShader,
-            // depthStencilState: {
-            //     depthWriteEnabled: true,
-            //     depthCompare: 'less',
-            //     format: 'depth32float',
-            // },
-            // layout,
-
+            systemUniforms: parent.createSystemUnifromGroupForPerShaderForOnlyVS,
         };
 
         let DC = new DrawCommand(options);
@@ -488,7 +481,7 @@ export class Mesh extends BaseEntity {
                 renderPassDescriptor,
                 renderForID: id,//聚合了id和matrixIndex
                 renderForType: kind as renderKindForDCCC,//
-                systemUniforms: parent.createSystemUnifromGroupForShadowMapPerShader,
+                systemUniforms: parent.createSystemUnifromGroupForPerShaderOfShadowMap,
                 // depthStencilState: {
                 //     depthWriteEnabled: true,
                 //     depthCompare: 'less',

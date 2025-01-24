@@ -23,7 +23,7 @@ var<private> matrix_z : mat4x4f = mat4x4f(
 @group(0) @binding(0) var<uniform> U_MVP : ST_SystemMVP;
 
 
-fn initSystem() {
+fn initSystemOfVS() {
     MVP = U_MVP.MVP;
 
     if U_MVP.reversedZ == 1 {

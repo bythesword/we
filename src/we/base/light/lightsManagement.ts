@@ -471,76 +471,7 @@ export class LightsManagement {
         );
         return oneGPUBuffer;
     }
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    //MVP
 
-    // /**shadow  map 使用： 更新所有光源生成shadow map 的MVP */
-    // async updatePerLightMVPForGenerate() {
-    //     for (let i of this.lights) {
-    //         const id = i.id.toString();
-    //         if (this.lightsMVP![id] == undefined) {
-    //             this.lightsMVP![id] = await this.updatePerLightMVP(i);
-    //         }
-    //         else {
-    //             await this.updatePerLightMVP(i);
-    //         }
-    //     }
-    // }
-
-    // /**
-    //  * shadow  map 使用：获取并更新每个light MVP矩阵
-    //  * @param one 
-    //  * @returns  MVP(16*4)
-    //  */
-    // async updatePerLightMVP(one: BaseLight): Promise<GPUBuffer> {
-    //     let mvp: Mat4 = one.getMVP();
-    //     const id = one.id.toString();
-    //     // const ST_SystemMVPValues = new ArrayBuffer(80);
-    //     // const ST_SystemMVPViews = {
-    //     //     MVP: new Float32Array(ST_SystemMVPValues, 0, 16),
-    //     //     reversedZ: new Uint32Array(ST_SystemMVPValues, 64, 1),
-    //     // };
-
-    //     const uniformBufferSize = lightStructSizeOfShadowMapMVP;
-    //     let MVP: GPUBuffer;
-    //     let MVP_buffer = new Float32Array([
-    //         1, 0, 0, 0,
-    //         0, 1, 0, 0,
-    //         0, 0, 1, 0,
-    //         0, 0, 0, 1,
-    //         0, 0, 0, 0,
-    //     ]);
-
-    //     if (this.lightsMVP![id]) {
-    //         MVP = this.lightsMVP![id];
-    //     }
-    //     else {
-    //         MVP = this.device.createBuffer({
-    //             label: "lights(" + id + ") MVP",
-    //             size: uniformBufferSize,
-    //             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    //         });
-    //     }
-
-    //     if (mvp) {
-    //         let model = new Float32Array(MVP_buffer.buffer, 4 * 4 * 4 * 0, 16);
-    //         mat4.copy(mvp as Mat4, model);
-
-    //     }
-
-    //     if (this.scene._isReversedZ) {
-    //         let reversedZ = new Uint32Array(MVP_buffer.buffer, 4 * 4 * 4 * 1, 1);
-    //         reversedZ[0] = 1;
-    //     }
-    //     await this.device.queue.writeBuffer(
-    //         MVP,
-    //         0,
-    //         MVP_buffer.buffer,
-    //         MVP_buffer.byteOffset,
-    //         MVP_buffer.byteLength
-    //     );
-    //     return MVP;
-    // }
 
     /**获取光源的shadow map 对应的light 的MVP
      * 
