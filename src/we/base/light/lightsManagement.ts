@@ -162,7 +162,7 @@ export class LightsManagement {
     createShadowMapUniformGPUBuffer(): GPUBuffer {
         return this.device.createBuffer({
             label: 'Shadow Map GPUBuffer',
-            size: lightNumber *6* ST_shadowMapMatrix_Size,//这里是按照默认cube来计算size的，与dept texture 的*6相同//todo，20250122
+            size: lightNumber * 6 * ST_shadowMapMatrix_Size,//这里是按照默认cube来计算size的，与dept texture 的*6相同//todo，20250122
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
     }
@@ -237,8 +237,8 @@ export class LightsManagement {
                 view: this.shadowMapTexture.createView(
                     {
                         label: "lights management shadowMapTexture array ,the index is :" + index + " offset is :" + selfIndex,
-                        dimension: "2d",
-                        // dimension:  "2d-array", 
+                        // dimension: "2d",
+                        dimension:  "2d-array", 
                         baseArrayLayer: index + selfIndex,
                         arrayLayerCount: 1,
                     }
@@ -254,6 +254,7 @@ export class LightsManagement {
     gettShadowMapRPD(values: valuesForCreateDCCC): GPURenderPassDescriptor | false {
         for (let i of this.shadowArrayOfDepthMapAndMVP) {
             if (i.light_id == parseInt(values.id) && i.matrix_self_index == values.matrixIndex!) {
+                console.log(i)
                 return i.RPD;
             }
         }
@@ -349,7 +350,7 @@ export class LightsManagement {
             let StructBuffer = new Float32Array(buffer, 16 + 16 + size * i, size / 4);//todo，20241117，需要确认是否/4(byte*4 -->float32*1)
             let lightStructBuffer = this.lights[i].getStructBuffer();
             for (let j = 0; j < size; j++) {
-                StructBuffer[i * size + j] = lightStructBuffer[j];
+                StructBuffer[j] = lightStructBuffer[j];
             }
         }
 
@@ -413,7 +414,7 @@ export class LightsManagement {
 
     getLightByID(id: number): BaseLight | boolean {
         for (let i of this.lights) {
-            if (id = i.ID) {
+            if (id == i.ID) {
                 return i;
             }
         }

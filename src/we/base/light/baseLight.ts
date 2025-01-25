@@ -63,7 +63,12 @@ export interface shadowMap {
     map: GPUTexture,
 }
 
-
+interface optionBaseShadowMapOfST_Light{
+    shadow_map_type: number,  //1=one depth,6=cube,0=none
+    shadow_map_array_index: number,   //-1 = 没有shadowmap,other number=开始的位置，从0开始
+    shadow_map_array_lenght: number,  //1 or 6
+    shadow_map_enable: number,  //depth texture array 会在light add之后的下一帧生效，这个是标志位
+}
 
 export abstract class BaseLight/* extends Root */ {
     _kind!: lightType;
@@ -83,6 +88,12 @@ export abstract class BaseLight/* extends Root */ {
     /**为shadow map 的投影矩阵使用 */
     epsilon = 0.01;
 
+    shadowMapOfSt_Light: optionBaseShadowMapOfST_Light = {
+        shadow_map_type: 0,
+        shadow_map_array_index: -1,
+        shadow_map_array_lenght: 0,
+        shadow_map_enable: 0,
+    }
 
     constructor(input: optionBaseLight, kind: lightType) {
         // super();
@@ -276,13 +287,10 @@ export abstract class BaseLight/* extends Root */ {
         ST_LightViews.shadow[0] = this.getShadowEnable() ? 1 : 0;
         ST_LightViews.visible[0] = this.getVisible() ? 1 : 0;
 
-        //todo
-        /*
-        size
-        id
-        shadowmap
-        */
-
+        ST_LightViews.shadow_map_type[0] = this.shadowMapOfSt_Light.shadow_map_type;
+        ST_LightViews.shadow_map_array_index[0] = this.shadowMapOfSt_Light.shadow_map_array_index;
+        ST_LightViews.shadow_map_array_lenght[0] = this.shadowMapOfSt_Light.shadow_map_array_lenght;
+        ST_LightViews.shadow_map_enable[0] = this.shadowMapOfSt_Light.shadow_map_enable;
         return new Float32Array(ST_LightValues);
     }
     setShdowMapValues(index: number, count: number, kind: number) {
@@ -309,6 +317,13 @@ export abstract class BaseLight/* extends Root */ {
         ST_LightViews.shadow_map_array_index[0] = index;
         ST_LightViews.shadow_map_array_lenght[0] = count;
         ST_LightViews.shadow_map_enable[0] = 1;//todo ,20250105，如果是动态管理shadowmap texture大小，这个需要适配，目前未使用
+
+        this.shadowMapOfSt_Light={
+            shadow_map_type: kind,
+            shadow_map_array_index: index,
+            shadow_map_array_lenght: count,
+            shadow_map_enable: 1,
+        };
     }
 
 }

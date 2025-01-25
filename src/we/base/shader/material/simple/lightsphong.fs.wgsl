@@ -51,12 +51,13 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             {
                 onelightPhongColor = phongColorOfSpotLight(fsInput.worldPosition, fsInput.normal, onelight.position, onelight.direction, onelight.color, onelight.intensity, onelight.angle, defaultCameraPosition, fsInput.uv);
             }
-            colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
-            colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
+            colorOfPhoneOfLights[0] += colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
+            colorOfPhoneOfLights[1] += colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
 
         }
     }
-
+    colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] /f32(U_lights.lightNumber);
+    colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] /f32(U_lights.lightNumber);
     var output : ST_GBuffer;
     $output
     output.color = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);

@@ -264,31 +264,7 @@ fn shadowMapVisibilityPCSS(onelight: ST_Light, position: vec3f, normal: vec3f, b
     }
 }
      
-fn shadowMapVisibilityPCF2(onelight: ST_Light, position: vec3f, normal: vec3f, biasC: f32, filterRadiusUV: f32) -> f32 {
 
-    let posFromLight = U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置（光源视界的剪切空间）
-    //Convert XY to (0, 1)
-    //Y is flipped because texture coords are Y-down.
-    let shadowPos = vec3(posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5), posFromLight.z);  //这里的z是深度数据,xy是UV在光源depth texture中的位置
-    let oneOverShadowDepthTextureSize = FILTER_RADIUS / shadowDepthTextureSize;
-
-    let bias = getShadowBias(biasC, oneOverShadowDepthTextureSize, normal, onelight.direction);
-
-    let disk = poissonDiskSamples(vec2f(shadowPos.x, shadowPos.y));
-    var visibility = 0.0;
-    for (var i = 0 ; i <= NUM_SAMPLES; i++) {
-        let offset = disk[i] * filterRadiusUV;
-        visibility += textureSampleCompare(
-            U_shadowMap_depth_texture,                  //t: texture_depth_2d_array
-            shadowSampler,                              //s: sampler_comparison,
-            shadowPos.xy + offset,                      //coords: vec2<f32>,
-            onelight.shadow_map_array_index,            //array_index: A,
-            shadowPos.z - bias                      //depth_ref: f32,
-        );
-    }
-    visibility /= f32(NUM_SAMPLES);
-    return visibility;
-}
 fn shadowMapVisibilityPCF(onelight: ST_Light, position: vec3f, normal: vec3f, biasC: f32) -> f32 {
     let bias = 0.009;// max(0.005 * (1.0 - dot(normal, onelight.direction)), 0.005);
     let posFromLight = U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置（光源视界的剪切空间）

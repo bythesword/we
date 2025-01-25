@@ -1,8 +1,10 @@
 
 //start :lightsphong.fs.wgsl
-// @group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;//20241215 转移到TS中
+//@group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;//20241215 转移到TS中
 
-@fragment fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+
+@fragment
+fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     $deferRender_Depth
     let shininess = u_bulinphong.shininess;
     let metalness = u_bulinphong.metalness;
@@ -22,6 +24,18 @@
         {
             var onelightPhongColor : array<vec3f, 2>;
             let onelight = U_lights.lights[i ];
+            var visibility = 0.0;           //是否在阴影中
+
+            if (onelight.shadow ==1)
+            {
+                // visibility = shadowMapVisibilityHard(onelight, fsInput.worldPosition, fsInput.normal);
+                // visibility = shadowMapVisibilityPCF_3x3(onelight, fsInput.worldPosition, fsInput.normal);
+                // visibility = shadowMapVisibilityPCF(onelight, fsInput.worldPosition, fsInput.normal,0.08);
+                visibility = shadowMapVisibilityPCSS(onelight, fsInput.worldPosition, fsInput.normal,0.08);
+            }
+            else{
+                visibility = 1.0;
+            }
 
 
             if (onelight.kind ==0)
@@ -37,19 +51,19 @@
             {
                 onelightPhongColor = phongColorOfSpotLight(fsInput.worldPosition, fsInput.normal, onelight.position, onelight.direction, onelight.color, onelight.intensity, onelight.angle, defaultCameraPosition, fsInput.uv);
             }
-            colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] + onelightPhongColor[0];
-            colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] + onelightPhongColor[1];
+            colorOfPhoneOfLights[0] = colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
+            colorOfPhoneOfLights[1] = colorOfPhoneOfLights[1] +visibility * onelightPhongColor[1];
+
         }
     }
 
     var output : ST_GBuffer;
     $output
     output.color = vec4f((colorOfAmbient + colorOfPhoneOfLights[0]) * materialColor.rgb + colorOfPhoneOfLights[1], materialColor.a);
-
-
-
     return output;
 }
+
+
 
 fn PhongAmbientColor() -> vec3f
 {
