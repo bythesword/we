@@ -1,7 +1,7 @@
 
 //start :lightsphong.fs.wgsl
 //@group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;//20241215 转移到TS中
-override shadowDepthTextureSize : f32 = 1024.0;
+
 
 @fragment
 fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
@@ -29,7 +29,9 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             if (onelight.shadow ==1)
             {
                 // visibility = shadowMapVisibilityHard(onelight, fsInput.worldPosition, fsInput.normal);
-                visibility = shadowMapVisibilityPCF_3x3(onelight, fsInput.worldPosition, fsInput.normal);
+                // visibility = shadowMapVisibilityPCF_3x3(onelight, fsInput.worldPosition, fsInput.normal);
+                // visibility = shadowMapVisibilityPCF(onelight, fsInput.worldPosition, fsInput.normal,0.08);
+                visibility = shadowMapVisibilityPCSS(onelight, fsInput.worldPosition, fsInput.normal,0.08);
             }
             else{
                 visibility = 1.0;

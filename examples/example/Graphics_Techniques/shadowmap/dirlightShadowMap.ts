@@ -139,7 +139,7 @@ scene.add(planeEntity);
 let dirLight: DirectionalLight = new DirectionalLight(
   {
     intensity: .50,
-    direction: [0.0, 1.0, 0.0],
+    direction: [1.0, 1.0, -1.0],
     shadow:true,
   }
 );
