@@ -146,7 +146,9 @@ export class LightsManagement {
                 height: shadowMapSize,
                 depthOrArrayLayers: lightNumber * 6,
             },
-            format: "depth32float",
+            // format: "depth32float",
+            // format: "depth24plus-stencil8",
+            format: this.scene.depthDefaultFormat,
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
         }
         this.reNewLightsNumberOfShadow = false;//动态更新用，目前没有用途
@@ -237,8 +239,8 @@ export class LightsManagement {
                 view: this.shadowMapTexture.createView(
                     {
                         label: "lights management shadowMapTexture array ,the index is :" + index + " offset is :" + selfIndex,
-                        // dimension: "2d",
-                        dimension:  "2d-array", 
+                        dimension: "2d",
+                        // dimension: "2d-array",
                         baseArrayLayer: index + selfIndex,
                         arrayLayerCount: 1,
                     }
@@ -246,6 +248,9 @@ export class LightsManagement {
                 depthClearValue: this.scene._isReversedZ ? this.scene.depthClearValueOfReveredZ : this.scene.depthClearValueOfZ, // 1.0,                
                 depthLoadOp: 'clear', // depthLoadOp: 'load',//这个可能有问题，如果clear的清空
                 depthStoreOp: 'store',
+                // stencilClearValue: 0,
+                // stencilLoadOp: 'clear',
+                // stencilStoreOp: 'store'
             },
             colorAttachments: []
         };
@@ -254,7 +259,7 @@ export class LightsManagement {
     gettShadowMapRPD(values: valuesForCreateDCCC): GPURenderPassDescriptor | false {
         for (let i of this.shadowArrayOfDepthMapAndMVP) {
             if (i.light_id == parseInt(values.id) && i.matrix_self_index == values.matrixIndex!) {
-                console.log(i)
+                // console.log(i)
                 return i.RPD;
             }
         }

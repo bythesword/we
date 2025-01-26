@@ -72,7 +72,7 @@ export abstract class BaseScene {
     // about lights
     /** lights array ,only for scene,stage use lightsIndex[]*/
     lights: BaseLight[];
- 
+
     /**stage 和 scene都可以有
      * scene的是全局的
      * stage的是自己的
@@ -157,7 +157,19 @@ export abstract class BaseScene {
         this.renderPassDescriptor = {};
         this.GBuffers = {};
         this.Box3s = [];
-        this.depthDefaultFormat = 'depth32float';
+        this.depthDefaultFormat = "depth32float";
+        // this.depthDefaultFormat = 'depth32float';
+        this.depthStencilOfZ = {
+            depthWriteEnabled: true,
+            depthCompare: 'less',
+            format: this.depthDefaultFormat,
+        };
+        /**反向Z的深度模板设置 */
+        this.depthStencilOfReveredZ = {
+            depthWriteEnabled: true,
+            depthCompare: 'greater',
+            format: this.depthDefaultFormat,
+        }
         if (input.depthDefaultFormat) {
             this.depthDefaultFormat = input.depthDefaultFormat;
         }
@@ -187,6 +199,7 @@ export abstract class BaseScene {
             depthCompare: this._isReversedZ ? "greater" : 'less',
             format: this.depthDefaultFormat//'depth32float',
         };
+        //如果有深度模板输入
         if ("depthStencil" in input) {
             this.depthStencil = input.depthStencil as GPUDepthStencilState;
             if (input.reversedZ) {
@@ -230,7 +243,7 @@ export abstract class BaseScene {
                         view: this.GBuffers[camera][key].createView(),
                         clearValue: [0, 0, 0, 0],
                         loadOp: 'clear',
-                        storeOp: "store"
+                        storeOp: "store",
                     };
                 }
                 colorAttachments.push(one);
@@ -320,7 +333,7 @@ export abstract class BaseScene {
     /**每个继承类的更新入口 */
     abstract update(deltaTime: number, startTime: number, lastTime: number): any
     /**scene 、stage都是从baseScene基础，其核心渲染的全局wgsl可能不同 */
-    abstract getWGSLOfSystemShader(renderType:renderKindForDCCC): string
+    abstract getWGSLOfSystemShader(renderType: renderKindForDCCC): string
     /**初始化GBuffer
      * 
      * 在baseScene中没有调用,需要在scene或者stage进行显示初始化调用

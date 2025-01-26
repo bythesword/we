@@ -201,7 +201,7 @@ export abstract class BaseLight/* extends Root */ {
         if (this.MVP[index])
             return this.MVP[index];
         else {
-            console.error("返回单位矩阵,未找到index=", index, "的MVP", this);
+            // console.error("返回单位矩阵,未找到index=", index, "的MVP", this);
             return mat4.identity();
         }
     }

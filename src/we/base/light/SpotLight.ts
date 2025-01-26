@@ -30,6 +30,14 @@ export class SpotLight extends BaseLight {
 
     updateMVP(): Mat4[] {
         // throw new Error("Method not implemented.");
+        //1、cameras的boundingSphere
+        //2、light的boundingSphere
+        //3、取两个boundingSphere的交集
+        //4、取交集的boundingSphere的中心点
+        //5、取交集的boundingSphere的半径
+        //6、取中心点+半径为光源的位置
+        //7、取中心点为光源的方向
+        //8、取半径为光源的范围
     }
 
 
