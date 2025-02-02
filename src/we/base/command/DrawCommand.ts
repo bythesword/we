@@ -166,6 +166,8 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
     renderForID?: string,
     renderForType?: renderKindForDCCC,
     // systemUniforms?: (pipeline: GPURenderPipeline) => GPUBindGroup,
+    //add 20250127
+    multisample?: GPUMultisampleState
 }
 /**
  *   默认是surface的全部,
@@ -231,12 +233,13 @@ export class DrawCommand extends BaseCommand {
         else {
             this.label = "";
         }
-        // if (options.renderPassDescriptor !== undefined) {
-        this.renderPassDescriptor = options.renderPassDescriptor;
-        // }
-        // else {
-        //     this.renderPassDescriptor = this.parent.getRenderPassDescriptor();
-        // }
+        if (options.renderPassDescriptor !== undefined) {
+            this.renderPassDescriptor = options.renderPassDescriptor;
+        }
+        else {
+            //todo:20250127,在没有默认摄像机的情况下，需要给出一个RPD，整体流程确实一个默认NDC模式的流程与设置，即在scene的初始化参数上增加一个NDC的RPD
+            this.renderPassDescriptor = this.parent.getRenderPassDescriptor();
+        }
         if (options.depthStencilState) {
             this.depthStencil = options.depthStencilState
         }
@@ -428,7 +431,7 @@ export class DrawCommand extends BaseCommand {
                 let wgslOfSystem = this.parent.getWGSLOfSystemShader(renderForType);
                 let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslOfSystem);
                 let codeFS = getReplaceVertexConstantsFS(this.input.fragment.code, this.input.fragment.entryPoint, wgslOfSystem);
-               
+
                 // let wgslVsOfSystem = this.parent.getWGSLOfSystemShaderVS(renderForType);
                 // let codeVS = getReplaceVertexConstantsVS(this.input.vertex.code, this.input.vertex.entryPoint, wgslVsOfSystem);
                 // let wgslFsOfSystem = this.parent.getWGSLOfSystemShaderFS(renderForType);
@@ -497,7 +500,9 @@ export class DrawCommand extends BaseCommand {
                 };
             }
         }
-
+        if (this.input.multisample) {
+            descriptor.multisample = this.input.multisample;
+        }
         if (this.depthStencil) {
             descriptor.depthStencil = this.depthStencil;
         }

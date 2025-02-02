@@ -168,48 +168,8 @@ export class GBufferPostProcess extends SingleRender {
                 let name = this.parent.stagesOfSystem[i];
                 if (this.parent.stages[name].opaque && name != "UI"                    //  && name=="World"
                 ) {
-
-                    let uniformsOther: unifromGroup[] = this.getTexturesOfUniformFromStageForOther(name);
-                    let optionsOther: DrawOptionOfCommand = {
-                        label: "GBuffers render Other",
-                        vertex: {
-                            code: shaderOpaqueOther,
-                            entryPoint: "vs",
-                        },
-                        fragment: {
-                            code: shaderOpaqueOther,
-                            entryPoint: "fs",
-                            targets: this.colorAttachmentTargetsOfOther,
-                            constants: {
-                                // far: far,
-                                // count_of_stage: 4,
-                                canvasSizeWidth: this.surfaceSize.width,
-                                canvasSizeHeight: this.surfaceSize.height,
-                                // reversedZ: this._isReversedZ,
-                            }
-                        },
-                        draw: {
-                            mode: "draw",
-                            values: values
-                        },
-                        parent: this.parent,
-                        uniforms: uniformsOther,
-                        primitive: {
-                            topology: 'triangle-list',
-                            cullMode: "back",
-                        },
-                        rawUniform: true,
-                        renderPassDescriptor: this.renderPassDescriptorOfOther,
-
-                    };
-                    let DC_Other = new DrawCommand(optionsOther);
-                    this.commands.push(DC_Other);/////////////////////////////////////////////////////////////////////////////
-                    //下面的代码进行了MSAA，目测没看到效果，但是逻辑应该是执行了。
-                    //本次的代码是将GBuffer的color又独立执行了一次
-                    //没有效果可能有两个原因，
-                    //1、textureLoad的问题，但如果都是color的输出，那么就不会有问题，color的输出都会是MSAA*4，所以不会有问题
-                    //2、这个是一个buffer的合并，MSAA是否会进行多采样？ 
-                    {
+                    if (name == "color") {
+                        
                         let uniforms: unifromGroup[] = this.getTexturesOfUniformFromStageForColor(name);
                         let options: DrawOptionOfCommand = {
                             label: "GBuffers render Color",
@@ -241,15 +201,53 @@ export class GBufferPostProcess extends SingleRender {
                             },
                             rawUniform: true,
                             renderPassDescriptor: this.renderPassDescriptorOfColor,
-                            multisample: {
-                                count: this.MSAASampleCount,
-                            },
+                            // multisample: {
+                            //     count: this.MSAASampleCount,
+                            // },
                         };
                         let DC = new DrawCommand(options);
-                        this.commands.push(DC);
+                        this.commands.push(DC);                    
                     }
+                    // else {
+                    //     let uniformsOther: unifromGroup[] = this.getTexturesOfUniformFromStageForOther(name);
+                    //     let optionsOther: DrawOptionOfCommand = {
+                    //         label: "GBuffers render Other",
+                    //         vertex: {
+                    //             code: shaderOpaqueOther,
+                    //             entryPoint: "vs",
+                    //         },
+                    //         fragment: {
+                    //             code: shaderOpaqueOther,
+                    //             entryPoint: "fs",
+                    //             targets: this.colorAttachmentTargetsOfOther,
+                    //             constants: {
+                    //                 // far: far,
+                    //                 // count_of_stage: 4,
+                    //                 canvasSizeWidth: this.surfaceSize.width,
+                    //                 canvasSizeHeight: this.surfaceSize.height,
+                    //                 // reversedZ: this._isReversedZ,
+                    //             }
+                    //         },
+                    //         draw: {
+                    //             mode: "draw",
+                    //             values: values
+                    //         },
+                    //         parent: this.parent,
+                    //         uniforms: uniformsOther,
+                    //         primitive: {
+                    //             topology: 'triangle-list',
+                    //             cullMode: "back",
+                    //         },
+                    //         rawUniform: true,
+                    //         renderPassDescriptor: this.renderPassDescriptorOfOther,
+                    //         // multisample: {
+                    //         //     count: this.MSAASampleCount,
+                    //         // },
+                    //     };
+                    //     let DC_Other = new DrawCommand(optionsOther);
+                    //     this.commands.push(DC_Other);
+                    // }
                 }
-                
                 // if(run_i++ ==2 ) break;
             }
 
@@ -431,9 +429,9 @@ export class GBufferPostProcess extends SingleRender {
                 let one: GPURenderPassColorAttachment;
                 // if (key == "color") {
                 one = {
-                    // view: this.GBuffers[key].createView(),
-                    resolveTarget: this.GBuffers[key].createView(),                  
-                    view:this.multisampleTexture.createView(),  //MSAA
+                    view: this.GBuffers[key].createView(),
+                    // resolveTarget: this.GBuffers[key].createView(),                  
+                    // view:this.multisampleTexture.createView(),  //MSAA
                     clearValue: this.parent.backgroudColor,
                     loadOp: 'load',
                     storeOp: "store"
@@ -524,6 +522,7 @@ export class GBufferPostProcess extends SingleRender {
 
         return [unifromGroup_0, unifromGroup_1, unifromGroup_2];
     }
+    
     getTexturesOfUniformFromStageForColor(stageName: string): unifromGroup[] {
         let uniformOther: unifromGroup = {
             layout: 1,
@@ -537,7 +536,7 @@ export class GBufferPostProcess extends SingleRender {
                     label: `stage:${stageName} GBuffer Render Other : color `,
                     binding: 1,
                     resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["color"].createView()
-                }
+                } 
             ]
         };
         let uniformID: unifromGroup = {
@@ -559,11 +558,11 @@ export class GBufferPostProcess extends SingleRender {
                     binding: 0,
                     resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["entityID"].createView()
                 },
-                {
-                    label: `stage:${stageName} GBuffer Render Other : color `,
-                    binding: 1,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["color"].createView()
-                },
+                // {
+                //     label: `stage:${stageName} GBuffer Render Other : color `,
+                //     binding: 1,
+                //     resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["color"].createView()
+                // },
                 {
                     label: `stage:${stageName} GBuffer Render Other : normal `,
                     binding: 2,
@@ -584,8 +583,6 @@ export class GBufferPostProcess extends SingleRender {
                 resource: this.GBuffers["entityID"].createView()
             }]
         };
-
-
         return [uniformID, uniformOther];
     }
     getTexturesOfUniformFromStageForID(): unifromGroup[] {

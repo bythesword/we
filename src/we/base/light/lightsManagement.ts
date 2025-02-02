@@ -146,9 +146,9 @@ export class LightsManagement {
                 height: shadowMapSize,
                 depthOrArrayLayers: lightNumber * 6,
             },
-            // format: "depth32float",
+            format: "depth32float",
             // format: "depth24plus-stencil8",
-            format: this.scene.depthDefaultFormat,
+            // format: this.scene.depthDefaultFormat,
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
         }
         this.reNewLightsNumberOfShadow = false;//动态更新用，目前没有用途

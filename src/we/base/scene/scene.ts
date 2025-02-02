@@ -840,6 +840,8 @@ class Scene extends BaseScene {
             for (let i in this.GBufferPostprocess) {
                 this.GBufferPostprocess[i].render();   //render GBuffer
             }
+            //todo：20250127，在这里增加MSAA
+            
             this.postProcessManagement.render();  //进行后处理
             this.showMultiCamera();
             await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化

@@ -85,7 +85,8 @@ fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, lightDir : ve
 
     var spec = 0.0;
     let viewDir = normalize(viewerPosition - position);
-    let halfDir = normalize(lightDir + viewDir);
+    let halfDir = normalize(lightDir - viewDir);//半角向量，
+    // let halfDir = normalize(lightDir + viewDir);//半角向量，这个再确认一下，相加会产生问题（box有小视角阴影有问题）
     spec = pow (max(dot(viewDir, halfDir), 0.0), u_bulinphong.shininess);
     var specularColor = light_atten_coff * u_bulinphong.metalness * spec * lightColor;
     $spec

@@ -157,8 +157,8 @@ export abstract class BaseScene {
         this.renderPassDescriptor = {};
         this.GBuffers = {};
         this.Box3s = [];
-        this.depthDefaultFormat = "depth32float";
-        // this.depthDefaultFormat = 'depth32float';
+        
+         this.depthDefaultFormat = 'depth32float';
         this.depthStencilOfZ = {
             depthWriteEnabled: true,
             depthCompare: 'less',

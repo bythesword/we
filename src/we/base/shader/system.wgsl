@@ -216,7 +216,7 @@ fn findBlocker(uv: vec2f, zReceiver: f32, depth_texture: texture_depth_2d_array,
  
 //自适应Shadow Bias算法 https://zhuanlan.zhihu.com/p/370951892
 fn getShadowBias(c: f32, filterRadiusUV: f32, normal: vec3f, lightDirection: vec3f) -> f32 {
-    let  FRUSTUM_SIZE = 400.;
+    let  FRUSTUM_SIZE = 100.;//在系数=400.0是，产生 petter shadow问题，所以这里改为100.0
     let fragSize = (1. + ceil(filterRadiusUV)) * (FRUSTUM_SIZE / shadowDepthTextureSize / 2.);
     return max(fragSize, fragSize * (1.0 - dot(normal, lightDirection))) * c;
 }
@@ -252,7 +252,9 @@ fn shadowMapVisibilityPCSS(onelight: ST_Light, position: vec3f, normal: vec3f, b
             shadowSampler,                              //s: sampler_comparison,
             shadowPos.xy + offset,                      //coords: vec2<f32>,
             onelight.shadow_map_array_index,            //array_index: A,
-            shadowPos.z - bias                      //depth_ref: f32,
+            shadowPos.z - bias                      //depth_ref: f32,//这个产生的petter shadoww问题比较大，
+            // shadowPos.z -0.005                      //depth_ref: f32,//ok
+
         );
     }
     visibility /= f32(NUM_SAMPLES);
