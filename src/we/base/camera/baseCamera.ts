@@ -113,13 +113,21 @@ export abstract class BaseCamera {
       this.name = option.name;
     }
     else {
-      this.name = "Camera_" +this.id;
+      this.name = "Camera_" + this.id;
     }
     if (option.position) {
       this.position = option.position
     }
     if (option.lookAt) {
       this.back = vec3.normalize(vec3.sub(option.position, option.lookAt));
+      if (this.back[0] == 0 && this.back[2] == 0 && this.back[1] == -1) {
+        vec3.copy(vec3.create(1, 0, 0), this.right);
+        vec3.copy(vec3.create(0, 0, 1), this.up);
+      }
+      else if (this.back[0] == 0 && this.back[2] == 0 && this.back[1] == 1) {
+        vec3.copy(vec3.create(1, 0, 0), this.right);
+        vec3.copy(vec3.create(0, 0, -1), this.up);
+      }
       this.lookAt = option.lookAt;
     }
     else {
@@ -127,7 +135,7 @@ export abstract class BaseCamera {
     }
     this.updateProjectionMatrix(option);//构造投影矩阵
   }
-  onResize(){
+  onResize() {
     this.updateProjectionMatrix(this.option);//构造投影矩阵
     this.update(this.position, this.back, true);//更新this.MVP[]矩阵
   }
@@ -156,9 +164,19 @@ export abstract class BaseCamera {
     else {
       this.back = direction;
     }
-    this.right = vec3.normalize(vec3.cross(this.up, this.back));
-    this.up = vec3.normalize(vec3.cross(this.back, this.right));
-
+    if (this.back[0] == 0 && this.back[2] == 0 && this.back[1] == -1) {
+      vec3.copy(vec3.create(1, 0, 0), this.right);
+      vec3.copy(vec3.create(0, 0, 1), this.up);
+    }
+    else if (this.back[0] == 0 && this.back[2] == 0 && this.back[1] == 1) {
+      vec3.copy(vec3.create(1, 0, 0), this.right);
+      vec3.copy(vec3.create(0, 0, -1), this.up);
+    }
+    else 
+    {
+      this.right = vec3.normalize(vec3.cross(this.up, this.back));
+      this.up = vec3.normalize(vec3.cross(this.back, this.right));
+    }
     // console.log("projectionMatrix=", this.projectionMatrix)
 
     this.MVP = [mat4.invert(this.modelMatrix), mat4.invert(this.viewMatrix), this.projectionMatrix];
@@ -264,5 +282,5 @@ export abstract class BaseCamera {
   }
 
 
-  
+
 }

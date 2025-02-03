@@ -221,7 +221,8 @@ fn getShadowBias(c: f32, filterRadiusUV: f32, normal: vec3f, lightDirection: vec
     return max(fragSize, fragSize * (1.0 - dot(normal, lightDirection))) * c;
 }
 fn shadowMapVisibilityPCSS(onelight: ST_Light, position: vec3f, normal: vec3f, biasC: f32) -> f32 {
-    let posFromLight = U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置（光源视界的剪切空间）
+    var posFromLight =matrix_z* U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置
+    posFromLight =posFromLight/posFromLight.w;
     //Convert XY to (0, 1)
     //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5), posFromLight.z);  //这里的z是深度数据,xy是UV在光源depth texture中的位置
@@ -269,7 +270,8 @@ fn shadowMapVisibilityPCSS(onelight: ST_Light, position: vec3f, normal: vec3f, b
 
 fn shadowMapVisibilityPCF(onelight: ST_Light, position: vec3f, normal: vec3f, biasC: f32) -> f32 {
     let bias = 0.009;// max(0.005 * (1.0 - dot(normal, onelight.direction)), 0.005);
-    let posFromLight = U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置（光源视界的剪切空间）
+    var posFromLight =matrix_z* U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置
+    posFromLight =posFromLight/posFromLight.w;
     //Convert XY to (0, 1)
     //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5), posFromLight.z);  //这里的z是深度数据,xy是UV在光源depth texture中的位置
@@ -292,7 +294,9 @@ fn shadowMapVisibilityPCF(onelight: ST_Light, position: vec3f, normal: vec3f, bi
 }
 fn shadowMapVisibilityPCF_3x3(onelight: ST_Light, position: vec3f, normal: vec3f) -> f32 {
     let bias = max(0.05 * (1.0 - dot(normal, onelight.direction)), 0.005);
-    let posFromLight = U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置（光源视界的剪切空间）
+    
+    var posFromLight =matrix_z* U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置
+    posFromLight =posFromLight/posFromLight.w;
     //Convert XY to (0, 1)
     //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5), posFromLight.z);  //这里的z是深度数据,xy是UV在光源depth texture中的位置
@@ -315,7 +319,8 @@ fn shadowMapVisibilityPCF_3x3(onelight: ST_Light, position: vec3f, normal: vec3f
     return visibility;
 }
 fn shadowMapVisibilityHard(onelight: ST_Light, position: vec3f, normal: vec3f) -> f32 {
-    let posFromLight = U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置
+    var posFromLight =matrix_z* U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置
+    posFromLight =posFromLight/posFromLight.w;
     //Convert XY to (0, 1)
     //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(

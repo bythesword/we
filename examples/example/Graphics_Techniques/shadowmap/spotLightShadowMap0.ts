@@ -11,6 +11,9 @@ import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/l
 import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
 import { initScene } from "../../../../src/we/base/scene/initScene"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
+import { SpotLight } from "../../../../src/we/base/light/SpotLight"
+import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
+import { vec3 } from "wgpu-matrix"
 
 declare global {
   interface Window {
@@ -20,7 +23,6 @@ declare global {
 }
 let input: sceneInputJson = {
   canvas: "render",
-  // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
     red: 0.1,
     green: 0.1,
@@ -35,20 +37,55 @@ let input: sceneInputJson = {
     },
     intensity: 0.13
   },
-  stageSetting: "world"
+  stageSetting: "world",
+  // reversedZ:true,
 
 }
 let scene = await initScene(input);
 window.scene = scene;
 
+// scene.setGBuffersVisualize({
+//   enable: true,
+//   layout: {
+//     name: "depth",
+//     single: true,
+//   }
+// });
+// scene.setGBuffersVisualize({
+//   enable: true,
+//   forOtherDepth: {
+//     depthTextureView: scene.lightsManagement.shadowMapTexture.createView(
+//       {
+//         label: "lights management shadowMapTexture array 可视化",
+//         dimension: "2d",
+//         //  dimension:  "2d-array",
+//         baseArrayLayer: 0,
+//       }
+//     ),
+//   }
+// });
+
+let dirLight = new SpotLight(
+  {
+    direction: [-1.0, -1.0, -1.0],
+    position: [3, 3, 3],
+    intensity: 2.0,
+    // angle: 25 / 180 * Math.PI,
+    // angleOut: 30 / 180 * Math.PI,
+    angle: 20 * (Math.PI) / 180,
+    angleOut: 20 * (Math.PI) / 180,
+    shadow: true,
+  }
+);
+scene.addLight(dirLight);
 
 //摄像机初始化参数
 const cameraOption: optionPerspProjection = {
-  fov: (2 * Math.PI) / 5,
+  fov: 2 * 20 * (Math.PI) / 180,
   aspect: scene.aspect,
-  near: 0.1,
+  near: 1,
   far: 30,
-  position: [0, 1, 3],
+  position:  [3, 3, 3],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -78,7 +115,7 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let Geometry = new SphereGeometry({
+let sphereGeometry = new SphereGeometry({
   radius: 1,
   widthSegments: 128,
   heightSegments: 128
@@ -92,9 +129,9 @@ let redMaterial = new PhongLightsMaterial(
     roughness: 1,
   });
 //box实体
-let boxEntity = new Mesh(
+let sphereEntity = new Mesh(
   {
-    geometry: Geometry,
+    geometry: sphereGeometry,
     material: redMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
@@ -107,13 +144,38 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
+scene.add(sphereEntity)
+
+//box
+let boxGeometry = new BoxGeometry({
+  width: 1,
+  height: 1,
+  depth: 1
+});
+
+
+
+//box实体
+let boxEntity = new Mesh(
+  {
+    geometry: boxGeometry,
+    material: redMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position: vec3.create(0, 1, -2),
+    // scale:[0.5,0.5,0.5],
+    // rotate: {
+    //   axis: [1, 1, 1],
+    //   angleInRadians: 0.15 * Math.PI
+    // },
+  }
+);
+//增加实体到scene
 scene.add(boxEntity)
 
-
-
 let planeGeometry = new PlaneGeometry({
-  width: 10,
-  height: 10
+  width: 20,
+  height: 20
 });
 let groundMaterial = new PhongLightsMaterial(
   {
@@ -136,13 +198,5 @@ let planeEntity = new Mesh({
 });
 
 scene.add(planeEntity);
-let dirLight: DirectionalLight = new DirectionalLight(
-  {
-    intensity: .50,
-    direction: [1.0, 1.0, -1.0],
-    shadow:true,
-  }
-);
 
-scene.addLight(dirLight);
 

@@ -9,7 +9,8 @@
       vsOutput.uv = uv;
       vsOutput.normal = vec4f(entity.MatrixWorld[instanceIndex] * vec4f(normal, 0)).xyz;
       vsOutput.color = color;
-      vsOutput.worldPosition = vec4f(entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0)).xyz;
+      let worldPosition = vec4f(entity.MatrixWorld[instanceIndex] * vec4f(position, 1.0)) ;
+      vsOutput.worldPosition =worldPosition.xyz/worldPosition.w;
       let entity_id = entity.entity_id << 14;
       let stage_id = entity.stage_id << 29;
       vsOutput.entityID = instanceIndex + entity_id + stage_id;

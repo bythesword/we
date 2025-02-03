@@ -377,11 +377,11 @@ export class LightsManagement {
      * 2、同步更新每个光源生成shadow map用的MVP
     */
     updateSytemUniformOfShadowMap(): GPUBuffer {
-        const ST_shadowMapMatrixValues = new ArrayBuffer(ST_shadowMapMatrix_Size * lightNumber);
+        const ST_shadowMapMatrixValues = new ArrayBuffer(ST_shadowMapMatrix_Size * lightNumber);//@group(0)@binding(2) var<uniform> U_shadowMapMatrix,all
 
         //for 所有MVP，是动态的（addlight中增加的）
         for (let i = 0; i < this.shadowArrayOfDepthMapAndMVP.length; i++) {
-            const ST_shadowMapMatrixViews = {
+            const ST_shadowMapMatrixViews = {//@group(0)@binding(2) var<uniform> U_shadowMapMatrix,每个
                 light_id: new Uint32Array(ST_shadowMapMatrixValues, i * ST_shadowMapMatrix_Size + 0, 1),
                 matrix_count: new Uint32Array(ST_shadowMapMatrixValues, i * ST_shadowMapMatrix_Size + 4, 1),
                 matrix_index: new Uint32Array(ST_shadowMapMatrixValues, i * ST_shadowMapMatrix_Size + 8, 1),
@@ -393,7 +393,7 @@ export class LightsManagement {
             // ST_shadowMapMatrixViews.matrix_index[0] = oneST.matrix_self_index;
             const m4 = this.getLightMVPByID(oneST.light_id, oneST.matrix_self_index);
             mat4.copy(m4, oneST.MVP);
-            mat4.copy(m4, ST_shadowMapMatrixViews.MVP);
+            mat4.copy(m4, ST_shadowMapMatrixViews.MVP);//@group(0)@binding(2) var<uniform> U_shadowMapMatrix，每个的MVP
             this.writeToGPUBuffer(oneST.MVP, oneST.GPUBuffer);//同步更新每个光源的MVP
         }
 
