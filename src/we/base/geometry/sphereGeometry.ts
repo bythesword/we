@@ -47,6 +47,7 @@ export class SphereGeometry extends BaseGeometry {
             input = defaultValues;
         }
         super(input);
+        this.type = "SphereGeometry";
         this.parameters = {
             radius: input.radius ?? defaultValues.radius,
             widthSegments: input.widthSegments ?? defaultValues.widthSegments,

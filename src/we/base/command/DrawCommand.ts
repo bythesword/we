@@ -105,6 +105,10 @@ export interface drawModeIndexed {
     firstInstance?: number,
 }
 
+export interface drawModeType {
+    mode: "draw" | "index",
+    values: drawMode | drawModeIndexed,
+}
 /** 初始化参数 
  * 
  * scene:必须
@@ -134,10 +138,11 @@ export interface DrawOptionOfCommand extends baseOptionOfCommand {
 
 
     /** draw mode:  */
-    draw: {
-        mode: "draw" | "index",
-        values: drawMode | drawModeIndexed,
-    },
+    draw: drawModeType,
+    // {
+    //     mode: "draw" | "index",
+    //     values: drawMode | drawModeIndexed,
+    // },
 
     /**viewport,从标准化设备坐标(NDC)线性映射到视区坐标。
      */

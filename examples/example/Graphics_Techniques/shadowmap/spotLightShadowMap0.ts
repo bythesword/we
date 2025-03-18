@@ -14,6 +14,7 @@ import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
 import { SpotLight } from "../../../../src/we/base/light/SpotLight"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 import { vec3 } from "wgpu-matrix"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 
 declare global {
   interface Window {
@@ -65,7 +66,7 @@ window.scene = scene;
 //   }
 // });
 
-let dirLight = new SpotLight(
+let spotLight = new SpotLight(
   {
     direction: [-1.0, -1.0, -1.0],
     position: [3, 3, 3],
@@ -77,14 +78,14 @@ let dirLight = new SpotLight(
     shadow: true,
   }
 );
-scene.addLight(dirLight);
+scene.addLight(spotLight);
 
 //摄像机初始化参数
 const cameraOption: optionPerspProjection = {
   fov: 2 * 20 * (Math.PI) / 180,
   aspect: scene.aspect,
   near: 1,
-  far: 30,
+  far: 60,
   position:  [3, 3, 3],
   lookAt: [0, 0, 0]
 }
@@ -200,3 +201,24 @@ let planeEntity = new Mesh({
 scene.add(planeEntity);
 
 
+let lightMaterial = new ColorMaterial(
+  {
+    color: { red: 1, green: 1, blue: 1, alpha: 1 }, 
+  });
+//box实体
+let light1Entity = new Mesh(
+  {
+    geometry: sphereGeometry,
+    material: lightMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position:vec3.create(3,3,3),
+    scale:[0.1,0.1,0.1],
+    // rotate:{
+    //   axis:[1,0,0],
+    //   angleInRadians:0.15*Math.PI
+    // },
+  }
+);
+//增加实体到scene
+scene.add(light1Entity)

@@ -44,7 +44,7 @@ export class BoxGeometry extends BaseGeometry {
             }
         }
         super(input);
-        this.type = "box";
+        this.type = "BoxGeometry";
         this.init(input)
     }
 

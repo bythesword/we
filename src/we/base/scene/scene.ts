@@ -1,8 +1,8 @@
 // declare global { interface Window { scene: any } }
 import wgsl_main from "../shader/system.wgsl?raw"
-import wgsl_main_VS from "../shader/system.vs.wgsl?raw"
+// import wgsl_main_VS from "../shader/system.vs.wgsl?raw"
 import wgsl_main_only_VS from "../shader/systemOnlyVS.wgsl?raw"
-import wgsl_main_FS from "../shader/system.fs.wgsl?raw"
+// import wgsl_main_FS from "../shader/system.fs.wgsl?raw"
 import wgsl_main_light from "../shader/shadow/systemForLight.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
@@ -752,7 +752,10 @@ class Scene extends BaseScene {
         }
         let lightNumber = this._maxlightNumber.toString();
         let code = wgsl_main.toString();
+        
+        code = code.replaceAll("$lightNumberShadowNumber", (this._maxlightNumber*6).toString());//这个在前面，因为这个在后面，会被替换掉
         code = code.replaceAll("$lightNumber", lightNumber);
+        // $lightNumberShadowNumberLayer
         return code;
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

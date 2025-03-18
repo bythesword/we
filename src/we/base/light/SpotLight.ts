@@ -91,12 +91,12 @@ export class SpotLight extends BaseLight {
                 let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
                 // const projectionMatrix = mat4.ortho(p0[0] - spshere.radius - this.epsilon, p0[0] + spshere.radius + this.epsilon, p0[1] - spshere.radius - this.epsilon, p0[1] + spshere.radius + this.epsilon, p0[2] - spshere.radius - this.epsilon, p0[2] + spshere.radius*2 + this.epsilon);
 
-                const projectionMatrix = mat4.perspective(this.values.angleOut! * 2 , 1,   1,30);
+                const projectionMatrix = mat4.perspective(this.values.angleOut! * 2, 1, 0.51, p0[2] + spshere.radius * 2 + this.epsilon);//todo,分析：near ,需要大于0.5，否则会被裁掉
+                // const projectionMatrix = mat4.perspective(this.values.angleOut! * 2, 1, 0.1, 30);//ok,test
 
-                let m4=mat4.lookAt(this.values.position!, vec3.add(this.values.position!, this.values.direction!), vec3.create(0, 1, 0));
-                // const projectionMatrix = mat4.perspective(this.values.angleOut! * 2, 1, 0.1, vec3.len(this.values.position!) + spshere.radius * 2 + this.epsilon);
-                // const MVP = mat4.multiply(projectionMatrix,  m4) ;//m4<=lookat = invert(matrix)
-                let mm=mat4.invert(matrix);
+                let m4 = mat4.lookAt(this.values.position!, vec3.add(this.values.position!, this.values.direction!), vec3.create(0, 1, 0));//正交的测试
+                let mm = mat4.invert(matrix);
+
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 // const MVP = mat4.multiply(projectionMatrix, matrix);
                 return [MVP];

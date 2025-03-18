@@ -2,7 +2,7 @@ import * as coreConst from "../../const/coreConst";
 import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
-import { DrawCommand, drawMode, drawModeIndexed, drawModeType, DrawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
+import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
 
 import { uniformEntries, unifromGroup } from "../../command/baseCommand";
 //for wireframe
@@ -207,7 +207,7 @@ export class Mesh extends BaseEntity {
             let indexBuffer = this._geometry.getIndeices();
             let counts = this._geometry.getDrawCount();
 
-            let values: drawModeIndexed | drawMode = {
+            let values: drawModeIndexed = {
                 indexCount: counts,
                 instanceCount: this.numInstances,
             };
@@ -221,26 +221,8 @@ export class Mesh extends BaseEntity {
 
             //////////////////////////////////////////////////////////////////////
 
-            let drawMode: drawModeType;
-            let options: DrawOptionOfCommand;
-            if (indexBuffer === false) {
-                drawMode = {
-                    mode: "draw",
-                    values: {
-                        vertexCount: counts,
-                    }
-                }
-            }
-            else {
-                drawMode = {
-                    mode: "index",
-                    values: {
-                        indexCount: counts,
-                        instanceCount: this.numInstances,
-                    },
-                }
-            }
-            options = {
+
+            let options: DrawOptionOfCommand = {
                 label: this.name == "" ? "Mesh" : this.name,
                 parent: parent,
                 vertex: {
@@ -262,11 +244,10 @@ export class Mesh extends BaseEntity {
                 // uniforms: [],
                 uniforms: uniforms,
                 // rawUniform: true,
-                draw: drawMode,
-                // draw: {
-                //     mode: "index",
-                //     values: values,
-                // },
+                draw: {
+                    mode: "index",
+                    values: values,
+                },
                 indexBuffer: indexBuffer as indexBuffer,
                 renderForID: camera,
                 renderForType: kind as renderKindForDCCC,
@@ -296,26 +277,8 @@ export class Mesh extends BaseEntity {
                 indexCount: wireFrameCounts,
                 instanceCount: this.numInstances,
             }
-            let drawMode: drawModeType;
-            let wireFrameOptions: DrawOptionOfCommand;
-            if (wireFrameIndexBuffer === false) {
-                drawMode = {
-                    mode: "draw",
-                    values: {
-                        vertexCount: wireFrameCounts,
-                    }
-                }
-            }
-            else {
-                drawMode = {
-                    mode: "index",
-                    values: {
-                        indexCount: wireFrameCounts,
-                        instanceCount: this.numInstances,
-                    },
-                }
-            }
-            wireFrameOptions = {
+
+            let wireFrameOptions: DrawOptionOfCommand = {
                 label: this.name == "" ? "Mesh wireframe" : this.name + " wireframe",
                 parent: parent,
                 vertex: {
@@ -347,11 +310,10 @@ export class Mesh extends BaseEntity {
                     },
                 ],
                 // rawUniform: true,
-                draw: drawMode,
-                //  {
-                //     mode: "index",
-                //     values: wireFrameValues
-                // },
+                draw: {
+                    mode: "index",
+                    values: wireFrameValues
+                },
                 indexBuffer: wireFrameIndexBuffer as indexBuffer,
                 // instanceCount: this.numInstances,
                 renderForID: camera,
@@ -410,26 +372,7 @@ export class Mesh extends BaseEntity {
                 ]
             },
         ];
-        let drawMode: drawModeType;
-        let options: DrawOptionOfCommand;
-        if (indexBuffer === false) {
-            drawMode = {
-                mode: "draw",
-                values: {
-                    vertexCount: counts,
-                }
-            }
-        }
-        else {
-            drawMode = {
-                mode: "index",
-                values: {
-                    indexCount: counts,
-                    instanceCount: this.numInstances,
-                },
-            }
-        }
-        options = {
+        let options: DrawOptionOfCommand = {
             label: "Mesh for deferRender depth" + this.name,
             parent: parent,
             vertex: {
@@ -443,7 +386,11 @@ export class Mesh extends BaseEntity {
             },
             uniforms: uniforms,
             // rawUniform: true,
-            draw: drawMode,
+            draw: {
+                mode: "index",
+                values: values,
+
+            },
             indexBuffer: indexBuffer as indexBuffer,
 
             renderPassDescriptor,
@@ -510,26 +457,7 @@ export class Mesh extends BaseEntity {
                     ]
                 },
             ];
-            let drawMode: drawModeType;
-            let options: DrawOptionOfCommand;
-            if (indexBuffer === false) {
-                drawMode = {
-                    mode: "draw",
-                    values: {
-                        vertexCount: counts,
-                    }
-                }
-            }
-            else {
-                drawMode = {
-                    mode: "index",
-                    values: {
-                        indexCount: counts,
-                        instanceCount: this.numInstances,
-                    },
-                }
-            }
-            options = {
+            let options: DrawOptionOfCommand = {
                 label: "Mesh For ShadowMap" + this.name,
                 parent: parent,
                 vertex: {
@@ -543,7 +471,11 @@ export class Mesh extends BaseEntity {
                 },
                 uniforms: uniforms,
                 // rawUniform: true,
-                draw: drawMode,
+                draw: {
+                    mode: "index",
+                    values: values,
+
+                },
                 indexBuffer: indexBuffer as indexBuffer,
 
                 renderPassDescriptor,

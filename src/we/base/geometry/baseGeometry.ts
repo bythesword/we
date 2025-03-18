@@ -8,7 +8,11 @@ import triangleVS from "../shader/geometry/baseGeometry.vs.wgsl?raw"
 import * as coreConst from "../const/coreConst";
 
 type geometryMaterialStep = number[];
-
+export interface xyz {
+    x: number,
+    y: number,
+    z: number,
+}
 /**
  * 片面的几何属性
  */
@@ -95,16 +99,27 @@ export abstract class BaseGeometry {
     createWrieFrame() {
         let list: { [name: string]: number[] };
         list = {};
-        for (let i = 0; i < this.buffer.indeices.length; i += 3) {
-            let A = this.buffer.indeices[i];
-            let B = this.buffer.indeices[i + 1];
-            let C = this.buffer.indeices[i + 2];
-            let AB = [A, B].sort().toString();
-            let BC = [B, C].sort().toString();
-            let CA = [C, A].sort().toString();
-            list[AB] = [A, B];
-            list[BC] = [B, C];
-            list[CA] = [C, A];
+        if (this.buffer.indeices.length == 0) {
+            let i_index=0;
+            for (let i = 0; i < this.buffer.position.length / 3; i++) {
+                list[i_index++] = [i, i + 1];
+                list[i_index++] = [i + 1, i + 2];
+                list[i_index++] = [i + 2, i];               
+
+            }
+        }
+        else {
+            for (let i = 0; i < this.buffer.indeices.length; i += 3) {
+                let A = this.buffer.indeices[i];
+                let B = this.buffer.indeices[i + 1];
+                let C = this.buffer.indeices[i + 2];
+                let AB = [A, B].sort().toString();
+                let BC = [B, C].sort().toString();
+                let CA = [C, A].sort().toString();
+                list[AB] = [A, B];
+                list[BC] = [B, C];
+                list[CA] = [C, A];
+            }
         }
         let indeices: number[] = [];
         for (let i in list) {
@@ -119,7 +134,10 @@ export abstract class BaseGeometry {
      * 返回线框索引
      * @returns indexBuffer 结构
      */
-    getWireFrameIndeices(): indexBuffer {
+    getWireFrameIndeices(): indexBuffer | false {
+        if (this.wireFrame.indeices.length == 0) {
+            return false;
+        }
         let indeices: indexBuffer = {
             buffer: new Uint32Array(this.wireFrame.indeices),
             indexForat: "uint32"
@@ -131,6 +149,9 @@ export abstract class BaseGeometry {
      * @returns number
      */
     getWireFrameDrawCount(): number {
+        if (this.wireFrame.indeices.length == 0) {
+            return this.buffer.position.length / 3;
+        }
         return this.wireFrame.indeices.length;
     }
     /***
@@ -157,7 +178,9 @@ export abstract class BaseGeometry {
  * @returns number
  */
     getDrawCount(): number {
-
+        if (this.buffer.indeices.length == 0) {
+            return this.buffer.position.length / 3;
+        }
         return this.buffer.indeices.length;
     }
     /**
@@ -200,7 +223,10 @@ export abstract class BaseGeometry {
      * 返回片面的索引数据跟上
      * @returns indeBuffer 格式
      */
-    getIndeices(): indexBuffer {
+    getIndeices(): indexBuffer | false {
+        if (this.buffer.indeices.length == 0) {
+            return false;
+        }
         let indeices: indexBuffer = {
             buffer: new Uint32Array(this.buffer.indeices),
             indexForat: "uint32"

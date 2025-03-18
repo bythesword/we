@@ -86,7 +86,7 @@ export abstract class BaseLight/* extends Root */ {
     shadow: boolean;
     visible: boolean;
     /**为shadow map 的投影矩阵使用 */
-    epsilon = 0.01;
+    epsilon = 0.1;
 
     shadowMapOfSt_Light: optionBaseShadowMapOfST_Light = {
         shadow_map_type: 0,
