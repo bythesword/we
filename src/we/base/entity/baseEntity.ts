@@ -546,10 +546,10 @@ export abstract class BaseEntity extends Root {
         this.matrix = mat4.scale(this.matrix, vec);
     }
 
-    get Positon() {
+    get position() {
         return this._position
     }
-    set Positon(pos) {
+    set position(pos) {
         this._position = pos;
     }
 
@@ -567,8 +567,12 @@ export abstract class BaseEntity extends Root {
             this.scale(this.input.scale);
         if (this.input?.rotate)
             this.rotate(this.input.rotate.axis, this.input.rotate.angleInRadians);
+        
         if (this.input?.position)
             this.setTranslation(this.input.position);
+
+        if(this.input?.dynamicPostion)
+            this.setTranslation(this.position);
 
         this.matrixWorld = this.updateMatrixWorld();
         this.updateUniformBuffer(this.stage as BaseStage, 0, 0, 0);

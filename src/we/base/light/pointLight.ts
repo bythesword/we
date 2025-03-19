@@ -69,12 +69,12 @@ export class PointLight extends BaseLight {
             //3、如果当前光源的世界坐标到光源坐标的距离大于衰减距离，则不在光源的包围盒内，否则在光源的包围盒内
 
             const spshere = scene.getBoundingSphere();
-            if(!spshere) {
+            if (!spshere) {
                 console.warn("scene not have bounding sphere,wating");
-                return []; 
+                return [];
             }
             let far = 0;
-            let near = this.epsilon;
+            let near =1; this.epsilon;
             if (this.values.distance != 0.0) {
                 far = this.values.distance!;
             }
@@ -108,10 +108,10 @@ export class PointLight extends BaseLight {
                 vec3.copy(rightDir, right);
                 vec3.copy(upDir, up);
 
-                const projectionMatrix = mat4.perspective(Math.PI / 4, 1, near, far);
+                const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
-            }
+            }  
             //-x
             {
                 let matrix = new Float32Array([
@@ -138,11 +138,12 @@ export class PointLight extends BaseLight {
                 vec3.copy(rightDir, right);
                 vec3.copy(upDir, up);
 
-                const projectionMatrix = mat4.perspective(Math.PI / 4, 1, near, far);
+                const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
-            //+y
+        
+              //+y
             {
                 let matrix = new Float32Array([
                     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
@@ -168,7 +169,7 @@ export class PointLight extends BaseLight {
                 vec3.copy(rightDir, right);
                 vec3.copy(upDir, up);
 
-                const projectionMatrix = mat4.perspective(Math.PI / 4, 1, near, far);
+                const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -198,7 +199,7 @@ export class PointLight extends BaseLight {
                 vec3.copy(rightDir, right);
                 vec3.copy(upDir, up);
 
-                const projectionMatrix = mat4.perspective(Math.PI / 4, 1, near, far);
+                const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -228,7 +229,7 @@ export class PointLight extends BaseLight {
                 vec3.copy(rightDir, right);
                 vec3.copy(upDir, up);
 
-                const projectionMatrix = mat4.perspective(Math.PI / 4, 1, near, far);
+                const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }
@@ -258,7 +259,7 @@ export class PointLight extends BaseLight {
                 vec3.copy(rightDir, right);
                 vec3.copy(upDir, up);
 
-                const projectionMatrix = mat4.perspective(Math.PI / 4, 1, near, far);
+                const projectionMatrix = mat4.perspective(Math.PI / 2, 1, near, far);
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));
                 MVPS.push(MVP);
             }

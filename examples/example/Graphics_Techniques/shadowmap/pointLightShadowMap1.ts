@@ -11,6 +11,11 @@ import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/l
 import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
 import { initScene } from "../../../../src/we/base/scene/initScene"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
+import { PointLight } from "../../../../src/we/base/light/pointLight"
+import { vec3 } from "wgpu-matrix"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
+import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
+import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 
 declare global {
   interface Window {
@@ -47,8 +52,8 @@ const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
   near: 0.1,
-  far: 30,
-  position: [0, 1, 3],
+  far: 60,
+  position: [0, 0, 10],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -74,14 +79,19 @@ const ccOption: optionCameraActor = {
 let actor = new CameraActor(ccOption)
 //增加摄像机角色到scene
 scene.addCameraActor(actor, true)
-
-
-////enities 初始化
+ 
+////////////////////////////////////////////////
+////6个实体 enities 初始化
 //box
-let Geometry = new SphereGeometry({
+let sphereGeometry = new SphereGeometry({
   radius: 1,
   widthSegments: 128,
   heightSegments: 128
+});
+let boxGeometry = new BoxGeometry({
+  width: 2,
+  height: 2,
+  depth: 2
 });
 //极简测试材质，red
 let redMaterial = new PhongLightsMaterial(
@@ -92,57 +102,256 @@ let redMaterial = new PhongLightsMaterial(
     roughness: 1,
   });
 //box实体
-let boxEntity = new Mesh(
+let sphereEntityNegZ = new Mesh(
   {
-    geometry: Geometry,
+    geometry: sphereGeometry,
     material: redMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
-    // position:vec3.create(1,0,0),
-    // scale:[2,2,1],
+    position: vec3.create(0, 0, -3),
+  }
+);
+//增加实体到scene
+scene.add(sphereEntityNegZ)
+
+let sphereEntityNegY = new Mesh(
+  {
+    geometry: sphereGeometry,
+    material: redMaterial,
+    wireFrame: false,
+    position: vec3.create(0, -3, 0),
+  }
+);
+//增加实体到scene
+scene.add(sphereEntityNegY)
+
+let sphereEntityNegX = new Mesh(
+  {
+    geometry: sphereGeometry,
+    material: redMaterial,
+    wireFrame: false,
+    position: vec3.create(-3, 0, 0),
+  }
+);
+//增加实体到scene
+scene.add(sphereEntityNegX)
+let sphereEntityPosY = new Mesh(
+  {
+    geometry: boxGeometry,
+    material: redMaterial,
+    wireFrame: false,
+    position: vec3.create(0,  4, 0),
+  }
+);
+//增加实体到scene
+scene.add(sphereEntityPosY)
+
+let sphereEntityPosX = new Mesh(
+  {
+    geometry: boxGeometry,
+    material: redMaterial,
+    wireFrame: false,
+    position: vec3.create(4, 0, 0),
+    scale: [1,1,1],
+  }
+);
+//增加实体到scene
+scene.add(sphereEntityPosX)
+
+let sphereEntityPosZ = new Mesh(
+  {
+    geometry: boxGeometry,
+    material: redMaterial,
+    wireFrame: false,
+    position: vec3.create(0, 0, 4),
+    scale: [1,1,1],
+  }
+);
+//增加实体到scene
+scene.add(sphereEntityPosZ)
+
+
+////////////////////////////////////////////////////
+//实体光源
+let light1: PointLight = new PointLight(
+  {
+    position: [ 2,2,2],
+    intensity: 1.50,
+    shadow: true,
+    update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
+      let dir = scope.getDirection();
+      const now = Date.now() / 1000; 
+      scope.values.position=vec3.fromValues(Math.sin(now)*2,  2,Math.cos(now)*2);
+      return true
+    },
+  }
+);
+scene.addLight(light1);
+
+let lightMaterial = new ColorMaterial(
+  {
+    color: { red: 1, green: 1, blue: 1, alpha: 1 },
+  });
+//light实体
+let light1Entity = new Mesh(
+  {
+    geometry: sphereGeometry,
+    material: lightMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position: vec3.create(2,2,2),
+    scale: [0.1, 0.1, 0.1],
+    dynamicPostion: true,
     // rotate:{
     //   axis:[1,0,0],
     //   angleInRadians:0.15*Math.PI
     // },
+    update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
+      // let dir = scope.getDirection();
+      const now = Date.now() / 1000; 
+      scope.position=vec3.fromValues(Math.sin(now)*2, 2,Math.cos(now)*2);
+      scope.updateMatrix();
+      return true
+    },
   }
 );
+console.log(light1Entity);
 //增加实体到scene
-scene.add(boxEntity)
+scene.add(light1Entity)
 
+/////////////////////////////////////////////////////////
+// 6个plane
 
-
+// let boxGeometry = new OneColorCube();
+// let cubeMaterial = new PhongLightsMaterial(
+//   {
+//     color: { red: 0.5, green: 0.5, blue: 0.5, alpha: 1 },
+//     Shininess: 1,
+//     metalness: 0.0,
+//     roughness: 1,
+//   });
+// let skyEntity = new Mesh(
+//   {
+//     scale: [4, 4, 4],
+//     geometry: boxGeometry,
+//     material: cubeMaterial,
+//     wireFrame: false,
+//     dynamicPostion: true,
+//     name: "sky",
+//     cullmode: "front"
+//   }
+// );
+// scene.add(skyEntity)
 let planeGeometry = new PlaneGeometry({
   width: 10,
   height: 10
 });
 let groundMaterial = new PhongLightsMaterial(
   {
-    color: { red: 0.85, green: 0.85, blue: 0.85, alpha: 1 },
-    Shininess: 32,
-    metalness: 0.10,
+    color: { red: 1, green: 1, blue: 1, alpha: 1 },
+    Shininess: 1,
+    metalness: 0.0,
     roughness: 1,
   });
 
-let planeEntity = new Mesh({
+let bottomPlane = new Mesh({
   geometry: planeGeometry,
   material: groundMaterial,
-  position: [0, -1, 0],
+  position: [0, -5, 0],
   rotate: {
     axis: [1, 0, 0],
     angleInRadians: -Math.PI / 2,
   },
   wireFrame: false,
-  cullmode: "none"
+  cullmode: "back"
 });
+scene.add(bottomPlane);
 
-scene.add(planeEntity);
-let dirLight: DirectionalLight = new DirectionalLight(
-  {
-    intensity: .50,
-    direction: [1.0, 1.0, -1.0],
-    shadow:true,
-  }
-);
+let topPlane = new Mesh({
+  geometry: planeGeometry,
+  material: groundMaterial,
+  position: [0, 5, 0],
+  rotate: {
+    axis: [1, 0, 0],
+    angleInRadians: Math.PI / 2,
+  },
+  wireFrame: false,
+  cullmode: "back"
+});
+scene.add(topPlane);
 
-scene.addLight(dirLight);
+let backPlane = new Mesh({
+  geometry: planeGeometry,
+  material: groundMaterial,
+  position: [0, 0, -5],
+  // rotate: {
+  //   axis: [1, 0, 0],
+  //   angleInRadians: -Math.PI / 2,
+  // },
+  wireFrame: false,
+  cullmode: "back"
+});
+scene.add(backPlane);
 
+let frontPlane = new Mesh({
+  geometry: planeGeometry,
+  material: groundMaterial,
+  position: [0, 0, 5],
+  rotate: {
+    axis: [1, 0, 0],
+    angleInRadians: Math.PI,//180度,normal 相关
+  },
+  wireFrame: false,
+  cullmode: "back"
+});
+scene.add(frontPlane);
+
+let leftPlane = new Mesh({
+  geometry: planeGeometry,
+  material: groundMaterial,
+  position: [-5, 0, 0],
+  rotate: {
+    axis: [0, 1, 0],
+    angleInRadians: Math.PI / 2,//正的,normal 相关
+  },
+  wireFrame: false,
+  cullmode: "back"
+});
+scene.add(leftPlane);
+
+let rightPlane = new Mesh({
+  geometry: planeGeometry,
+  material: groundMaterial,
+  position: [5, 0, 0],
+  rotate: {
+    axis: [0, 1, 0],
+    angleInRadians: -Math.PI / 2,//负的,normal 相关
+  },
+  wireFrame: false,
+  cullmode: "back"
+});
+scene.add(rightPlane);
+
+/////////////////////////////////////////////////////////
+// depth buffer 可视化
+
+// scene.setGBuffersVisualize({
+//   enable: true,
+//   layout: {
+//     name: "depth",
+//     single: true,
+//   }
+// });
+// scene.setGBuffersVisualize({
+//   enable: true,
+//   forOtherDepth: {
+//     depthTextureView: scene.lightsManagement.shadowMapTexture.createView(
+//       {
+//         label: "lights management shadowMapTexture array 可视化",
+//         dimension: "2d",
+//         //  dimension:  "2d-array",
+//         baseArrayLayer: 0,
+//       }
+//     ),
+//   }
+// });

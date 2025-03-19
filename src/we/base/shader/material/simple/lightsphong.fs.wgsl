@@ -5,13 +5,13 @@
 //检查pixel是否在光源的阴影中
 //未处理距离
 fn checkPixelInPointLightRange(pixelWorldPosition : vec3f, onelight : ST_Light,) -> i32 {
-    var index = 0;
+    var index = -1;
     for (var i : i32 = 0; i <6; i = i + 1)
     { 
         var posFromLight = matrix_z * U_shadowMapMatrix[onelight.shadow_map_array_index+i].MVP * vec4(pixelWorldPosition, 1.0);  //光源视界的位置
-        if(posFromLight.w < 0.000001)
+        if(posFromLight.w < 0.000001 && posFromLight.w > -0.000001)
         {
-            //posFromLight =posFromLight/posFromLight.w;
+           //posFromLight =posFromLight/posFromLight.w;
         }
         else{
             posFromLight = posFromLight / posFromLight.w;
@@ -53,6 +53,7 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             var visibility = 0.0;           //是否在阴影中
             var computeShadow = false;
             var shadow_map_index = onelight.shadow_map_array_index;
+            var inPointShadow = false;//是否在点光源的阴影中
             if (onelight.kind ==0)
             {
                 computeShadow = true;
@@ -61,7 +62,7 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             else if (onelight.kind ==1)
             {
                 computeShadow = true;
-                shadow_map_index = checkPixelInPointLightRange(fsInput.worldPosition, onelight);
+                 shadow_map_index = checkPixelInPointLightRange(fsInput.worldPosition, onelight);
                 onelightPhongColor = phongColorOfPointLight(fsInput.worldPosition, fsInput.normal, onelight.position, onelight.color, onelight.intensity, defaultCameraPosition, fsInput.uv);
             }
             else if (onelight.kind ==2)
@@ -70,8 +71,14 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
                 computeShadow = inShadowRangOfSpotLight(fsInput.worldPosition, onelight.position, onelight.direction, onelight.angle);
             }
 
-
-
+            //如果在点光源的阴影中，计算阴影
+            if(shadow_map_index >=0){
+                inPointShadow = true;
+            }
+            //如果不在点光源的阴影中，不计算阴影，进行一次统一工作流
+            else{
+                shadow_map_index = onelight.shadow_map_array_index;
+            }
             //测试使用,正确，之前的问题是没有除以W
             //posFromLight = matrix_z* MVP * vec4(fsInput.worldPosition, 1.0);
             //posFromLight = matrix_z* U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(fsInput.worldPosition, 1.0);
@@ -92,17 +99,20 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             //colorOfPhoneOfLights[0] += colorOfPhoneOfLights[0] +depthVisibility * onelightPhongColor[0];
             //colorOfPhoneOfLights[1] += colorOfPhoneOfLights[1] +depthVisibility * onelightPhongColor[1];
 
-            //visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal, 0.08);
-            //visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal);
+             visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal, 0.08); 
             //visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  fsInput.worldPosition, fsInput.normal);
-            //visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal,0.08);
-            visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal);
+           // visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal,0.08);
+            //visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal);
             if (onelight.shadow ==1 && computeShadow)
             {
 
             }
             else
             {
+                visibility = 1.0;
+            }
+            //如果是点光源，且不在阴影中，visibility = 1.0
+            if (inPointShadow ==false && onelight.kind ==1 &&computeShadow ==true){
                 visibility = 1.0;
             }
             colorOfPhoneOfLights[0] += colorOfPhoneOfLights[0] +visibility * onelightPhongColor[0];
