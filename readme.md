@@ -2,13 +2,14 @@
 
 ## 基础说明
 
-* WE 3D 是一个从底层完全独立架构的B端三维渲染引擎；
+* WE 3D 是是图形学的认知与实现过程，也是一个从底层架构的B端三维渲染引擎；
 * 以TypeScript为开发语言；
-* 在光栅化是以webGPU进行架构处理的，而且只支持webGPU的光栅化库；
-* 渲染引擎架构架构上，参考了UE、cesium的部分工作原理；
-* 在底层形成以command集合（Draw Command、Compute Command、Copy Command）；
-* 在更新机制上形成以对象和类的update为更新入口的按需更新机制；
-* 在GPU的shader上支持Draw shader、Compute shader，以及多重shader串行输出一个Draw或Compute的command；（封装了webGPU原生的功能并集成与扩展）
+* 在光栅化是以webGPU进行架构处理的，而且只支持webGPU库；
+* 渲染引擎架构架构上，参考了UE、cesium、threejs的部分工作原理；
+* 以计算机图形学的渲染功能为主，未涉及游戏引擎架构，也没有ECS等；
+* 在底层绘制上以command集合（Draw Command、Compute Command、Copy Command）进行shader提交；
+* 在更新机制上有三个更新机制，对象的update机制、run（）的入口function机制、用户自定义更新机制；
+* 在GPU的shader上支持Draw shader、Compute shader，以及多重shader串行输出一个Draw或Compute的command；（封装了webGPU原生的功能并集成与扩展）；
 
 ## 更多功能
 
@@ -35,7 +36,7 @@
 ## API文档
 
 * API文档在doc目录下，使用TypeDoc生成；
-* 示例文档，todo
+* 示例文档，examples目录下；
 
 ## 运行示例
 
@@ -43,21 +44,25 @@
 | 拾取                                              | 反向Z                                             | GBuffer可视化                                     |
 | ------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
 | ![1733906622761](images/readme/1733906622761.png) | ![1733906612284](images/readme/1733906612284.png) | ![1737813175157](images/readme/1737813175157.png) |
-| 后处理：模糊，3x3卷积                             | 延迟渲染 1024个光源                               | 多摄像机                                          |
+| 后处理：模糊，3x3卷积                             | 延迟渲染 1024个光源                               | 多摄像机+多viewport                               |
 | ![1734701499419](images/readme/1734701499419.png) | ![1737812482025](images/readme/1737812482025.png) | ![1737813282671](images/readme/1737813282671.png) |
 | shadow map 可视化                                 | 光源+阴影：方向光                                 | 软阴影PCSS                                        |
 | ![1737512422932](images/readme/1737512422932.png) | ![1737558726854](images/readme/1737558726854.png) | ![1737781844403](images/readme/1737781844403.png) |
 | 软阴影+动态光源位置                               | 光源+阴影：点光源                                 | 光源+阴影：spot                                   |
 | ![1737812416885](images/readme/1737812416885.png) | ![1742301511749](images/readme/1742301511749.png) | ![1738597919885](images/readme/1738597919885.png) |
-| 动态点光源                                        | lightmap                                          | 粒子系统                                          |
+| 动态点光源阴影                                    | 混合                                              | 透明材质                                          |
 | ![1742405930357](images/readme/1742405930357.png) |                                                   |                                                   |
-| Skinned Mesh                                      | 体积渲染                                          | 仿真云图                                          |
+| 视频纹理                                          | 体渲染                                            | 粒子系统                                          |
 |                                                   |                                                   |                                                   |
-| 文本渲染                                          | PBR                                               | PBR                                               |
+| 文本渲染                                          | lightmap                                          | Skinned Mesh                                      |
 |                                                   |                                                   |                                                   |
-| PBR                                               | PBR                                               | PBR                                               |
+| IBL                                               | SSGI                                              | SSR                                               |
 |                                                   |                                                   |                                                   |
-| camera可视区域优化与剔除                          | 视频纹理                                          |                                                   |
+| SSAO                                              | 可视区域优化与剔除                                | 仿真云图                                          |
+|                                                   |                                                   |                                                   |
+| BVH                                               | 模型OBJ                                           | 模型GLTF                                          |
+|                                                   |                                                   |                                                   |
+| PBR                                               | MSAA                                              | TAA                                               |
 |                                                   |                                                   |                                                   |
 
 ## Todo
@@ -72,22 +77,24 @@
 
 ## 相关资料与推荐
 
-* https://www.w3.org/TR/webgpu/
-* https://www.w3.org/TR/wgsl/
-* https://github.com/webgpu/webgpu-samples
-* https://github.com/gfx-rs/wgpu
-* https://developer.mozilla.org/zh-CN/docs/Web/API/WebGPU_API
-* https://github.com/webgpu/webgpufundamentals
-* https://webgpufundamentals.org/
-* https://webgl2fundamentals.org/
-* https://webglfundamentals.org/
-* https://github.com/webgpu/webgpu-samples
-* https://github.com/greggman/wgpu-matrix
-* https://github.com/toji/gl-matrix
-* WebGPU API reference https://gpuweb.github.io/types/index.html
-* https://github.com/greggman/webgpu-utils
-* https://github.com/google/filament
-* https://github.com/google/dawn
+* webGPU标准：https://www.w3.org/TR/webgpu/
+* WGSL的标准：https://www.w3.org/TR/wgsl/
+* 非常好示例：https://github.com/webgpu/webgpu-samples
+* google的Dawn：https://github.com/google/dawn
+* Mozilla的wGPU：https://github.com/gfx-rs/wgpu
+* MDN的webGPU文档：https://developer.mozilla.org/zh-CN/docs/Web/API/WebGPU_API
+* 非常好的webGPU教程：https://webgpufundamentals.org/
+* 非常好的webGL2教程：https://webgl2fundamentals.org/
+* 非常好的webGL1教程：https://webglfundamentals.org/
+* dawn 的C示例：https://github.com/samdauwe/webgpu-native-examples
+* 非常实用的JS端的图形学简单数学库，这是目前主要使用的库：https://github.com/greggman/wgpu-matrix
+* 另外一个经典的图形学数学库：https://github.com/toji/gl-matrix
+* WebGPU API reference，方便实用：https://gpuweb.github.io/types/index.html
+* webgpu-utils可以参考一下：https://github.com/greggman/webgpu-utils
+* filament可以学习与参考一些：https://github.com/google/filament
+* PBRT书籍，非常好：https://www.pbr-book.org/
+* Ray tracing的书籍：https://raytracing.github.io/
+* nvidia的书籍：https://developer.nvidia.com/gpugems/gpugems/contributors
 
 ## 感谢
 
@@ -98,7 +105,8 @@
 * 感谢LearnOpenGL中文化工程 https://learnopengl-cn.github.io/ ；
 * 感谢LearnOpengl的原书作者 JoeyDeVries https://learnopengl.com ；
 * 感谢Filament的文档作者Romain Guy,Mathias Agopian ；
+* 感谢的PBRT(https://pbrt.org/)的作者们；
 
 ## 写在最后
 
-开发WE引擎还是工作量比较重的，学习、设计、代码、测试、文档、示例都是一个人，但收获也是满满的。
+开发WE引擎是对于计算机图形学和引擎架构的认知与实现过程，学习、设计、代码、测试、文档、示例都是一个人，但收获也是满满。

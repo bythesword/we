@@ -62,7 +62,7 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             else if (onelight.kind ==1)
             {
                 computeShadow = true;
-                 shadow_map_index = checkPixelInPointLightRange(fsInput.worldPosition, onelight);
+                shadow_map_index = checkPixelInPointLightRange(fsInput.worldPosition, onelight);
                 onelightPhongColor = phongColorOfPointLight(fsInput.worldPosition, fsInput.normal, onelight.position, onelight.color, onelight.intensity, defaultCameraPosition, fsInput.uv);
             }
             else if (onelight.kind ==2)
@@ -79,30 +79,16 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             else{
                 shadow_map_index = onelight.shadow_map_array_index;
             }
-            //测试使用,正确，之前的问题是没有除以W
-            //posFromLight = matrix_z* MVP * vec4(fsInput.worldPosition, 1.0);
-            //posFromLight = matrix_z* U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(fsInput.worldPosition, 1.0);
-            //posFromLight =posFromLight/posFromLight.w;
-            //depthColor = vec3(
-            //posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5),
-            //posFromLight.z
-            //);
-
-            //depthVisibility = textureSampleCompare(
-            //U_shadowMap_depth_texture,                  //t: texture_depth_2d_array
-            //shadowSampler,                              //s: sampler_comparison,
-            //depthColor.xy,                      //coords: vec2<f32>,
-            //onelight.shadow_map_array_index,            //array_index: A,
-            //depthColor.z - 0.007                         //depth_ref: f32,
-            //);
-            //// depthVisibility =textureLoad(U_shadowMap_depth_texture, vec2i(depthColor.xy*shadowDepthTextureSize), 0, 0);
-            //colorOfPhoneOfLights[0] += colorOfPhoneOfLights[0] +depthVisibility * onelightPhongColor[0];
-            //colorOfPhoneOfLights[1] += colorOfPhoneOfLights[1] +depthVisibility * onelightPhongColor[1];
-
+            
+            if (onelight.kind ==1){//点光源的pcss在计算block是需要适配，目前多出来了边界的黑框，目前考虑是block的uv在边界的地方越界了，需要进行特殊处理
+                visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal,0.08);
+            }
+            else{
              visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal, 0.08); 
             //visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  fsInput.worldPosition, fsInput.normal);
-           // visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal,0.08);
-            //visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal);
+            //visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal,0.08);
+           // visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal);
+           }
             if (onelight.shadow ==1 && computeShadow)
             {
 

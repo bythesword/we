@@ -189,6 +189,7 @@ fn uniformDiskSamples(randomSeed: vec2f) -> array<vec2f,NUM_SAMPLES> {
 }
 fn findBlocker(uv: vec2f, zReceiver: f32, depth_texture: texture_depth_2d_array, array_index: i32) -> f32 {
     let disk = poissonDiskSamples(uv);
+    //let disk = poissonDiskSamples(uv);
     var blockerNum = 0;
     var blockDepth = 0.;
 
@@ -243,7 +244,7 @@ fn shadowMapVisibilityPCSS(onelight: ST_Light, shadow_map_index:i32,position: ve
 
     let oneOverShadowDepthTextureSize = FILTER_RADIUS / shadowDepthTextureSize;
     let bias = getShadowBias(biasC, oneOverShadowDepthTextureSize, normal, onelight.direction);
-    let disk = poissonDiskSamples(vec2f(shadowPos.x, shadowPos.y));
+    let disk = poissonDiskSamples(vec2f(shadowPos.x, shadowPos.y));//todo，改成从findBlocker中获取的结构体
     var visibility = 0.0;
     if avgBlockerDepth < -EPS {
         penumbra = oneOverShadowDepthTextureSize;
@@ -251,8 +252,8 @@ fn shadowMapVisibilityPCSS(onelight: ST_Light, shadow_map_index:i32,position: ve
         penumbra = (zReceiver - avgBlockerDepth) * LIGHT_SIZE_UV / avgBlockerDepth;
     }
     for (var i = 0 ; i <= NUM_SAMPLES; i++) {
-       // let offset = disk[i] * penumbra;
-         let offset = disk[i] * oneOverShadowDepthTextureSize;
+        let offset = disk[i] * penumbra;
+       //  let offset = disk[i] * oneOverShadowDepthTextureSize;
         visibility += textureSampleCompare(
             U_shadowMap_depth_texture,                  //t: texture_depth_2d_array
             shadowSampler,                              //s: sampler_comparison,
