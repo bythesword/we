@@ -37,6 +37,7 @@ export var stagesOfSystem: stageName = [
     "Sky",//天空盒
     "UI",//UI
 ];
+//未使用
 export var stagesOfSystemDeferRender: boolean[] = [
     true,//角色
     true,//水、树、草等

@@ -766,7 +766,7 @@ class Scene extends BaseScene {
     run(userRun: coreConst.userPromiseFN) {
         let scope = this;
         this.clock.update();
-        async function run() {
+        async function perFrameRun() {
             if (scope.realTimeRender) {//是否开启实时更新
                 scope.onBegin();
                 if (scope._reSize === false) {//是否resize中
@@ -788,9 +788,9 @@ class Scene extends BaseScene {
                 }
             }
             scope.onFinish();
-            requestAnimationFrame(run);
+            requestAnimationFrame(perFrameRun);
         }
-        requestAnimationFrame(run)
+        requestAnimationFrame(perFrameRun)
     }
     onBegin() {
         this.lastCommand = [];
@@ -850,15 +850,15 @@ class Scene extends BaseScene {
             await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
         }
     }
-    renderShadowMap() {
-        for (let i in this.stagesOrders) {
-            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = this.stagesOfSystem[perList];
-            if (this.stages[name].opaque) {
-                this.stages[name].opaque!.renderForLightsShadowMap();
-            }
-        }
-    }
+    // renderShadowMap() {
+    //     for (let i in this.stagesOrders) {
+    //         const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
+    //         const name = this.stagesOfSystem[perList];
+    //         if (this.stages[name].opaque) {
+    //             this.stages[name].opaque!.renderForLightsShadowMap();
+    //         }
+    //     }
+    // }
     /**render perstage  */
     renderStagesCommand() {
         for (let i in this.stagesOrders) {

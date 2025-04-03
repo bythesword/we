@@ -234,6 +234,7 @@ export abstract class BaseEntity extends Root {
     _shadow!: optionShadowEntity;
     // _shadowMaterail!: ShadowMaterial;
     commmands: commandsOfEntity;//commmandType[];
+    commandTransparent: commandsOfEntity;//commmandType[];
     commandsOfShadow: commandsOfShadowOfEntity;
     _vertexAndMaterialGroup!: entityContentGroup;
     _position!: Vec3;
@@ -383,6 +384,7 @@ export abstract class BaseEntity extends Root {
         // }
         // this.updateMatrix();
         this.commmands = {};
+        this.commandTransparent={};
         // this.commmands["default"] = {
         //     forward: [],
         //     depth: [],

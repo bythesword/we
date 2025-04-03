@@ -455,7 +455,7 @@ export class BaseStage extends BaseScene {
         this.camerasCommands = {};
         this.lightsCommands = {};
         for (let i of this.root) {
-            if (i.enable && i.visible) {
+            if (i.enable && i.visible) {    
                 let dcc = i.update(this, deltaTime, startTime, lastTime);
                 if (i.boundingBox)
                     this.Box3s.push(i.boundingBox);
