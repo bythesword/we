@@ -50,7 +50,7 @@ export var defaultStageName = stagesOfSystem[defaultStage]
 export type stagesOrderByRender = number[];
 // export var defaultStageList: stagesOrderByRender = [defaultStage];
 // export var defaultStageList: stagesOrderByRender = [2,3];
-export var defaultStageList: stagesOrderByRender = [0, 1, 2, 3];
+export var defaultStageList: stagesOrderByRender = [0, 1, 2, 3];//20250404,[0, 1, 3, 2]后，world的底色出现，在其他stage没有commmand时，texture是空色的；在GBuffer合并时，会出现透明。排除没有commands的stage
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

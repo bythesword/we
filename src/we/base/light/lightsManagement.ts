@@ -96,7 +96,9 @@ export class LightsManagement {
     */
     _maxlightNumber: number;
 
-
+    /**
+     * 每个光源的不透明的command， name=light的id
+     * */
     lightsCommands: {
         [name: string]: commmandType[]
     }

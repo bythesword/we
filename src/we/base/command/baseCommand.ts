@@ -182,6 +182,7 @@ export type uniformEntriesWithSystem = uniformBufferPartWithSystem | uniformBind
 export interface baseOptionOfCommand {
     /** scene object ，必须 */
     parent: any,
+    name?: string,
 
     //作废，camera和DC没有关系，20240825
     // /** todo ,摄像机对象或default,也可以是光源的，比如shadow map */
@@ -250,6 +251,7 @@ export type localUniformGroups = {
 export abstract class BaseCommand {
     /** parent ,必须,cavas or texture */
     parent: any;
+    name!: string;
 
     //作废，camera和DC没有关系，20240825
     // /** 渲染的camera，scene.cameraDefault || 指定的camera */
@@ -287,6 +289,9 @@ export abstract class BaseCommand {
     input!: baseOptionOfCommand;
 
     constructor(options: baseOptionOfCommand) {
+        if (options.name) {
+            this.name = options.name;
+        }
         this.bindingIdOfGroup0 = 0;
         this.bindingIdOfGroup1 = 0;
         this.bindingIdOfGroup2 = 0;

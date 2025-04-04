@@ -214,8 +214,85 @@ export interface commandsOfShadowOfEntity {
 }
 export abstract class BaseEntity extends Root {
 
-
+    ////////////////////////////////////////////////////////////////////
+    //基础属性
     input: optionBaseEntity | undefined;
+    name!: string;
+    /**for shader  */
+    entity_id: Uint32Array;
+    /**for shader */
+    stage_id: Uint32Array;
+    /** stageID*/
+    stageID!: number;
+    /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
+    _entityIdSizeForWGSL = 4;//以u32（f32）计算
+
+
+    ///////////////////////////////////////////////////////////////////
+    //层级、LOD、实例化等
+
+    parent!: BaseEntity;
+    /**
+     * 子节点
+     */
+    children!: BaseEntity[];
+    /**
+         * todo
+         * LOD array
+         */
+    /**
+     *  todo     
+     * LOD
+     * */
+    _LOD!: LOD[];//
+
+    /**实例化数量，默认为1 */
+    numInstances: number;
+
+
+    ///////////////////////////////////////////////////////////////////
+    //空间属性
+    _position!: Vec3;
+    _scale!: Vec3;
+    _rotation!: Vec3;
+
+    /**当前mesh的local的矩阵，按需更新 */
+    matrix!: Mat4;
+    /**当前entity在世界坐标（层级的到root)，可以动态更新 */
+    matrixWorld !: Mat4;
+    boundingBox!: boundingBox;//initDCC中赋值
+    boundingSphere!: boundingSphere;
+    /**
+     * 20241120，增加了matrix buffer，因为实例化可能是一个或多个，最终输出是一个buffer
+     */
+    matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
+    structUnifomrBuffer!: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
+
+
+    ///////////////////////////////////////////////////////////////////
+    //状态属性
+    _init: initStateEntity;
+    _destroy: boolean;
+    /**是否每帧更新 */
+    updateMatrixPerFrame: boolean;
+    /**
+     * 是否单独更新每个instance 
+     * 
+     * 默认=false
+    */
+    flagUpdateForPerInstance!: boolean;
+
+    //////////////////////////////////////////////////////////////////
+    //是否透明属性
+    /**透明属性
+     * 默认=false，
+     * 通过后续材质或函数设置
+     */
+    //20240825
+    _transparent!: boolean;
+
+    ///////////////////////////////////////////////////////////////////
+    //可见性相关
     /**
      * 实体是否为动态，boolean
      * 默认=false
@@ -226,93 +303,44 @@ export abstract class BaseEntity extends Root {
      * 默认=false
      */
     _dynamicMesh: boolean;
-    /**
-     * todo
-     * LOD array
-     */
-    _LOD!: LOD[];//todo
+    visible!: boolean;
+    enable!: boolean;
+
+    //////////////////////////////////////////////////////////////////
+    //生成与实现
     _shadow!: optionShadowEntity;
-    // _shadowMaterail!: ShadowMaterial;
+
+
+    //////////////////////////////////////////////////////////////////
+    // commands输出 
     commmands: commandsOfEntity;//commmandType[];
-    commandTransparent: commandsOfEntity;//commmandType[];
+    commandsOfTransparent: commandsOfEntity;//commmandType[];
     commandsOfShadow: commandsOfShadowOfEntity;
+    commandsOfShadowOfTransparent: commandsOfShadowOfEntity;
+
     _vertexAndMaterialGroup!: entityContentGroup;
-    _position!: Vec3;
-    _scale!: Vec3;
-    _rotation!: Vec3;
-    _destroy: boolean;
-    _init: initStateEntity;
+
     // /**局部的，按需更新 */
     // matrixInstances!: Mat4[];
     // /**层级的到root，可以动态更新 */
-    // matrixWorldInstances !: Mat4[];
-    /**当前mesh的local的矩阵，按需更新 */
-    matrix!: Mat4;
-    /**当前entity在世界坐标（层级的到root)，可以动态更新 */
-    matrixWorld !: Mat4;
-    /**
-     * 20241120，增加了matrix buffer，因为实例化可能是一个或多个，最终输出是一个buffer
-     */
-    matrixWorldBuffer!: Float32Array;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
-    structUnifomrBuffer!: ArrayBuffer;//instance的uniform 数组数量，在createDCCC中进行字符串替换，每个子类单独进行
-    /**for shader  */
-    entity_id: Uint32Array;
-    /**for shader */
-    stage_id: Uint32Array;
-    /**是否每帧更新 */
-    updateMatrixPerFrame: boolean;
-    visible!: boolean;
-    enable!: boolean;
-    children!: BaseEntity[];
-    name!: string;
+    // matrixWorldInstances !: Mat4[]; 
 
-    // _id!: entityID;
-    // get ID() {
-    //     return this._id;
-    // }
-    // set ID(id: entityID) {
-    //     this._id = id;
-    //     // this.updateUniformBuffer(this.scene, 1, 1, 1);
-    // }
+    ////////////////////////////////////////////////////////////////////////////
+    //渲染相关
+    //反向Z
+    reversedZ!: boolean;
+    //延迟渲染，depth模式，先绘制depth，单像素
+    deferRenderDepth!: boolean;
+    //延迟渲染，color模式，todo：先绘制color，depth，材质集中在一起处理，需要一个shader进行处理，即，合批shader
+    deferRenderColor!: boolean;
 
-    parent!: BaseEntity;
-    /** stageID*/
-    stageID!: number;
-
-
-    /**透明属性
-     * 默认=false，
-     * 通过后续材质或函数设置
-     */
-    //20240825
-    _transparent!: boolean;
+    ////////////////////////////////////////////////////////////////////////////
+    //todo
     /**
      * todo
      * 本次是否更新，BVH的可见性,默认=true
      */
     _output: boolean;
-
-    /**实例化数量，默认为1 */
-    numInstances: number;
-
-    /**
-     * 是否单独更新每个instance 
-     * 
-     * 默认=false
-    */
-    flagUpdateForPerInstance!: boolean;
-
-    /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
-    _entityIdSizeForWGSL = 4;//以u32（f32）计算
-
-
-    reversedZ!: boolean;
-    deferRenderDepth!: boolean;
-    deferRenderColor!: boolean;
-
-
-    boundingBox!: boundingBox;//initDCC中赋值
-    boundingSphere!: boundingSphere;
 
     constructor(input: optionBaseEntity) {
         super();
@@ -338,7 +366,10 @@ export abstract class BaseEntity extends Root {
         this._LOD = [];
         this._destroy = false;
         this.commmands = {};
+        this.commandsOfTransparent = {};
         this.commandsOfShadow = {};
+        this.commandsOfShadowOfTransparent = {};
+        
         this._vertexAndMaterialGroup = {};
         this.enable = true;
         this._position = vec3.create();
@@ -384,7 +415,6 @@ export abstract class BaseEntity extends Root {
         // }
         // this.updateMatrix();
         this.commmands = {};
-        this.commandTransparent={};
         // this.commmands["default"] = {
         //     forward: [],
         //     depth: [],
@@ -392,8 +422,11 @@ export abstract class BaseEntity extends Root {
         // };
 
     }
-    /** */
-    async init(values: optionBaseEntityStep2) {
+    /**
+     * 三段式初始化的第二步：init
+     * @param values
+     */
+    async init(values: optionBaseEntityStep2):Promise<number> {
         this.stage = values.stage;
         this.stageID = values.stage.ID;
         this.reversedZ = values.reversedZ;
@@ -401,15 +434,19 @@ export abstract class BaseEntity extends Root {
         this.deferRenderColor = values.deferRenderColor;
         this.stageTransparent = values.stage.scene.stages[values.stage.name].transparent;
         await this.setRootENV(values.stage.scene);//为获取在scene中注册的resource
+
+        //如果是OBJ等，需要递归设置ID，或采用一个相同的ID，这个需要在OBJ、GLTF、FBX等中进行开发；基础的entity，不考虑这种情况
         this.ID = values.ID;//这个在最后，update需要判断ID是否存在，以开始更新
+        return this.ID+1;
     }
 
     abstract generateBoxAndSphere(): void
 
+    /** 设置是否透明 */
     set transparent(transparent: boolean) {
         this._transparent = transparent;
     }
-
+    /** 获取是否透明 */
     get transparent() {
         return this._transparent;
     }
@@ -569,11 +606,11 @@ export abstract class BaseEntity extends Root {
             this.scale(this.input.scale);
         if (this.input?.rotate)
             this.rotate(this.input.rotate.axis, this.input.rotate.angleInRadians);
-        
+
         if (this.input?.position)
             this.setTranslation(this.input.position);
 
-        if(this.input?.dynamicPostion)
+        if (this.input?.dynamicPostion)
             this.setTranslation(this.position);
 
         this.matrixWorld = this.updateMatrixWorld();
@@ -607,7 +644,7 @@ export abstract class BaseEntity extends Root {
     }
 
 
-
+    //初始化当前entity的DCC
     initDCC(parent: BaseStage) {
         let already = this.checkStatus();
         if (already) {
@@ -619,6 +656,7 @@ export abstract class BaseEntity extends Root {
             this._init = initStateEntity.finished;//this.createDCCC(valueOfCamera);
         }
     }
+    /**检查camear的id在commands中是否已经存在 */
     checkIdOfCommands(id: string, commands: commandsOfEntity | commandsOfShadowOfEntity): boolean {
         for (let i in commands) {
             if (i == id) return true;
@@ -669,6 +707,7 @@ export abstract class BaseEntity extends Root {
 
         }
     }
+    /**检查是否有新摄像机，有进行更新 */
     checkUpgradeCameras(parant: BaseStage) {
         const countsOfCamerasCommand = Object.keys(this.commmands).length;
         const countsOfCameraActors = this.scene.cameraActors.length;
@@ -676,6 +715,7 @@ export abstract class BaseEntity extends Root {
             this.upgradeCameras(parant)
         }
     }
+    /**检查是否有新光源，有进行更新 */
     checkUpgradeLights(parant: BaseStage) {
         const countsOfCamerasCommand = Object.keys(this.commandsOfShadow).length;
         const countsOfCameraActors = this.scene.lightsManagement.getShdowMapsStructArray().length;
@@ -723,7 +763,7 @@ export abstract class BaseEntity extends Root {
                 }
                 //检查是否有新摄像机，有进行更新
                 this.checkUpgradeCameras(parent);
-                //建设是否有新光源，有进行更新
+                //检查是否有新光源，有进行更新
                 this.checkUpgradeLights(parent);
                 if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
                     this.updateUniformBuffer(parent, deltaTime, startTime, lastTime);
@@ -762,6 +802,9 @@ export abstract class BaseEntity extends Root {
     updateDCC(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): commandsOfEntity {
         return this.commmands;
     }
+    /**获取shadowmap的 commands
+     * 相当于render中的updateDCC()版本
+     */
     getCommandsOfShadowMap(): commandsOfShadowOfEntity {
         return this.commandsOfShadow;
     }

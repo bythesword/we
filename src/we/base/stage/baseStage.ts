@@ -126,6 +126,7 @@ export class BaseStage extends BaseScene {
         this.depthTextureOnly = {};
         this.device = input.scene!.device;
         this.scene = input.scene;
+        this.backgroudColor=this.scene.backgroudColor;
         this.presentationFormat = this.scene.presentationFormat;
         // this.depthDefaultFormat=this.scene.depthDefaultFormat;
         this._cache = false;
@@ -348,7 +349,7 @@ export class BaseStage extends BaseScene {
             this.renderOfForward();//进行前向渲染，在这个stage中
             this.copyForTAA();
         }
-        this.renderForLightsShadowMap();
+        // this.renderForLightsShadowMap();//作废，转移到lightsManagement中
     }
 
 
@@ -455,7 +456,7 @@ export class BaseStage extends BaseScene {
         this.camerasCommands = {};
         this.lightsCommands = {};
         for (let i of this.root) {
-            if (i.enable && i.visible) {    
+            if (i.enable && i.visible) {
                 let dcc = i.update(this, deltaTime, startTime, lastTime);
                 if (i.boundingBox)
                     this.Box3s.push(i.boundingBox);
@@ -540,13 +541,20 @@ export class BaseStage extends BaseScene {
         // await one.setRootENV(this.scene);
         // this.root.push(one);
         // one.ID = this.root.length
-        await one.init({
+
+        //由entity自己负责ID的递增
+        let tempID=this.idOfRoot;
+        this.idOfRoot = await one.init({
             stage: this,
-            ID: this.idOfRoot++,
+            ID: this.idOfRoot,
+            // ID: this.idOfRoot++,
             reversedZ: this.scene._isReversedZ,
             deferRenderDepth: this.deferRenderDepth,
             deferRenderColor: this.deferRenderColor
         })
+        if(tempID == this.idOfRoot) {
+            this.idOfRoot++;
+        }
         this.root.push(one);
     }
     get cache() {

@@ -7,7 +7,7 @@ export interface optionCopyT2T {
 }
 
 export class CopyCommandT2T {
-
+    name = "copy";
     device: GPUDevice;
     input: optionCopyT2T;
     constructor(input: optionCopyT2T) {

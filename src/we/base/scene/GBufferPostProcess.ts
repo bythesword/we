@@ -111,6 +111,21 @@ export class GBufferPostProcess extends SingleRender {
         this.colorAttachmentTargetsOfTransparent = RenderTransparent.colorAttachmentTargets;
         this.init();
     }
+    render() {
+        if (this.commands.length > 0) {
+            for (let i in this.commands) {
+
+                if (this.commands[i].name == "Actor" || this.commands[i].name == "DynamicEntities" || this.commands[i].name == "World" || this.commands[i].name == "Sky") {
+                    let name = this.commands[i].name;
+                    if (Object.keys(this.parent.stages[name].opaque!.camerasCommands).length > 0)//过滤掉，没有内容的stage)
+                        this.commands[i].update();
+                }
+                else {
+                    this.commands[i].update();
+                }
+            }
+        }
+    }
     init() {
         // let shaderDepthAndID: string;
         // let shaderOpaque: string;
@@ -164,14 +179,19 @@ export class GBufferPostProcess extends SingleRender {
 
             //跟进ID合并stage的其他GBuffers
             // let run_i = 0;
+            let state_i = 0;
             for (let i of this.parent.stagesOrders) {
                 let name = this.parent.stagesOfSystem[i];
-                if (this.parent.stages[name].opaque && name != "UI"                    //  && name=="World"
+                if (this.parent.stages[name].opaque && name != "UI"
+                    //初始化状态，暂时没有commands，所以不进行渲染
+                    // && Object.keys(this.parent.stages[name].opaque.camerasCommands).length > 0
+                    // && Object.keys(this.parent.stages[name].opaque.camerasCommands.default.commands).length > 0
                 ) {
-
+                    // console.log(name)
                     let uniformsOther: unifromGroup[] = this.getTexturesOfUniformFromStageForOther(name);
                     let optionsOther: DrawOptionOfCommand = {
                         label: "GBuffers render Other",
+                        name: name,
                         vertex: {
                             code: shaderOpaqueOther,
                             entryPoint: "vs",
@@ -203,53 +223,64 @@ export class GBufferPostProcess extends SingleRender {
 
                     };
                     let DC_Other = new DrawCommand(optionsOther);
-                    this.commands.push(DC_Other);/////////////////////////////////////////////////////////////////////////////
+                    this.commands.push(DC_Other);
+
+                    /////////////////////////////////////////////////////////////////////////////
                     //下面的代码进行了MSAA，目测没看到效果，但是逻辑应该是执行了。
                     //本次的代码是将GBuffer的color又独立执行了一次
                     //没有效果可能有两个原因，
                     //1、textureLoad的问题，但如果都是color的输出，那么就不会有问题，color的输出都会是MSAA*4，所以不会有问题
                     //2、这个是一个buffer的合并，MSAA是否会进行多采样？ 
-                    {
-                        let uniforms: unifromGroup[] = this.getTexturesOfUniformFromStageForColor(name);
-                        let options: DrawOptionOfCommand = {
-                            label: "GBuffers render Color",
-                            vertex: {
-                                code: shaderOpaqueColor,
-                                entryPoint: "vs",
-                            },
-                            fragment: {
-                                code: shaderOpaqueColor,
-                                entryPoint: "fs",
-                                targets: this.colorAttachmentTargetsOfColor,
-                                constants: {
-                                    // far: far,
-                                    // count_of_stage: 4,
-                                    canvasSizeWidth: this.surfaceSize.width,
-                                    canvasSizeHeight: this.surfaceSize.height,
-                                    // reversedZ: this._isReversedZ,
-                                }
-                            },
-                            draw: {
-                                mode: "draw",
-                                values: values
-                            },
-                            parent: this.parent,
-                            uniforms: uniforms,
-                            primitive: {
-                                topology: 'triangle-list',
-                                cullMode: "back",
-                            },
-                            rawUniform: true,
-                            renderPassDescriptor: this.renderPassDescriptorOfColor,
-                            multisample: {
-                                count: this.MSAASampleCount,
-                            },
-                        };
-                        let DC = new DrawCommand(options);
-                        this.commands.push(DC);
-                    }
+                    // {
+                    //     let uniforms: unifromGroup[] = this.getTexturesOfUniformFromStageForColor(name);
+                    //     let options: DrawOptionOfCommand = {
+                    //         label: "GBuffers render Color",
+                    //         vertex: {
+                    //             code: shaderOpaqueColor,
+                    //             entryPoint: "vs",
+                    //         },
+                    //         fragment: {
+                    //             code: shaderOpaqueColor,
+                    //             entryPoint: "fs",
+                    //             targets: this.colorAttachmentTargetsOfColor,
+                    //             constants: {
+                    //                 // far: far,
+                    //                 // count_of_stage: 4,
+                    //                 canvasSizeWidth: this.surfaceSize.width,
+                    //                 canvasSizeHeight: this.surfaceSize.height,
+                    //                 // reversedZ: this._isReversedZ,
+                    //             }
+                    //         },
+                    //         draw: {
+                    //             mode: "draw",
+                    //             values: values
+                    //         },
+                    //         parent: this.parent,
+                    //         uniforms: uniforms,
+                    //         primitive: {
+                    //             topology: 'triangle-list',
+                    //             cullMode: "back",
+                    //         },
+                    //         rawUniform: true,
+                    //         renderPassDescriptor: this.renderPassDescriptorOfColor,
+                    //         multisample: {
+                    //             count: this.MSAASampleCount,
+                    //         },
+                    //     };
+                    //     let DC = new DrawCommand(options);
+                    //     this.commands.push(DC);
+                    // }
                 }
-                
+                if (state_i == 0) {//20250404,更改了loadOP，但背景还是透明，这个可能是在stage中的问题了
+
+                    for (let RPD_collor_attache_i of this.renderPassDescriptorOfOther.colorAttachments) {
+                        RPD_collor_attache_i!.loadOp = "load";
+                    }
+                    state_i++;
+                }
+                if (state_i == 1) {
+                    // break;
+                }
                 // if(run_i++ ==2 ) break;
             }
 
@@ -367,7 +398,7 @@ export class GBufferPostProcess extends SingleRender {
                 {
                     view: this.GBuffers["color"].createView({ label: "post process RPD colorAttachments[0].view of  entityID" }),
                     //  view: this.GBuffers["entityID"].createView({ label: "post process RPD colorAttachments[0].view of  entityID" }),
-                    // clearValue: [0,0,0,0],
+                    // clearValue: [1,1,1,1], 
                     loadOp: 'clear',
                     storeOp: "store"
                 },
@@ -400,7 +431,7 @@ export class GBufferPostProcess extends SingleRender {
                 one = {
                     view: this.GBuffers[key].createView(),
                     clearValue: this.parent.backgroudColor,
-                    loadOp: 'load',
+                    loadOp: 'clear',//透明背景问题所在，todo，20250404
                     storeOp: "store"
                 };
                 colorAttachments.push(one);
@@ -423,6 +454,10 @@ export class GBufferPostProcess extends SingleRender {
         };
         return { renderPassDescriptor, colorAttachmentTargets };
     }
+    /**
+     * 20250404,禁用，使用MSAA需要修改init中的注释到的msaa的代码
+     * @returns 
+     */
     createRenderPassDescriptorOfColorOfMSAA(): renderPassDescriptorAndTaget {
         let colorAttachments: GPURenderPassColorAttachment[] = [];
         let colorAttachmentTargets: GPUColorTargetState[] = [];
@@ -432,10 +467,12 @@ export class GBufferPostProcess extends SingleRender {
                 // if (key == "color") {
                 one = {
                     // view: this.GBuffers[key].createView(),
-                    resolveTarget: this.GBuffers[key].createView(),                  
-                    view:this.multisampleTexture.createView(),  //MSAA
+                    resolveTarget: this.GBuffers[key].createView(),
+                    view: this.multisampleTexture.createView(),  //MSAA
+                    // clearValue: [1,1,1,1],
                     clearValue: this.parent.backgroudColor,
-                    loadOp: 'load',
+                    loadOp: 'load',//如果是clear，则物体颜色会被backgroundColor覆盖,但背景还是透明的,20250403，这个与MSAA有关，但与背景透明无关
+                    // loadOp: 'clear',//如果是clear，则物体颜色会被backgroundColor覆盖,但背景还是透明的,20250403
                     storeOp: "store"
                 };
                 colorAttachments.push(one);

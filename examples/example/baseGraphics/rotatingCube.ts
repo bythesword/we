@@ -8,6 +8,7 @@ import { Mesh } from "../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../src/we/base/geometry/oneColorCube"
 import { VertexColorMaterial } from "../../../src/we/base/material/Standard/vertexColorMatrial"
 import { mat4, vec3 } from "wgpu-matrix"
+import { initScene } from "../../../src/we/base/scene/initScene"
 
 
 declare global {
@@ -23,14 +24,13 @@ let input: sceneInputJson = {
     red: 0.5,
     green: 0.5,
     blue: 0.5,
-    alpha: 1
-  }
+    alpha: 1.
+  },
+  // stageSetting: "world",
 }
-let scene = new Scene(input);
-await scene.init();
-
+ 
+let scene = await initScene(input);
 window.scene = scene;
-
 
 //摄像机初始化参数
 const cameraOption: optionPerspProjection = {
@@ -97,6 +97,4 @@ let boxEntity = new Mesh(
 //增加实体到scene
 scene.add(boxEntity)
 
-
-//运行场景
-scene.run()
+ 

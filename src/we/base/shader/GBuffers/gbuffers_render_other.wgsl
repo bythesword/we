@@ -37,11 +37,15 @@ fn fs(@builtin(position) coord: vec4f) -> ST_GBuffer_other {
 
     if id_end != id_stage {
         discard;
+        //output.color = vec4f(1.0, .0, .0, 1.0);
     }
 
 
 
-    output.color = textureLoad(gBuffer_stage_color, vec2i(floor(coord.xy)), 0);
+    else{
+     output.color = textureLoad(gBuffer_stage_color, vec2i(floor(coord.xy)), 0);
+     //output.color = vec4f(1.0, 1.0, 1.0, 1.0);
+     }
     
     // output.color = textureLoad(gBuffer_stage_color, vec2i(floor(coord.xy)), 0);
     output.normal = textureLoad(gBuffer_stage_normal, vec2i(floor(coord.xy)), 0);
