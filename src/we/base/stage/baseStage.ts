@@ -8,24 +8,16 @@ import { renderKindForDCCC } from "../const/coreConst";
 
 
 
-declare type lights = BaseLight[];
-declare interface lightUniform { }
-declare interface BVH { }
-/**system  uniform 时间结构体 */
-declare interface timeUniform {
-    deltaTime: number, startTime: number, lastTime: number,
-    time: number,
-}
-
-
-/**
- * 透明和不透明stage组合
- */
-// export interface stageGroup {
-//     opaque?: BaseStage,
-//     transparent?: BaseStage,
+// declare type lights = BaseLight[];
+// declare interface lightUniform { }
+// declare interface BVH { }
+// /**system  uniform 时间结构体 */
+// declare interface timeUniform {
+//     deltaTime: number, startTime: number, lastTime: number,
+//     time: number,
 // }
 
+//todo，更改：20250404，取消一个stage下的透明和不同的stage的透明，统一使用一个stageGroup，通过不同的commands 区分
 export class stageGroup {
     opaque: BaseStage | undefined;
     transparent: BaseStage | undefined;
@@ -35,17 +27,27 @@ export class stageGroup {
 
 /**stage input option */
 export interface optionBaseStage extends sceneJson {
+    /**stage 的名称 */
     name: string,
+    /**是否启用 */
     enable?: boolean,
+    /**是否可见 */
     visible?: boolean,
-    // depthTest?: boolean,
-    transparent?: boolean,
-    // scene: BaseScene;
+    /**scene */
     scene: Scene,
+
+    // depthTest?: boolean,
+    /**是否透明 */
+    // transparent?: boolean,
+
 }
+/**摄像机队列内容 */
 export interface cameraCommands {
+    /**正常前向渲染 */
     commands: commmandType[];
+    /**延迟单像素渲染：第一遍的深度渲染通道描述 */
     commandsDepth: commmandType[];
+    /**todo，目前没使用，延迟渲染，合批shader的延迟渲染 */
     commandsColor: commmandType[];
 }
 
@@ -58,37 +60,34 @@ export interface cameraCommands {
  */
 export class BaseStage extends BaseScene {
 
-
+    /**entities 集合 */
     root: BaseEntity[];
+    /**当前可用的ID，顺序增加 */
     idOfRoot: number;
 
     // start todo ,20241020,不同的stage可能存在不同light的可见情况，不同的环境光，比如：室外，室内，
     // light ,camera 的数组为空，或为undefined，则使用全局（Scene）的。
     /**cameras 默认摄像机 */
     // defaultCamera: BaseCamera | undefined;
-
     //end todo
 
+    /**stage 是否使用，此项目前没有使用 */
     enable!: boolean;
+    /**是否可见， 此项目前没有使用*/
     visible!: boolean;
+    /**深度测试， 此项目前没有使用*/
     depthTest!: boolean;
-    transparent!: boolean;
+
+    // transparent!: boolean;//20250404，作废，统一使用一个stageGroup，通过不同的commands 区分
     scene!: Scene;
+    /**是否使用cache，需要配合GBuffer，即使用上一帧的GBuffer内容， 此项目前没有使用*/
     _cache: boolean;
 
-
-
-    /** stage d context 为 GPUTexture */
-    declare context: GPUTexture;
-
-    /**stage 缓存，是否需要需要 todo */
-    colorTextureCache!: GPUTexture;
-    /**stage 缓存，是否需要需要 todo */
-    depthTextureCache!: GPUTexture;
     /**在stage 的ID，与coreConst中的stagesOfSystem数组的值
      * 20241128 stagesOfSystem[0]="Actor"
      */
     _id!: number;
+
     get ID() {
         return this._id;
     }
@@ -97,8 +96,10 @@ export class BaseStage extends BaseScene {
     }
     /**ID color texture */
     // colorTextureForID!: GPUTexture;
+
     /**仅仅输出深度的纹理，非前向渲染的depth buffer */
     depthTextureOnly!: { [name: string]: GPUTexture };
+
     /**color attachment 的 view 数组 */
     // colorTextureViews!: GPUTextureView[];
 
@@ -113,9 +114,16 @@ export class BaseStage extends BaseScene {
     camerasCommands: {
         [name: string]: cameraCommands
     }
-    lightsCommands: {
-        [name: string]: commmandType[]
-    }
+    /** 透明渲染队列：只需要一个 */
+    commandsOfTransparent: commmandType[];
+
+    //作废，使用lightsManagement 管理
+    /**
+     * 多光源队列
+     */
+    // lightsCommands: {
+    //     [name: string]: commmandType[]
+    // }
 
 
     /**   @param input optionBaseStage     */
@@ -126,7 +134,7 @@ export class BaseStage extends BaseScene {
         this.depthTextureOnly = {};
         this.device = input.scene!.device;
         this.scene = input.scene;
-        this.backgroudColor=this.scene.backgroudColor;
+        this.backgroudColor = this.scene.backgroudColor;
         this.presentationFormat = this.scene.presentationFormat;
         // this.depthDefaultFormat=this.scene.depthDefaultFormat;
         this._cache = false;
@@ -136,8 +144,9 @@ export class BaseStage extends BaseScene {
         this.root = [];
         this.enable = true;
         this.visible = true;
-        // this.depthTest = true;
-        this.transparent = false;
+        // this.depthTest = true;//20250404
+        // this.transparent = false;//20250404
+        this.commandsOfTransparent = [];
         this.deferRender = input.deferRender!.enable;
 
         if (input.enable != undefined && input.enable === false) {
@@ -149,13 +158,14 @@ export class BaseStage extends BaseScene {
         // if (input.depthTest != undefined && input.depthTest === false) {
         //     this.depthTest = input.depthTest;
         // }
-        if (input.transparent != undefined && input.transparent === true) {
-            this.transparent = input.transparent;
-        }
+        //20250404
+        // if (input.transparent != undefined && input.transparent === true) {
+        //     this.transparent = input.transparent;
+        // }
         let name = input.name;
         let addonName = "";
-        if (input.transparent)
-            addonName = "_transparent";
+        //20250404
+        // if (input.transparent)            addonName = "_transparent";
 
         this.name = input.name + addonName;
 
@@ -166,15 +176,19 @@ export class BaseStage extends BaseScene {
                 commandsColor: []
             }
         };
-        this.lightsCommands = {}
+        // this.lightsCommands = {}
 
         //这个是写死的，后期改成公共functon，需要同步更改pickup.ts getTargetID()中的内容
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */
         for (let i in coreConst.stagesOfSystem) {
             if (name == coreConst.stagesOfSystem[i]) {
+
                 this.ID = parseInt(i) * 2 + 1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
-                if (input.transparent)
-                    this.ID++;
+
+                //20250404,取消了透明stage
+                // this.ID = parseInt(i) * 2 + 1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
+                // if (input.transparent)
+                //     this.ID++;
                 break;
             }
         }
@@ -196,11 +210,18 @@ export class BaseStage extends BaseScene {
         //     });
         // }
     }
-
+    /** 
+     * 初始化camera的GBuffer，
+     * 初始化camera的renderPassDescriptor，
+     *  如果由单像素延迟渲染，则初始化camera的deferDepth
+     * 
+     * @param camera id:string
+     */
     async initCameraGBuffer(camera: string) {
         const width = this.scene.canvas.width;
         const height = this.scene.canvas.height;
         //stage初始化defer render（单像素模式）使用
+        //如果启用了单像素延迟渲染
         if (this.deferRenderDepth) {
             //深度buffer
             this.depthTextureOnly[camera] = this.device.createTexture({
@@ -209,39 +230,21 @@ export class BaseStage extends BaseScene {
                 format: this.depthDefaultFormat,            // format: 'depth24plus',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
             });
+            this.RPD_ForDeferDepth[camera] = this.createRPD_ForDeferDepth(camera);
         }
-        if (!this.transparent) {
-            this.GBuffers[camera] = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
-            this.renderPassDescriptor[camera] = await this.createRenderPassDescriptor(camera);
 
-            if (this.deferRenderDepth)
-                this.RPD_ForDeferDepth[camera] = this.createRPD_ForDeferDepth(camera);
-        }
-        //todo 
-        else {
-            // this.renderPassDescriptor[camera] = await this.createRenderPassDescriptorForTransparent();
-        }
+
+        //初始化GBuffers
+        this.GBuffers[camera] = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
+        //初始化renderPassDescriptor by camera
+        this.renderPassDescriptor[camera] = await this.createRenderPassDescriptor(camera);
+
 
     }
-    /**透明stage使用 */
-    // async createRenderPassDescriptorForTransparent(): Promise<GPURenderPassDescriptor> {
-    //     let rpd: GPURenderPassDescriptor;
 
 
-    //     return rpd;
-    // }
 
-
-    // /**为多摄像机增加GBuffers */
-    // async initGBuffersForMultiCamera(camera: string) {
-    //     const width: number = this.scene.canvas.width;
-    //     const height: number = this.scene.canvas.height;
-    //     let GBuffers = await super.initGBuffers(width, height);
-    //     this.GBuffers[camera] = GBuffers;
-    // }
-
-
-    /**延迟单像素depth通道描述 */
+    /**延迟单像素depth通道描述 RPD*/
     createRPD_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         // this.depthStencilAttachment = this.depthTexture.createView();
         const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -262,6 +265,7 @@ export class BaseStage extends BaseScene {
     getRenderPassDescriptor(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.renderPassDescriptor[camera];
     }
+    /**获取单像素延迟渲染通道 */
     getRenderPassDescriptor_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.RPD_ForDeferDepth[camera];
     }
@@ -282,6 +286,7 @@ export class BaseStage extends BaseScene {
             return scope.scene.createSystemUnifromGroupForPerShader(pipeline, /*scope.scene,*/ camera, kind);
         }
     }
+    /** camera 获取bingGroup，仅包含VS部分*/
     createSystemUnifromGroupForPerShaderForOnlyVS(pipeline: GPURenderPipeline, scope: BaseStage, camera?: string, kind?: renderKindForDCCC): GPUBindGroup {
         if (camera == undefined) {//默认摄像机
             return scope.scene.createSystemUnifromGroupForPerShaderForOnlyVS(pipeline);
@@ -357,31 +362,31 @@ export class BaseStage extends BaseScene {
     copyForTAA() { }
 
     //作废，20250123，
-    renderForLightsShadowMap() {
-        // if (Object.keys(this.lightsCommands).length) {
-        //     for (let i of this.scene.lights) {
+    // renderForLightsShadowMap() {
+    //     // if (Object.keys(this.lightsCommands).length) {
+    //     //     for (let i of this.scene.lights) {
 
-        //     }
-        // }
-        for (let oneLightID_i in this.lightsCommands) {
-            const commands = this.lightsCommands[oneLightID_i];
-            // let IdAndIndex = oneLightID_i.split("_");
-            // let id = IdAndIndex[0];
-            // let index = IdAndIndex[1];
-            if (commands.length > 0) {
-                //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
-                for (let i in commands) {
-                    // if (i == "0") {
-                    //     this.scene.lightsManagement. [Ci].depthStencilAttachment!.depthLoadOp = "clear";
-                    // }
-                    // else if (i == "1") {
-                    //     this.RPD_ForDeferDepth[Ci].depthStencilAttachment!.depthLoadOp = "load";
-                    // }
-                    commands[i].update();
-                }
-            }
-        }
-    }
+    //     //     }
+    //     // }
+    //     for (let oneLightID_i in this.lightsCommands) {
+    //         const commands = this.lightsCommands[oneLightID_i];
+    //         // let IdAndIndex = oneLightID_i.split("_");
+    //         // let id = IdAndIndex[0];
+    //         // let index = IdAndIndex[1];
+    //         if (commands.length > 0) {
+    //             //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
+    //             for (let i in commands) {
+    //                 // if (i == "0") {
+    //                 //     this.scene.lightsManagement. [Ci].depthStencilAttachment!.depthLoadOp = "clear";
+    //                 // }
+    //                 // else if (i == "1") {
+    //                 //     this.RPD_ForDeferDepth[Ci].depthStencilAttachment!.depthLoadOp = "load";
+    //                 // }
+    //                 commands[i].update();
+    //             }
+    //         }
+    //     }
+    // }
     /**
      * render延迟单像素渲染的第一遍depth
      * @param deltaTime 
@@ -454,7 +459,7 @@ export class BaseStage extends BaseScene {
         }
         this.Box3s = [];//清空包围盒
         this.camerasCommands = {};
-        this.lightsCommands = {};
+        // this.lightsCommands = {};
         for (let i of this.root) {
             if (i.enable && i.visible) {
                 let dcc = i.update(this, deltaTime, startTime, lastTime);
@@ -543,7 +548,7 @@ export class BaseStage extends BaseScene {
         // one.ID = this.root.length
 
         //由entity自己负责ID的递增
-        let tempID=this.idOfRoot;
+        let tempID = this.idOfRoot;
         this.idOfRoot = await one.init({
             stage: this,
             ID: this.idOfRoot,
@@ -552,7 +557,7 @@ export class BaseStage extends BaseScene {
             deferRenderDepth: this.deferRenderDepth,
             deferRenderColor: this.deferRenderColor
         })
-        if(tempID == this.idOfRoot) {
+        if (tempID == this.idOfRoot) {
             this.idOfRoot++;
         }
         this.root.push(one);

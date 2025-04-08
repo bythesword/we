@@ -36,6 +36,7 @@ declare global {
     }
 }
 
+/** camera 的viewport ,多cameras会用到布局，单camera默认100% */
 export interface cameraViewport {
     cameraActorName: string,
     /**x,y,width,height都是百分比，0.0--1.0 */
@@ -50,10 +51,17 @@ export interface cameraViewport {
 
 
 
-/** stage 数量 */
+/** stage 数量
+ * 
+ * all: 全部stage
+ *
+ * world: 只有world stage
+ */
 type stageStatus = "all" | "world";// | "userdefine"
 
+/**  scene中的root，特殊情况使用 */
 interface updateObjectOfRootOfScene { update: coreConst.userFN }
+
 /**
  * canvas: string, canvas id;
  * 
@@ -131,7 +139,15 @@ export interface actorGroup {
 export interface stagesCollection {
     [name: string]: stageGroup
 }
-class Scene extends BaseScene {
+/**用户自定义 update interface */
+export interface userDefineUpdateCall {
+    /**不可以使用异步方式，会影响性能 */
+    call: (scope: any) => {},
+    name: string,
+    state: boolean;
+}
+export class Scene extends BaseScene {
+    
     ////////////////////////////////////////////////////////////////////////////////
     /** scene 的初始化参数 */
     declare input: sceneInputJson;
@@ -143,21 +159,26 @@ class Scene extends BaseScene {
     MQ: any;
     /** todo */
     WW: any;
+
     ////////////////////////////////////////////////////////////////////////////////
     /** stage 收集器  */
     stages!: stagesCollection;
-    stagesOfSystem: coreConst.stageName;
-    defaultStageName: string;
     // stages!: BaseStage[];
+    /** 场景中的stage 名称列表 */
+    stagesOfSystem: coreConst.stageName;
+    /**默认stage（entity 被添加到的stage） 名称 */
+    defaultStageName: string;
+    /** stage 合并GBuffer的顺序，减少少over draw */
     stagesOrders!: coreConst.stagesOrderByRender// number[];
-    stageNameOfGroup!: coreConst.stageName;
+    // stageNameOfGroup!: coreConst.stageName;
+    /** stage 状态 ：全部stage or only world*/
     stageStatus: stageStatus;
+
     ////////////////////////////////////////////////////////////////////////////////
     /**cameras 默认摄像机 */
     defaultCamera!: BaseCamera;
     defaultCameraActor!: CameraActor;
     /**多个摄像机队列 */
-    // cameras!: BaseCamera[];
     cameraActors: CameraActor[];
     /**视场比例 */
     aspect!: number;
@@ -171,23 +192,35 @@ class Scene extends BaseScene {
      */
     multiCamera: boolean;
     multiCameraViewport: cameraViewport[];
+    /**多摄像机管理 */
     multiCameras!: MultiCameras;
+
     ////////////////////////////////////////////////////////////////////////////////
     /** actor group */
     actors: actorGroup;
     /**单独更新的在root中的更新对象 */
     root: updateObjectOfRootOfScene[];
-
     /** default actor
      *  一般的场景是CameraActor
      *  也可以是人物Actor
      */
     defaultActor!: BaseActor;
+
     ////////////////////////////////////////////////////////////////////////////////
+    //update 相关
+    /** 是scene或全局的command执行function集合，非GPU的command
+     * 目前只在onBeigin，onFinish中进行了调用，但是，未完成更加具体的外部调用
+     * 
+     * 主要是为了方便在其他地方调用，
+     * 例如：在onBeigin中，调用了camera的update，
+     * 在onFinish中，调用了GBuffer的update，
+     */
+    lastCommand: coreConst.SimpleFunction[];
     /**每帧循环用户自定义更新function */
     userDefineUpdateArray!: userDefineUpdateCall[];
     /**资源类 */
     resources!: WeResource;
+
     ////////////////////////////////////////////////////////////////////////////////
     /** 是否进行实时渲染*/
     _realTimeRender!: boolean;
@@ -196,7 +229,9 @@ class Scene extends BaseScene {
     /**获取实时渲染状态 */
     get realTimeRender() { return this._realTimeRender }
     ////////////////////////////////////////////////////////////////////////////////
+    /**控制器 */
     inputControl!: InputControl | CamreaControl;
+
     ////////////////////////////////////////////////////////////////////////////////
     /**resize Observer 标注位  */
     _reSize!: boolean;
@@ -227,38 +262,51 @@ class Scene extends BaseScene {
     GBufferPostprocess!: { [name: string]: GBufferPostProcess };
     /**GBuffer 可视化对象 */
     GBuffersVisualize!: GBuffersVisualize;
-    /**后处理管理器 */
-    postProcessManagement!: PostProcessMangement;
-    /**GBuffer&GPU 的拾取管理器 */
-    pickUp!: Pickup;
     /**GBuffer 可视化的配置interface  */
     _GBuffersVisualize: GBuffersVisualizeViewport;
     /**最终copy到surface的最后一个GPUTexture */
     sourceOfcopyToSurface: { [name: string]: GPUTexture };
 
     ////////////////////////////////////////////////////////////////////////////////
-    /** for raw */
+    /**GBuffer&GPU 的拾取管理器 */
+    pickUp!: Pickup;
+
+    ////////////////////////////////////////////////////////////////////////////////
+    //后处理相关
+    /**后处理管理器 */
+    postProcessManagement!: PostProcessMangement;
+    ////////////////////////////////////////////////////////////////////////////////
+    //surface 相关
+    /** for raw color texture ，是相当于最终的framebuffer，copy到canvas的current texture使用 */
     rawColorTexture!: GPUTexture;
-    /** for raw*/
+    /** for raw
+     * 20250405 ，未使用
+    */
     rawDepthTexture!: GPUTexture;
-    /** for raw*/
+    /** for raw
+     * 20250405 ，未使用
+    */
     rawColorAttachmentTargets!: GPUColorTargetState[];
 
-    /**最后的各个功能输出的target texture */
+    /**最后的各个功能输出的target texture ，这里是canva的   texture*/
     finalTarget!: GPUTexture;
-    /**system uniform（）的GPUBindGroupLayout */
-    layoutOfSystemUniform!: GPUBindGroupLayout;
+    // /**system uniform（）的GPUBindGroupLayout */
+    // layoutOfSystemUniform!: GPUBindGroupLayout;
+
     ////////////////////////////////////////////////////////////////////////////////
     //lights
+    /**光源管理 
+     * 管理MVP
+     * shadow map
+    */
     lightsManagement!: LightsManagement;
 
 
 
-    lastCommand: coreConst.SimpleFunction[];
-
     ////////////////////////////////////////////////////////////////////////////////
     // function
     ////////////////////////////////////////////////////////////////////////////////
+    /**完成基础参数的初始化，不包括webGPU和依赖webGPU device的function */
     constructor(input: sceneInputJson) {
         super(input);
         this.lastCommand = [];
@@ -328,7 +376,8 @@ class Scene extends BaseScene {
     }
     ////////////////////////////////////////////////////////////////////////////////
     //init
-    /**
+    /**完成 括webGPU和依赖webGPU device的function  
+     
      * start：20241020  limits: must requsted
      *  todo：最大值的设定，并同步到全局的setting中；只是设定，不做限制，
      *  todo：最大限制的TS到WGSL的write部分的同步功能
@@ -396,7 +445,8 @@ class Scene extends BaseScene {
         this.initPickup();
         this.observer();
     }
-    async createSourceOfcopyToSurface(camera: string) {
+    /**创建 textture：为每个相机 */
+    async createSourceOfcopyToSurfaceForPerCamera(camera: string) {
         return this.device.createTexture({
             label: "sourceOfcopyToSurface of " + camera,
             size: [this.canvas.width, this.canvas.height],
@@ -471,7 +521,7 @@ class Scene extends BaseScene {
     // }
 
     //GBuffer
-    /**scene 初始化GBuffer，如果是debug模式，同时初始化可视化*/
+    /**scene 初始化GBuffer:合并后的stages的GBuffer 的render attachment*/
     async initGBuffers(width: number, height: number) {
         let GBuffers = await super.initGBuffers(width, height);
         return GBuffers;
@@ -589,7 +639,7 @@ class Scene extends BaseScene {
      *  
      * uniform of system  bindGroup to  group  0 for pershader
      */
-    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, /*_scope?: BaseScene , */ camera?: string, _kind?: renderKindForDCCC): GPUBindGroup {
+    createSystemUnifromGroupForPerShader(pipeline: GPURenderPipeline, camera?: string, _kind?: renderKindForDCCC): GPUBindGroup {
         let groupDesc: GPUBindGroupDescriptor;
         const bindLayout = pipeline.getBindGroupLayout(0);
 
@@ -641,10 +691,10 @@ class Scene extends BaseScene {
     }
     /**为只有VS的bindgroup使用，即：defer render的VS
      * 
-     * @param pipeline 
-     * @param camera 
-     * @param _kind 
-     * @returns 
+     * @param pipeline GPURenderPipeline
+     * @param camera ? string
+     * @param _kind ? renderKindForDCCC
+     * @returns GPUBindGroup
      */
     createSystemUnifromGroupForPerShaderForOnlyVS(pipeline: GPURenderPipeline, /*_scope?: BaseScene , */ camera?: string, _kind?: renderKindForDCCC): GPUBindGroup {
         let groupDesc: GPUBindGroupDescriptor;
@@ -673,14 +723,12 @@ class Scene extends BaseScene {
     }
     /** shadow map 使用的light的 uniform
      * 
-     * @param pipeline 
-     * @param _scope 
-     * @param id 
-     * @param kind 
-     * @param matrixIndex 
-     * @returns 
+     * @param pipeline GPURenderPipeline 
+     * @param id string 
+     * @param matrixIndex number
+     * @returns GPUBindGroup
      */
-    createSystemUnifromGroupForPerShaderOfShadowMap(pipeline: GPURenderPipeline, /*_scope: BaseScene,*/ id: string, matrixIndex: number): GPUBindGroup {
+    createSystemUnifromGroupForPerShaderOfShadowMap(pipeline: GPURenderPipeline, id: string, matrixIndex: number): GPUBindGroup {
         let groupDesc: GPUBindGroupDescriptor;
         const bindLayout = pipeline.getBindGroupLayout(0);
         const buffer = this.lightsManagement.getOneLightsMVP(id, matrixIndex);
@@ -735,6 +783,15 @@ class Scene extends BaseScene {
     //     code = code.replaceAll("$lightNumber", lightNumber);
     //     return code;
     // }   
+
+    /**
+     * 处理VS相关的WGSL code(替换,合并)
+     * 其中包括:(通过入参renderType区分)
+     *  1,光源的shadowmap用户的VS
+     *  2,单像素 defer render的VS
+     * @param renderType renderKindForDCCC
+     * @returns string,WGSL(VS) code of system shader for defer render
+     */
     getWGSLOfSystemShaderOnlyVS(renderType: renderKindForDCCC): string {
         if (renderType == renderKindForDCCC.light) {
             let code = wgsl_main_light.toString();
@@ -745,6 +802,12 @@ class Scene extends BaseScene {
         code = code.replaceAll("$lightNumber", lightNumber);
         return code;
     }
+    /**
+     * 处理前向渲染或第二遍单像素延迟渲染的 WGSL code(替换,合并)
+     *  只包括:前向的shader(system.wgsl的代码)
+     * @param renderType renderKindForDCCC
+     * @returns string,WGSL(VS) code of system shader for defer render 
+     */
     getWGSLOfSystemShader(renderType: renderKindForDCCC): string {
         if (renderType == renderKindForDCCC.light) {
             let code = wgsl_main_light.toString();
@@ -752,8 +815,8 @@ class Scene extends BaseScene {
         }
         let lightNumber = this._maxlightNumber.toString();
         let code = wgsl_main.toString();
-        
-        code = code.replaceAll("$lightNumberShadowNumber", (this._maxlightNumber*6).toString());//这个在前面，因为这个在后面，会被替换掉
+
+        code = code.replaceAll("$lightNumberShadowNumber", (this._maxlightNumber * 6).toString());//这个在前面，因为这个在后面，会被替换掉
         code = code.replaceAll("$lightNumber", lightNumber);
         // $lightNumberShadowNumberLayer
         return code;
@@ -767,8 +830,9 @@ class Scene extends BaseScene {
         let scope = this;
         this.clock.update();
         async function perFrameRun() {
+            scope.onBegin();
             if (scope.realTimeRender) {//是否开启实时更新
-                scope.onBegin();
+
                 if (scope._reSize === false) {//是否resize中
                     //时间更新
                     scope.clock.update();
@@ -804,7 +868,7 @@ class Scene extends BaseScene {
     }
 
 
-    /**作废： 20241207,合并到run中，简化嵌套
+    /** 
      * 每帧更新入口
      * 1、更新system uniform
      * 2、更新Acter
@@ -817,7 +881,7 @@ class Scene extends BaseScene {
         // 四个中间点，稍稍延迟
         // let rays = this.defaultCamera!.getCameraRays();
         // 四个中间点，稍稍延迟
-        // this.updateBVH(rays)
+        this.updateBVH();
         await this.lightsManagement.update(deltaTime, startTime, lastTime);
         this.updateActor(deltaTime, startTime, lastTime);//camera 在此位置更新，entities需要camera的dir和视锥参数
         this.updateEntities(deltaTime, startTime, lastTime);//更新实体状态，比如水，树，草等动态的
@@ -830,10 +894,9 @@ class Scene extends BaseScene {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //render 
 
-    /**  stage 透明深度与合并
-    * 
-    * sky、UI的合并与顺序
-    * */
+     /**渲染入口
+      * 必有摄像机和光源管理者
+      */
     async oneFrameRender() {
         if (this.lightsManagement && this.defaultCameraActor) {
             // this.renderShadowMap();
@@ -844,7 +907,7 @@ class Scene extends BaseScene {
                 this.GBufferPostprocess[i].render();   //render GBuffer
             }
             //todo：20250127，在这里增加MSAA
-            
+
             this.postProcessManagement.render();  //进行后处理
             this.showMultiCamera();
             await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
@@ -859,7 +922,9 @@ class Scene extends BaseScene {
     //         }
     //     }
     // }
-    /**render perstage  */
+    /**render perstage 
+     * 逐个处理camerasCommands的队列渲染
+     */
     renderStagesCommand() {
         for (let i in this.stagesOrders) {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
@@ -930,6 +995,12 @@ class Scene extends BaseScene {
 
     ////////////////////////////////////////////////////////////////
     //update camera 
+    /**
+     * 更新camera actor的属性,最后调用updateSystemUniformBufferForCameras()更新camerasuniform
+     * @param deltaTime number
+     * @param startTime number
+     * @param lastTime number
+     */
     async updateCameraActor(deltaTime: number, startTime: number, lastTime: number) {
         if (this.cameraActors)
             for (let i in this.cameraActors) {
@@ -1040,13 +1111,19 @@ class Scene extends BaseScene {
     }
     ////////////////////////////////////////////////////////////////
     //update
-    /**todo */
-    updateBVH(_cameraValues: cameraRayValues) {
+    /**todo 
+     * 更新所有实体的BVH(如果有动态或位置变换的实体，需要更新BVH)
+     * 1、遍历所有实体，获取所有的mesh
+     * 2、根据mesh，生成BVH
+     * 3、将BVH存储到实体中
+    */
+    updateBVH( ) {
 
     }
     ////////////////////////////////////////////////////////////////
     //update
     /**todo
+     * //20250405,这个应该是没有用途了，因为entity的update已经包含了stage中
      * 实体更新 
      * 
      * //20241119
@@ -1068,12 +1145,14 @@ class Scene extends BaseScene {
     ////////////////////////////////////////////////////////////////
     //update Stages
     /**
-     * 更新stage
-     * 包括：
-     *      colorTexture、depthTextur
-     *      视锥状态是否更新
-     *      视口是否变化
+     * 更新stage的命令队列
+     * 1,更新scene的root
+     * 2,更新stage的命令队列
+     * 3,更新stage的Box3
+     *  
      * @param deltaTime 
+     * @param startTime
+     * @param lastTime
      */
     updateStagesCommand(deltaTime: number, startTime: number, lastTime: number) {
         //scene的root更新，特殊的，非baseentity的
@@ -1103,7 +1182,7 @@ class Scene extends BaseScene {
     }
     ////////////////////////////////////////////////////////////////
     //update PostProcess
-    /** 初始化 后处理    */
+    /** 后处理进行每次循环的update    */
     async updatePostProcess(deltaTime: number, startTime: number, lastTime: number) {
 
         this.postProcessManagement.update(deltaTime, startTime, lastTime);
@@ -1154,7 +1233,7 @@ class Scene extends BaseScene {
 
     }
     /**设置 GBuffer 可视化，仅设置 */
-    setGBuffersVisualize(input: GBuffersVisualizeViewport | false) { //enable: boolean, layout: string = coreConst.GBuffersVisualizeLayoutDefaultName) {
+    setGBuffersVisualize(input: GBuffersVisualizeViewport | false) { 
         if (input as boolean === false) {
             this._GBuffersVisualize = { enable: false };
         }
@@ -1199,12 +1278,13 @@ class Scene extends BaseScene {
     //input
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /** 
+     * 获取键盘输入
      * @returns KeyboardEvent https://developer.mozilla.org/zh-CN/docs/Web/API/KeyboardEvent
      */
     getKeyInput(): KeyboardEvent | undefined {
         return (this.inputControl as CamreaControl).getKeyInput();
     }
-    /** 
+    /** 获取鼠标/触点输入
      * @returns PointerEvent https://developer.mozilla.org/zh-CN/docs/Web/API/PointerEvent
      */
     getPointerInput(): PointerEvent | undefined {
@@ -1332,7 +1412,7 @@ class Scene extends BaseScene {
         }
         const id = one.id.toString();
         this.cameraActors.push(one);//增加cameraActor数组中
-        this.sourceOfcopyToSurface[id] = await this.createSourceOfcopyToSurface(id);
+        this.sourceOfcopyToSurface[id] = await this.createSourceOfcopyToSurfaceForPerCamera(id);
         this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);
         for (let i in this.stages) {
             await this.stages[i].opaque?.initCameraGBuffer(id);
@@ -1533,11 +1613,4 @@ class Scene extends BaseScene {
         return this.boundingSphere;
     }
 }
-/**用户自定义 update interface */
-export interface userDefineUpdateCall {
-    /**不可以使用异步方式，会影响性能 */
-    call: (scope: any) => {},
-    name: string,
-    state: boolean;
-}
-export { Scene };
+ 
