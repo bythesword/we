@@ -374,4 +374,4 @@ let model = new SimpleModel({
   
 })
 
-scene.add(model)
+await scene.add(model)

@@ -5,8 +5,8 @@ export abstract class Root {
     device!: GPUDevice;
     scene!: Scene;
     canvas!: HTMLCanvasElement;
-    stage!: BaseStage | undefined;//UI 可能没有不透明层
-    stageTransparent!: BaseStage | undefined;//sky 没有透明层
+    stage!: BaseStage  ;//UI 可能没有不透明层
+    // stageTransparent!: BaseStage | undefined;//sky 没有透明层
 
     _readyForGPU!: boolean;
 

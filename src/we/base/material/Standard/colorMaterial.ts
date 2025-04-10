@@ -2,9 +2,6 @@ import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
  
 export class ColorMaterial extends BaseMaterial {
-    __init() {
-        // throw new Error("Method not implemented.");
-    }
 
     constructor(input?: optionBaseMaterial) {
         super(input);
@@ -31,4 +28,10 @@ export class ColorMaterial extends BaseMaterial {
         return false;
     }
 
+    getTransparent(): boolean {
+       return this.alpha !=1.0?true:false;
+    }
+    __init() {
+        // throw new Error("Method not implemented.");
+    }
 }

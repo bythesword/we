@@ -45,6 +45,10 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
+    getTransparent(): boolean {
+        // throw new Error("Method not implemented.");
+        return this._material.getTransparent();
+    }
 
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
@@ -136,13 +140,14 @@ export class Mesh extends BaseEntity {
     // }
 
     /**
+     * 前向渲染
+     * 
      * 创建Draw Compute Commands
      * 
      * DCC push 到this.commmands.forward中 
      * @param parent 
      * @returns 完成标志位：initStateEntity.finished
-     */
-    // createDCCC(parent: BaseStage, cameraActorID: string, kind:string= renderKindForDCCC.camera): initStateEntity {
+     */ 
     createDCCC(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
@@ -372,7 +377,11 @@ export class Mesh extends BaseEntity {
     // updateDCC(_parent: any, deltaTime: number, startTime: number, lastTime: number): commandsOfEntity {
     //     return this.commmands;
     // }
-    /**DCC push 到this.commmands.depth中 */
+    /**
+     * 延迟渲染的深度渲染
+     * 
+     * DCC push 到this.commmands.depth中 
+     */
     createDCCCDeferRenderDepth(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
@@ -464,6 +473,13 @@ export class Mesh extends BaseEntity {
 
         return initStateEntity.initializing;
     }
+
+    /**
+     * 光源的shadowmap渲染
+     * 输出到 this.commandsOfShadow[camera id]中
+     * @param valuesOfDCCC  
+     * @returns initStateEntity 渲染状态
+     */
     createDCCCForShadowMap(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
         const parent: BaseStage = valuesOfDCCC.parent;
 

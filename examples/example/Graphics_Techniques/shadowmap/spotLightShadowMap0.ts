@@ -145,7 +145,7 @@ let sphereEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntity)
+await scene.add(sphereEntity)
 
 //box
 let boxGeometry = new BoxGeometry({
@@ -172,7 +172,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 let planeGeometry = new PlaneGeometry({
   width: 20,
@@ -198,7 +198,7 @@ let planeEntity = new Mesh({
   cullmode: "none"
 });
 
-scene.add(planeEntity);
+await scene.add(planeEntity);
 
 
 let lightMaterial = new ColorMaterial(
@@ -221,4 +221,4 @@ let light1Entity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(light1Entity)
+await scene.add(light1Entity)

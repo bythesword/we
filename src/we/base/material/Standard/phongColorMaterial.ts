@@ -25,7 +25,9 @@ export class PhongColorMaterial extends BaseMaterial {
     __init() {
         // throw new Error("Method not implemented.");
     }
-
+    getTransparent(): boolean {
+        return this.alpha !=1.0?true:false;
+     }
 
     declare input: optionPhongColorMaterial;
 

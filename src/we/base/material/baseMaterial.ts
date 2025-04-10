@@ -100,7 +100,17 @@ export abstract class BaseMaterial extends Root {
     abstract getCodeFS(startBinding: number): string;
     abstract destroy(): any
     abstract getUniform(startBinding: number): uniformEntries[] | false
+    /**是否为透明材质 */
+    abstract getTransparent(): boolean;
 
+    /**
+     * 材质是否已经准备好，
+     * 判断两个值，
+     * 1、this._readyForGPU：延迟GPU device相关的资源建立需要延迟。 需要其顶级使用者被加入到stage中后，才能开始。
+     * 2、this._already：材质自身的初始化是否完成。
+     * 
+     * @returns true：可以使用，false：需要等待。     
+     */
     getReady() {
         if (this._readyForGPU && this._already) {
             return true;
@@ -118,13 +128,18 @@ export abstract class BaseMaterial extends Root {
         let shaderCodeAdded = partHead_GBuffer_Add_FS + code;
         return shaderCodeAdded;
     }
+    /**
+     * 替换一些固定的代码，
+     * 1、$output：替换为输出的结构体ST_GBuffer，
+     * 2、$deferRender_Depth：替换为深度输出的代码。
+     * */
     shaderCodeProcess(code: string): string {
         let shaderCode = this.shaderCodeAdd_partOfLocationOfEntityID(code);
         shaderCode = shaderCode.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
-        if (this.deferRenderDepth) {
+        if (this.deferRenderDepth) {//如果需要深度输出，就需要替换深度输出的代码。
             shaderCode = shaderCode.replaceAll("$deferRender_Depth", defer_depth_replace_FS.toString());
         }
-        else {
+        else {//如果不需要深度输出，就需要替换空的代码。
             shaderCode = shaderCode.replaceAll("$deferRender_Depth", "");
         }
         return shaderCode;

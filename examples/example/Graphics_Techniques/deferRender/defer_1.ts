@@ -130,6 +130,6 @@ let boxEntity2 = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity1)
-scene.add(boxEntity2)
+await scene.add(boxEntity1)
+await scene.add(boxEntity2)
 

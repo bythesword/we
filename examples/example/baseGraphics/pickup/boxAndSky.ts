@@ -111,7 +111,7 @@ let sky = new Mesh(
 
   }
 );
-scene.add(sky,"Sky")
+await scene.add(sky,"Sky")
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -145,7 +145,7 @@ let woodBoxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(woodBoxEntity)
+await scene.add(woodBoxEntity)
 let spotLight= new SpotLight(
   {
     direction: [0.0, 0.0, -1.0],
@@ -188,7 +188,7 @@ let actorBoxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(actorBoxEntity,"Actor")
+await scene.add(actorBoxEntity,"Actor")
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -252,4 +252,4 @@ let colorBoxEntity = new Mesh(
 );
 colorBoxEntity.flagUpdateForPerInstance = true;//如果单独更新每个instance，这个是必须的，否则更新的是mesh的矩阵
 //增加实体到scene
-scene.add(colorBoxEntity,"DynamicEntities")
+await scene.add(colorBoxEntity,"DynamicEntities")

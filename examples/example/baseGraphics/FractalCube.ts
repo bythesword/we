@@ -79,7 +79,7 @@ let colorTexture = scene.device.createTexture({
 scene.addUserDefine({
   call: function (scope: any): any {
     // scope.copyTextureToTexture(scene.colorTexture,colorTexture,{width:scope.canvas.width, height:scope.canvas.height});
-    scope.copyTextureToTexture(scene.stages["World"].opaque!.GBuffers[scene.defaultCameraActor.id.toString()]["color"], colorTexture, { width: scope.canvas.width, height: scope.canvas.height });
+    scope.copyTextureToTexture(scene.stages["World"]!.GBuffers[scene.defaultCameraActor.id.toString()]["color"], colorTexture, { width: scope.canvas.width, height: scope.canvas.height });
     return true;
   },
   name: "copy",
@@ -155,7 +155,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 
 //运行场景

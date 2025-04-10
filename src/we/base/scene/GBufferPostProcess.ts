@@ -117,7 +117,7 @@ export class GBufferPostProcess extends SingleRender {
 
                 if (this.commands[i].name == "Actor" || this.commands[i].name == "DynamicEntities" || this.commands[i].name == "World" || this.commands[i].name == "Sky") {
                     let name = this.commands[i].name;
-                    if (Object.keys(this.parent.stages[name].opaque!.camerasCommands).length > 0)//过滤掉，没有内容的stage)
+                    if (Object.keys(this.parent.stages[name]!.camerasCommands).length > 0)//过滤掉，没有内容的stage)
                         this.commands[i].update();
                 }
                 else {
@@ -182,10 +182,10 @@ export class GBufferPostProcess extends SingleRender {
             let state_i = 0;
             for (let i of this.parent.stagesOrders) {
                 let name = this.parent.stagesOfSystem[i];
-                if (this.parent.stages[name].opaque && name != "UI"
+                if (this.parent.stages[name] && name != "UI"
                     //初始化状态，暂时没有commands，所以不进行渲染
-                    // && Object.keys(this.parent.stages[name].opaque.camerasCommands).length > 0
-                    // && Object.keys(this.parent.stages[name].opaque.camerasCommands.default.commands).length > 0
+                    // && Object.keys(this.parent.stages[name].camerasCommands).length > 0
+                    // && Object.keys(this.parent.stages[name].camerasCommands.default.commands).length > 0
                 ) {
                     // console.log(name)
                     let uniformsOther: unifromGroup[] = this.getTexturesOfUniformFromStageForOther(name);
@@ -300,7 +300,7 @@ export class GBufferPostProcess extends SingleRender {
             for (let i in this.GBuffers) {
                 let copyToColorTexture = new CopyCommandT2T(
                     {
-                        A: this.parent.stages["World"].opaque!.GBuffers[this.camera][i],
+                        A: this.parent.stages["World"]!.GBuffers[this.camera][i],
                         B: this.GBuffers[i],
                         size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
                         device: this.device
@@ -568,12 +568,12 @@ export class GBufferPostProcess extends SingleRender {
                 {
                     label: `stage:${stageName} GBuffer Render Other : entityID `,
                     binding: 0,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["entityID"].createView()
+                    resource: this.parent.stages[stageName]!.GBuffers[this.camera]["entityID"].createView()
                 },
                 {
                     label: `stage:${stageName} GBuffer Render Other : color `,
                     binding: 1,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["color"].createView()
+                    resource: this.parent.stages[stageName]!.GBuffers[this.camera]["color"].createView()
                 }
             ]
         };
@@ -594,22 +594,22 @@ export class GBufferPostProcess extends SingleRender {
                 {
                     label: `stage:${stageName} GBuffer Render Other : entityID `,
                     binding: 0,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["entityID"].createView()
+                    resource: this.parent.stages[stageName]!.GBuffers[this.camera]["entityID"].createView()
                 },
                 {
                     label: `stage:${stageName} GBuffer Render Other : color `,
                     binding: 1,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["color"].createView()
+                    resource: this.parent.stages[stageName]!.GBuffers[this.camera]["color"].createView()
                 },
                 {
                     label: `stage:${stageName} GBuffer Render Other : normal `,
                     binding: 2,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["normal"].createView()
+                    resource: this.parent.stages[stageName]!.GBuffers[this.camera]["normal"].createView()
                 },
                 {
                     label: `stage:${stageName} GBuffer Render Other : uv `,
                     binding: 3,
-                    resource: this.parent.stages[stageName].opaque!.GBuffers[this.camera]["uv"].createView()
+                    resource: this.parent.stages[stageName]!.GBuffers[this.camera]["uv"].createView()
                 }
             ]
         };
@@ -633,8 +633,8 @@ export class GBufferPostProcess extends SingleRender {
         for (let i in this.parent.stagesOrders) {
             const perList = this.parent.stagesOrders[i];//number，stagesOfSystem的数组角标
             const name = this.parent.stagesOfSystem[perList];
-            if (this.parent.stages[name].opaque) {
-                let stage = this.parent.stages[name].opaque!;
+            if (this.parent.stages[name]) {
+                let stage = this.parent.stages[name]!;
                 depths.push(stage.GBuffers[this.camera]["depth"]);
                 IDs.push(stage.GBuffers[this.camera]["entityID"]);
                 colors.push(stage.GBuffers[this.camera]["color"]);

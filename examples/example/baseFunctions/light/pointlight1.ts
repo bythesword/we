@@ -105,7 +105,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 let light1: PointLight = new PointLight(
   {

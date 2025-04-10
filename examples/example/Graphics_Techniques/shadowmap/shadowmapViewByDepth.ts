@@ -128,7 +128,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 let sphereGeometry = new SphereGeometry({
   radius: 0.5,
@@ -151,7 +151,7 @@ let sphereEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntity)
+await scene.add(sphereEntity)
 
 let planeGeometry = new PlaneGeometry({
   width: 10,
@@ -177,7 +177,7 @@ let planeEntity = new Mesh({
   cullmode: "none"
 });
 
-scene.add(planeEntity);
+await scene.add(planeEntity);
 
 
 let dirLight: DirectionalLight = new DirectionalLight(

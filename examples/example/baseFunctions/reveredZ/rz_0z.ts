@@ -87,7 +87,7 @@ let redEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(redEntity)
+await scene.add(redEntity)
 
 
 let greenMaterial = new ColorMaterial({ color: { red: 0, green: 1, blue: 0, alpha: 1 } });
@@ -102,7 +102,7 @@ let greenEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(greenEntity)
+await scene.add(greenEntity)
 
 //运行场景
 scene.run()

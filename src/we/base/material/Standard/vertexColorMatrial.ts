@@ -13,9 +13,7 @@ export interface optionVertexColorMaterial extends optionBaseMaterial {
  * 展示用材质
  */
 export class VertexColorMaterial extends BaseMaterial {
-    __init() {
-        // throw new Error("Method not implemented.");
-    }
+
     declare input: optionVertexColorMaterial;
     _type: String;
     sampler!: GPUSampler;
@@ -29,7 +27,12 @@ export class VertexColorMaterial extends BaseMaterial {
 
         this._already = true;
     }
-
+    __init() {
+        // throw new Error("Method not implemented.");
+    }
+    getTransparent(): boolean {
+        return this.alpha !=1.0?true:false;
+     }
     getCodeFS(_startBinding:number) {
         if (this.input.code) {
             return this.input.code;

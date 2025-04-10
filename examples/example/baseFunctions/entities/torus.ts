@@ -94,5 +94,5 @@ let Entity1 = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(Entity1)
+await scene.add(Entity1)
 

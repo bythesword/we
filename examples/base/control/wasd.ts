@@ -103,7 +103,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 
 //运行场景

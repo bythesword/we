@@ -108,7 +108,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 
 
@@ -136,7 +136,7 @@ let planeEntity = new Mesh({
   cullmode: "none"
 });
 
-scene.add(planeEntity);
+await scene.add(planeEntity);
 let dirLight: DirectionalLight = new DirectionalLight(
   {
     intensity: .52,

@@ -96,7 +96,7 @@ let sky = new Mesh(
 
   }
 );
-scene.add(sky,"Sky")
+await scene.add(sky,"Sky")
 
 
 ////enities 初始化
@@ -129,7 +129,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 let spotLight= new SpotLight(
   {
     direction: [0.0, 0.0, -1.0],

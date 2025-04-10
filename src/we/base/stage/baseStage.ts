@@ -114,8 +114,10 @@ export class BaseStage extends BaseScene {
     camerasCommands: {
         [name: string]: cameraCommands
     }
-    /** 透明渲染队列：只需要一个 */
-    commandsOfTransparent: commmandType[];
+    /** 透明渲染队列 */
+    camerasCommandsOfTransparent:{
+        [name: string]: cameraCommands
+    };
 
     //作废，使用lightsManagement 管理
     /**
@@ -146,7 +148,7 @@ export class BaseStage extends BaseScene {
         this.visible = true;
         // this.depthTest = true;//20250404
         // this.transparent = false;//20250404
-        this.commandsOfTransparent = [];
+        this.camerasCommandsOfTransparent = {};
         this.deferRender = input.deferRender!.enable;
 
         if (input.enable != undefined && input.enable === false) {
@@ -539,7 +541,7 @@ export class BaseStage extends BaseScene {
      * 
      * @param one :BaseEntity
      */
-    async add(one: BaseEntity) {
+    async add(one: BaseEntity): Promise<number> {
         // one.stage = this;
         // one.stageTransparent = this.scene.stages[this.name].transparent;
         // one.stageID = this.ID;
@@ -561,6 +563,7 @@ export class BaseStage extends BaseScene {
             this.idOfRoot++;
         }
         this.root.push(one);
+        return one.ID;
     }
     get cache() {
         return this._cache;

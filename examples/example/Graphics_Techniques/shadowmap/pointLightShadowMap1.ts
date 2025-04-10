@@ -112,7 +112,7 @@ let sphereEntityNegZ = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntityNegZ)
+await scene.add(sphereEntityNegZ)
 
 let sphereEntityNegY = new Mesh(
   {
@@ -123,7 +123,7 @@ let sphereEntityNegY = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntityNegY)
+await scene.add(sphereEntityNegY)
 
 let sphereEntityNegX = new Mesh(
   {
@@ -134,7 +134,7 @@ let sphereEntityNegX = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntityNegX)
+await scene.add(sphereEntityNegX)
 let sphereEntityPosY = new Mesh(
   {
     geometry: boxGeometry,
@@ -144,7 +144,7 @@ let sphereEntityPosY = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntityPosY)
+await scene.add(sphereEntityPosY)
 
 let sphereEntityPosX = new Mesh(
   {
@@ -156,7 +156,7 @@ let sphereEntityPosX = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntityPosX)
+await scene.add(sphereEntityPosX)
 
 let sphereEntityPosZ = new Mesh(
   {
@@ -168,7 +168,7 @@ let sphereEntityPosZ = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(sphereEntityPosZ)
+await scene.add(sphereEntityPosZ)
 
 
 ////////////////////////////////////////////////////
@@ -217,7 +217,7 @@ let light1Entity = new Mesh(
 );
 console.log(light1Entity);
 //增加实体到scene
-scene.add(light1Entity)
+await scene.add(light1Entity)
 
 /////////////////////////////////////////////////////////
 // 6个plane
@@ -241,7 +241,7 @@ scene.add(light1Entity)
 //     cullmode: "front"
 //   }
 // );
-// scene.add(skyEntity)
+// await scene.add(skyEntity)
 let planeGeometry = new PlaneGeometry({
   width: 10,
   height: 10
@@ -265,7 +265,7 @@ let bottomPlane = new Mesh({
   wireFrame: false,
   cullmode: "back"
 });
-scene.add(bottomPlane);
+await scene.add(bottomPlane);
 
 let topPlane = new Mesh({
   geometry: planeGeometry,
@@ -278,7 +278,7 @@ let topPlane = new Mesh({
   wireFrame: false,
   cullmode: "back"
 });
-scene.add(topPlane);
+await scene.add(topPlane);
 
 let backPlane = new Mesh({
   geometry: planeGeometry,
@@ -291,7 +291,7 @@ let backPlane = new Mesh({
   wireFrame: false,
   cullmode: "back"
 });
-scene.add(backPlane);
+await scene.add(backPlane);
 
 let frontPlane = new Mesh({
   geometry: planeGeometry,
@@ -304,7 +304,7 @@ let frontPlane = new Mesh({
   wireFrame: false,
   cullmode: "back"
 });
-scene.add(frontPlane);
+await scene.add(frontPlane);
 
 let leftPlane = new Mesh({
   geometry: planeGeometry,
@@ -317,7 +317,7 @@ let leftPlane = new Mesh({
   wireFrame: false,
   cullmode: "back"
 });
-scene.add(leftPlane);
+await scene.add(leftPlane);
 
 let rightPlane = new Mesh({
   geometry: planeGeometry,
@@ -330,7 +330,7 @@ let rightPlane = new Mesh({
   wireFrame: false,
   cullmode: "back"
 });
-scene.add(rightPlane);
+await scene.add(rightPlane);
 
 /////////////////////////////////////////////////////////
 // depth buffer 可视化

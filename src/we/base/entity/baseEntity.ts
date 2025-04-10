@@ -11,6 +11,7 @@ import { commmandType } from "../scene/baseScene";
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
 import { renderKindForDCCC } from "../const/coreConst";
+import { BaseGeometry } from "../geometry/baseGeometry";
 
 export interface renderCommands {
     forward: commmandType[],
@@ -170,8 +171,10 @@ export interface optionBaseEntity extends coreConst.optionUpdate {
     },
     /**是否每帧更新Matrix，默认=false */
     updateMatrixPerFrame?: boolean,
-    /** side,显示的面，默认:front */
-    side?: "front" | "back" | "all",
+    // /** side,显示的面，默认:front */
+    // side?: "front" | "back" | "all",
+    /**剔除面 */
+    cullmode?: GPUCullMode,
     /**
      * 实体是否为动态，boolean
      * 默认=false
@@ -227,7 +230,11 @@ export abstract class BaseEntity extends Root {
     /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
     _entityIdSizeForWGSL = 4;//以u32（f32）计算
 
-
+    /**顶点信息 */ 
+    _vertexAndMaterialGroup!: entityContentGroup;
+    // _vertexes!: geometryBufferOfEntity;
+    // _material!: BaseMaterial;
+    // _cullMode!: GPUCullMode;
     ///////////////////////////////////////////////////////////////////
     //层级、LOD、实例化等
 
@@ -313,12 +320,26 @@ export abstract class BaseEntity extends Root {
 
     //////////////////////////////////////////////////////////////////
     // commands输出 
+    /**前向渲染，根据this.transparent，判断是否为透明entity
+     * 
+     * 不透明有：comamnds.depth,comamnds.color
+     * 
+     * 透明只有：comamnds.color
+     */
     commmands: commandsOfEntity;//commmandType[];
-    commandsOfTransparent: commandsOfEntity;//commmandType[];
-    commandsOfShadow: commandsOfShadowOfEntity;
-    commandsOfShadowOfTransparent: commandsOfShadowOfEntity;
+    /**透明渲染 */
+    // commandsOfTransparent: commandsOfEntity;//commmandType[];
 
-    _vertexAndMaterialGroup!: entityContentGroup;
+    /**
+     * shadowmap 渲染
+     * 根据this.transparent，判断是否为透明entity
+     * 不透明只需要一步shadowmap的渲染(lightsmanagement管理)，
+     * 透明在第二步进行shadowmap的渲染，在完成第一步的shadowmap渲染后(所有不透明)，lightsmanagement进行第二步的shadowmap渲染
+     */
+    commandsOfShadow: commandsOfShadowOfEntity;
+    // commandsOfShadowOfTransparent: commandsOfShadowOfEntity;
+
+    
 
     // /**局部的，按需更新 */
     // matrixInstances!: Mat4[];
@@ -347,7 +368,7 @@ export abstract class BaseEntity extends Root {
         this._init = initStateEntity.constructing;
         this.flagUpdateForPerInstance = false;
         this._output = true;
-        this.transparent = false;
+        
         this.input = input;
         this._dynamicPostion = false;
         this._dynamicMesh = false;
@@ -366,9 +387,9 @@ export abstract class BaseEntity extends Root {
         this._LOD = [];
         this._destroy = false;
         this.commmands = {};
-        this.commandsOfTransparent = {};
+        // this.commandsOfTransparent = {};
         this.commandsOfShadow = {};
-        this.commandsOfShadowOfTransparent = {};
+        // this.commandsOfShadowOfTransparent = {};
         
         this._vertexAndMaterialGroup = {};
         this.enable = true;
@@ -420,19 +441,20 @@ export abstract class BaseEntity extends Root {
         //     depth: [],
         //     color: []
         // };
-
+        
     }
+    abstract getTransparent(): boolean;
     /**
      * 三段式初始化的第二步：init
      * @param values
      */
     async init(values: optionBaseEntityStep2):Promise<number> {
+        this.transparent = this.getTransparent();
         this.stage = values.stage;
         this.stageID = values.stage.ID;
         this.reversedZ = values.reversedZ;
         this.deferRenderDepth = values.deferRenderDepth;
-        this.deferRenderColor = values.deferRenderColor;
-        this.stageTransparent = values.stage.scene.stages[values.stage.name].transparent;
+        this.deferRenderColor = values.deferRenderColor; 
         await this.setRootENV(values.stage.scene);//为获取在scene中注册的resource
 
         //如果是OBJ等，需要递归设置ID，或采用一个相同的ID，这个需要在OBJ、GLTF、FBX等中进行开发；基础的entity，不考虑这种情况

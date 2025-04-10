@@ -246,8 +246,8 @@ red.update();
 scene.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "load"
 blue.update()
 
-// scene.stages["World"].opaque!.command.push(DC);
-// scene.stages["World"].opaque!.command.push(DC1);
+// scene.stages["World"]!.command.push(DC);
+// scene.stages["World"]!.command.push(DC1);
 // scene.run()
 
 scene.postProcess();

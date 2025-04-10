@@ -146,7 +146,7 @@ let boxEntity = new Mesh(
 );
 boxEntity.flagUpdateForPerInstance = true;//如果单独更新每个instance，这个是必须的，否则更新的是mesh的矩阵
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 let spotLight= new SpotLight(
   {

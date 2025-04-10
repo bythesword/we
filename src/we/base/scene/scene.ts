@@ -137,7 +137,8 @@ export interface actorGroup {
 }
 /** stage 收集器/集合 */
 export interface stagesCollection {
-    [name: string]: stageGroup
+    [name: string]: BaseStage
+    // [name: string]: stageGroup
 }
 /**用户自定义 update interface */
 export interface userDefineUpdateCall {
@@ -147,7 +148,7 @@ export interface userDefineUpdateCall {
     state: boolean;
 }
 export class Scene extends BaseScene {
-    
+
     ////////////////////////////////////////////////////////////////////////////////
     /** scene 的初始化参数 */
     declare input: sceneInputJson;
@@ -571,7 +572,7 @@ export class Scene extends BaseScene {
         for (let i of this.stagesOrders) {
             let name = this.stagesOfSystem[i];
             if (name != "UI" && name != "Sky") {
-                let stageOpaque = new BaseStage({
+                let stage = new BaseStage({
                     name,
                     scene: this,
                     deferRender: {
@@ -579,23 +580,11 @@ export class Scene extends BaseScene {
                         type: this.deferRenderDepth ? "depth" : "color"
                     }
                 });
-                await stageOpaque.init();
-                let stageTransparent = new BaseStage({
-                    name, transparent: true,
-                    scene: this,
-                    deferRender: {
-                        enable: this.deferRender,
-                        type: this.deferRenderDepth ? "depth" : "color"
-                    }
-                });
-                await stageTransparent.init();
-                this.stages[name] = {
-                    opaque: stageOpaque,
-                    transparent: stageTransparent,
-                };
+                await stage.init();
+                this.stages[name] = stage;
             }
             else if (name == "Sky") {
-                let stageOpaque = new BaseStage({
+                let stage = new BaseStage({
                     name,
                     scene: this,
                     deferRender: {
@@ -603,14 +592,11 @@ export class Scene extends BaseScene {
                         type: this.deferRenderDepth ? "depth" : "color"
                     }
                 });
-                await stageOpaque.init();
-                this.stages[name] = {
-                    opaque: stageOpaque,
-                    transparent: undefined,
-                };
+                await stage.init();
+                this.stages[name] = stage;
             }
             else if (name == "UI") {
-                let stageTransparent = new BaseStage({
+                let stage = new BaseStage({
                     name,
                     scene: this,
                     deferRender: {
@@ -618,11 +604,8 @@ export class Scene extends BaseScene {
                         type: this.deferRenderDepth ? "depth" : "color"
                     }
                 });
-                await stageTransparent.init();
-                this.stages[name] = {
-                    opaque: undefined,
-                    transparent: stageTransparent,
-                };
+                await stage.init();
+                this.stages[name] = stage;
             }
         }
     }
@@ -894,9 +877,9 @@ export class Scene extends BaseScene {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //render 
 
-     /**渲染入口
-      * 必有摄像机和光源管理者
-      */
+    /**渲染入口
+     * 必有摄像机和光源管理者
+     */
     async oneFrameRender() {
         if (this.lightsManagement && this.defaultCameraActor) {
             // this.renderShadowMap();
@@ -913,12 +896,16 @@ export class Scene extends BaseScene {
             await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
         }
     }
+    renderTransparent() {
+                
+
+    }
     // renderShadowMap() {
     //     for (let i in this.stagesOrders) {
     //         const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
     //         const name = this.stagesOfSystem[perList];
-    //         if (this.stages[name].opaque) {
-    //             this.stages[name].opaque!.renderForLightsShadowMap();
+    //         if (this.stages[name]) {
+    //             this.stages[name]!.renderForLightsShadowMap();
     //         }
     //     }
     // }
@@ -930,8 +917,8 @@ export class Scene extends BaseScene {
             const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
             const name = this.stagesOfSystem[perList];
             {//每个stageGroup进行update，包含透明和不透明两个stage 
-                if (this.stages[name].opaque) {
-                    this.stages[name].opaque!.render();
+                if (this.stages[name]) {
+                    this.stages[name]!.render();
                 }
                 //20241212:透明render移动到GBufferPostprocess中进行油画法
                 // if (this.stages[name].transparent) {
@@ -971,7 +958,7 @@ export class Scene extends BaseScene {
         //     }
         // }
         //基础测试World
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers[this.defaultCameraActor.id]["color"], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        // this.copyTextureToTexture(this.stages["World"]!!.GBuffers[this.defaultCameraActor.id]["color"], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
         // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
     }
     /**每帧渲染的最后步骤 */
@@ -980,10 +967,10 @@ export class Scene extends BaseScene {
         // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
 
         //直接测试：world -->scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+        // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
 
         //中转测试：world-->  scene
-        // this.copyTextureToTexture(this.stages["World"]!.opaque!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
+        // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
         // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
     }
     /** 20241229 ,未使用
@@ -1117,7 +1104,7 @@ export class Scene extends BaseScene {
      * 2、根据mesh，生成BVH
      * 3、将BVH存储到实体中
     */
-    updateBVH( ) {
+    updateBVH() {
 
     }
     ////////////////////////////////////////////////////////////////
@@ -1169,9 +1156,9 @@ export class Scene extends BaseScene {
             // const name = coreConst.stagesOfSystem[perList];
 
             {//每个stageGroup进行update，包含透明和不透明两个stage 
-                if (this.stages[name].opaque) {
-                    this.stages[name].opaque!.update(deltaTime, startTime, lastTime);
-                    this.Box3s.push(this.stages[name].opaque.generateBox());
+                if (this.stages[name]) {
+                    this.stages[name]!.update(deltaTime, startTime, lastTime);
+                    this.Box3s.push(this.stages[name].generateBox());
                 }
                 //20241212:透明render移动到GBufferPostprocess中进行油画法
                 // if (this.stages[name].transparent) {
@@ -1187,7 +1174,7 @@ export class Scene extends BaseScene {
 
         this.postProcessManagement.update(deltaTime, startTime, lastTime);
 
-        //  this.copyTextureToTexture(this.stages["World"]!.opaque!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
+        //  this.copyTextureToTexture(this.stages["World"]!!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
     }
     ////////////////////////////////////////////////////////////////
     //output :BuffersVisualize
@@ -1233,7 +1220,7 @@ export class Scene extends BaseScene {
 
     }
     /**设置 GBuffer 可视化，仅设置 */
-    setGBuffersVisualize(input: GBuffersVisualizeViewport | false) { 
+    setGBuffersVisualize(input: GBuffersVisualizeViewport | false) {
         if (input as boolean === false) {
             this._GBuffersVisualize = { enable: false };
         }
@@ -1380,19 +1367,17 @@ export class Scene extends BaseScene {
      * @param stage     默认=World
      * @param transparent  默认=false
      */
-    addToStage(entity: BaseEntity, stage: string = this.defaultStageName, transparent: boolean = false) {
-        if (entity.transparent === false || transparent === false) {
-            if (this.stages[stage].opaque)
-                this.stages[stage].opaque!.add(entity);
-            else
-                console.log(stage, "不透明，不存在");
+    async addToStage(entity: BaseEntity, stage: string = this.defaultStageName, transparent: boolean = false): Promise<number> {
+
+        if (this.stages[stage]) {
+            let id = await this.stages[stage]!.add(entity);
+            return id;
         }
         else {
-            if (this.stages[stage].transparent)
-                this.stages[stage].transparent!.add(entity);
-            else
-                console.log(stage, "透明，不存在");
+            console.log(stage, "stage，不存在");
+            return 0;
         }
+
     }
 
     setDefaultCamera(camera: BaseCamera) {
@@ -1415,7 +1400,7 @@ export class Scene extends BaseScene {
         this.sourceOfcopyToSurface[id] = await this.createSourceOfcopyToSurfaceForPerCamera(id);
         this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);
         for (let i in this.stages) {
-            await this.stages[i].opaque?.initCameraGBuffer(id);
+            await this.stages[i]?.initCameraGBuffer(id);
         }
         await this.initGBuffersPostProcess(id);
         if (this.multiCamera)//若多camera，check是多
@@ -1494,15 +1479,15 @@ export class Scene extends BaseScene {
             const name = coreConst.stagesOfSystem[perList];
 
             {//每个stageGroup进行update，包含透明和不透明两个stage 
-                if (scope.stages[name].opaque) {
+                if (scope.stages[name]) {
                     const stage = new Promise(async (resolve) => {
-                        await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
+                        await resolve(scope.stages[name]!.reInitGBuffers(width, height))
                     });
                     allStage.push(stage);
                 }
                 if (scope.stages[name].transparent) {
                     const stage = new Promise(async (resolve) => {
-                        await resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
+                        await resolve(scope.stages[name]!.reInitGBuffers(width, height))
                     });
                     allStage.push(stage);
                 }
@@ -1565,15 +1550,15 @@ export class Scene extends BaseScene {
                 //     const name = coreConst.stagesOfSystem[perList];
 
                 //     {//每个stageGroup进行update，包含透明和不透明两个stage 
-                //         if (scope.stages[name].opaque) {
+                //         if (scope.stages[name]) {
                 //             const stage = new Promise((resolve, reject) => {
-                //                 resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
+                //                 resolve(scope.stages[name]!.reInitGBuffers(width, height))
                 //             });
                 //             allStage.push(stage);
                 //         }
                 //         if (scope.stages[name].transparent) {
                 //             const stage = new Promise((resolve, reject) => {
-                //                 resolve(scope.stages[name].opaque!.reInitGBuffers(width, height))
+                //                 resolve(scope.stages[name]!.reInitGBuffers(width, height))
                 //             });
                 //             allStage.push(stage);
                 //         }
@@ -1613,4 +1598,4 @@ export class Scene extends BaseScene {
         return this.boundingSphere;
     }
 }
- 
+

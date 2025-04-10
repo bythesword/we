@@ -229,8 +229,8 @@ DC.update();
 (<GPURenderPassColorAttachment[]>scene.renderPassDescriptor.colorAttachments)[0].loadOp = "load";
 DC1.update()
 
-// scene.stages["World"].opaque!.command.push(DC);
-// scene.stages["World"].opaque!.command.push(DC1);
+// scene.stages["World"]!.command.push(DC);
+// scene.stages["World"]!.command.push(DC1);
 // scene.run()
 
 scene.postProcess();

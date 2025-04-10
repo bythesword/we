@@ -80,7 +80,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-scene.add(boxEntity)
+await scene.add(boxEntity)
 
 
 let blur3x3 = new Blur3x3();

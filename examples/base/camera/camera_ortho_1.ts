@@ -198,6 +198,6 @@ window.DC = DC;
  * //20240905这里暂时不能用了，应用stage的update清空了command[],,这个参见red box吧
  * 20240906,完善了stage的cache，可以正常工作了
  */
-scene.stages["World"].opaque!.command.push(DC);
-scene.stages["World"].opaque!.cache = true;
+scene.stages["World"]!.command.push(DC);
+scene.stages["World"]!.cache = true;
 scene.run()
