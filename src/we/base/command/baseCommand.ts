@@ -1,168 +1,8 @@
 // import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3,TypedArray } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
+import { baseOptionOfCommand, localUniformGroups, uniformBufferAll, uniformBufferPart, unifromGroup } from './commandDefine';
 // declare type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array;
 // import * as baseDefine from "../scene/base"
-
-
-///////////////////////////////////////////////////////////////////
-// uniform base interface 
-/**
- *   uniformBufferPartWithSystem 是基础的uniform|storage的buffer创建的格式
- * @buffer :TypedArray,通过()=>{return TypedArray }返回TypedArray
- * 
- * @type:buffer 类型，buffer 类型，默认：uniform  
- *     
- * @size :是TypedArray的大小，以byte计算;这个size是需要数据对齐的
- * 
- * @update :是否每帧更新，默认：true 
- */
-export interface uniformBufferPartBase {
-    /**为创建GPUBuffer使用 */
-    label?: string,
-    /** buffer 类型,uniform|storage，默认：uniform */
-    type?: "uniform" | "storage",//|"sampler"|"textureView"|"ExternalTexture",
-    usage?: GPUBufferUsageFlags,//exp:GPUBufferUsage.MAP_READ
-    /**TypedArray的大小，以byte计算 ;这个size是需要数据对齐的*/
-    size: number,//
-    /**TypedArray,通过()=>{return TypedArray }返回TypedArray */
-    get: () => TypedArray,
-    /** 
-     * 是否每帧更新，默认：true 
-     * 
-     * 至少更新一次
-    */
-    update?: boolean,
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-// for RAW uniform interface
-/**
- *  * uniformPart 是RAW模式的格式
- *   是buffer使用的更新，会每帧更新
- * @binding
-    * number ,WGSL中的@binding(x)的位置，不能重复;
-    * maxUniformBuffersPerShaderStage 在webGPU的最小最大值：12（map模式）,连续模式：1000
-    *  
- */
-export interface uniformBufferPart extends uniformBufferPartBase {
-    /**
-     * WGSL中的@binding(x)的位置，不能重复;
-     * 
-     * 必须是JS中与WGSL中的一定要对应，否则报错
-     */
-    binding: number,
-
-}
-/**动态返回 uniform的GPUBindingResource
- * 
- * 用于GPUBindingResource资源可以被更新的情况（更新可能是新的texture，或者texture被destroy并重新创建）
- * 
- * 比如：textture的大小变化了等
- */
-export interface dynGPUBindGroupEntry {
-    /**
-     * A unique identifier for a resource binding within the {@link GPUBindGroup}, corresponding to a
-     * {@link GPUBindGroupLayoutEntry#binding|GPUBindGroupLayoutEntry.binding} and a @binding
-     * attribute in the {@link GPUShaderModule}.
-     */
-    binding: GPUIndex32;
-    dynGPUBindGroupEntry: true,
-    /**是否更新bindGRoup内容以及重建bindGroup （需要在submit（）中updateUniformBuffer（）进行判断）
-     * 1、如果bind的资源有更新，则=true，需要更新bindGroup
-     * 2、没有更新，=false
-    */
-    update: boolean,
-    /**
-     * The resource to bind, which may be a {@link GPUSampler}, {@link GPUTextureView},
-     * {@link GPUExternalTexture}, or {@link GPUBufferBinding}.
-     */
-    resource: () => GPUBindingResource;
-}
-
-export interface storageBufferPart extends uniformBufferPart {
-    /** buffer 类型,storage */
-    type: "storage",
-    // map?: TypedArray,
-    /** 
-     * 是否每帧更新，
-    */
-    update: boolean,
-}
-/**  unifrom 入口的数组格式  */
-export type uniformEntries = GPUBindGroupEntry | uniformBufferPart | storageBufferPart | dynGPUBindGroupEntry;
-/**
- * RAW模式使用，自定义layout绑定组，自定义binding编号，自定义shader code
- * unifromGroup  只进行绑定，不负责更新，更新在WObject中进行
- * @layout 
-    * number
-    * 在一个group中绑定的位置，在一个group中，不能重复;
-    * 这里的group的id需要与后面的encoder的pipeline中bindgroup的id对应
-    * maxBindGroups在webGPU的最小最大值：4
-    * 从1--3（最小的最大maxBindGroups），有多少个需要看系统实现（20240705 dawn=4,wgpu=8）
-    * 0：被系统占用，剩余1--3
- * @resource 
-    *GPUBindGroupEntry[] | uniformPart[]
-     * GPUSampler or GPUTextureView or GPUBufferBinding or GPUExternalTexture) 的四种资源之一
-     * 可以使用()=>{return GPUBindingResource}的形式返回
-     * GPUBufferBinding的更新在WObject中进行，由上一级进行维护     
- * @entries 
-    * 以最小最大值表述
-    * uniform :
-        * uniform(maxUniformBuffersPerShaderStage) :8
-        * texture (maxSampledTexturesPerShaderStage):16
-        * sampler (maxSamplersPerShaderStage):16
-    * storage 
-        * buffer(maxStorageBuffersPerShaderStage):8(Chrome：10,firefox:64)
-        * texture(maxStorageTexturesPerShaderStage):4(Chrome:8,firefox:64)
-    *          
- */
-export interface unifromGroup {
-    /** RAW模式下，layout是必须的 */
-    layout: number,
-    /**
-     * type，两种类型
-     * 
-     * 一个是webGPU的标准的，
-     * 
-     * 一个是架构的自定义的uniform|storage的TypeArray的interface
-     */
-    entries: uniformEntries[],
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-//for system uniform interface 
-/**
- * 类似GPUBindGroupEntry，binding：需要system进行适配
- */
-interface uniformBindingResourceWithSystem {
-    name: string,
-    wgslType: string,
-    resource: GPUBindingResource;
-}
-
-/**
- * 定义 uniform 与system 集成的格式
- *  name：必须，对应与bindGroup的slot名称
- *  wgslType:必须，可以是WGSL的固有类型（f32,vec3f,....）,也可以是定义的结构体。此部分的正确性需要保证string与wgsl中的对应，并正确。
- */
-export interface uniformBufferPartWithSystem extends uniformBufferPartBase {
-    name: string,
-    wgslType: string,
-}
-export interface storageBufferPartWithSystem extends uniformBufferPartWithSystem {
-    /** buffer 类型,storage */
-    type: "storage",
-    /**      * 是否每帧更新，    */
-    update: boolean,
-    /** storage 的操作
-     * var<storage, read_write> //不能在VS中，所以默认是read，如果需要read_write，则写这个属性
-     *  var<storage, read>
-    */
-    wgslStorageReadWrite?: string,
-}
-export type uniformEntriesWithSystem = uniformBufferPartWithSystem | uniformBindingResourceWithSystem;
-
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -172,77 +12,7 @@ export type uniformEntriesWithSystem = uniformBufferPartWithSystem | uniformBind
 // export interface unifromGroupWithSystem {
 //     entries: uniformEntriesWithSystem[],
 // }
-/** 初始化参数 
- * 
- * scene:必须
- * 
- * camera?: any,
- * 
-*/
-export interface baseOptionOfCommand {
-    /** scene object ，必须 */
-    parent: any,
-    name?: string,
 
-    //作废，camera和DC没有关系，20240825
-    // /** todo ,摄像机对象或default,也可以是光源的，比如shadow map */
-    // camera?: any,
-
-    /** label */
-    label?: string,
-
-    layout?: GPUPipelineLayout | "auto",
-
-    /**数组会按照1--3进行重组，生成GPUBindGroup */
-    //20241021 增加并注释掉
-    uniforms: unifromGroup[],// | uniformEntriesWithSystem[],//20241021,还是12限制的问题，结构体同样受限，将12个bindgroup扩展为12大盒子
-
-    /**是否使用system 的group 0 */
-    rawUniform?: boolean,
-
-
-    /** callback function 
-     * 
-     * 正确性由上级程序保障
-     * 
-     *一、 如果是map操作，需要copy和unmap两步：
-     * 
-     * 1、  await Promise.all([
-            workgroupReadBuffer.mapAsync(GPUMapMode.READ),
-            localReadBuffer.mapAsync(GPUMapMode.READ),
-            globalReadBuffer.mapAsync(GPUMapMode.READ),
-        ]);
-
-      2、  workgroupReadBuffer.unmap();
-     * 
-     */
-    afterUpdate?: (scope: any) => Promise<any>,
-
-}
-////////////////////////////////////////////////////////////
-// class attribute section interface 
-/**
- * 单个layout的uniformBuffer的GPUBuffer的收集器 
- * 
- * 这相当于@group(x) @binding(y) 的y
-*/
-export type uniformBuffer = {
-    [n in number]: GPUBuffer
-}
-/** 
- * 所有layout的uniformBuffer的GPUBuffer的收集器
- * 
- * 这个相当于@group(x) @binding(y)  中的X，其内容相当于Y
- */
-export type uniformBufferAll = {
-    [n in number]: uniformBuffer
-}
-/**
- * DC保存 bindGroup的用途的收集器
- */
-export type localUniformGroups = {
-    [n in number]: GPUBindGroup
-}
 
 
 //////////////////////////////////////////////////////////////////
@@ -251,11 +21,8 @@ export type localUniformGroups = {
 export abstract class BaseCommand {
     /** parent ,必须,cavas or texture */
     parent: any;
+    /**在GBuffer的后处理合并中，通过name（就是stage的string）和Gbuffer的command的length联合判断是否为空，优化合并渲染，解决多GBuffer的透明背景问题 */
     name!: string;
-
-    //作废，camera和DC没有关系，20240825
-    // /** 渲染的camera，scene.cameraDefault || 指定的camera */
-    // camera: any;
 
     /** webGPU 的device */
     device!: GPUDevice;
@@ -267,11 +34,19 @@ export abstract class BaseCommand {
     pipelineLayout!: GPUPipelineLayout | "auto";
 
     /**
+     * bindingGroup 描述 
+     * 
      * [0]=系统的uniform参数
+     * 
      * 其他最多3个绑定组，dawn（4个），wgpu（8个）
      */
     uniformGroups!: localUniformGroups;
 
+    /**
+     * 所有的uniform 中使用的Buffer的收集器 ，
+     *  0：系统的uniform参数
+     *  1-3：用户的uniform参数
+     */ 
     unifromBuffer!: uniformBufferAll;
 
 
@@ -515,3 +290,4 @@ export abstract class BaseCommand {
         }
     }
 }
+ 

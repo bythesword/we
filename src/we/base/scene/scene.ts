@@ -1,20 +1,17 @@
 // declare global { interface Window { scene: any } }
-import wgsl_main from "../shader/system.wgsl?raw"
-// import wgsl_main_VS from "../shader/system.vs.wgsl?raw"
-import wgsl_main_only_VS from "../shader/systemOnlyVS.wgsl?raw"
-// import wgsl_main_FS from "../shader/system.fs.wgsl?raw"
+import wgsl_main from "../shader/system.wgsl?raw" 
+import wgsl_main_only_VS from "../shader/systemOnlyVS.wgsl?raw" 
 import wgsl_main_light from "../shader/shadow/systemForLight.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
-import { Clock } from '../scene/clock';
-import { cameraRayValues } from "../camera/baseCamera";
+import { Clock } from '../scene/clock'; 
 import { BaseScene, commmandType, sceneJson } from './baseScene';
 import { BaseCamera } from "../camera/baseCamera"
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
 import { BaseStage } from '../stage/baseStage';
-import { BaseEntity, valuesForCreateDCCC } from "../entity/baseEntity";
-import { BaseLight, lightStructSize, lightStructSizeOfShadowMapMVP } from "../light/baseLight";
+import { BaseEntity } from "../entity/baseEntity";
+import { BaseLight } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
 import { GBufferPostProcess, optionGBPP } from "./GBufferPostProcess";
 import { PostProcessMangement } from "../postprocess/postProcessMangement";

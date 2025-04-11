@@ -1,29 +1,12 @@
 import { BaseEntity, valuesForCreateDCCC } from "../entity/baseEntity";
-import { BaseScene, commmandType, sceneJson } from "../scene/baseScene";
-import { BaseLight } from "../light/baseLight";
+import { BaseScene, commmandType, sceneJson } from "../scene/baseScene"; 
 import * as coreConst from "../const/coreConst"
 import { Scene } from "../scene/scene";
 import { CameraActor } from "../actor/cameraActor";
 import { renderKindForDCCC } from "../const/coreConst";
 
 
-
-// declare type lights = BaseLight[];
-// declare interface lightUniform { }
-// declare interface BVH { }
-// /**system  uniform 时间结构体 */
-// declare interface timeUniform {
-//     deltaTime: number, startTime: number, lastTime: number,
-//     time: number,
-// }
-
-//todo，更改：20250404，取消一个stage下的透明和不同的stage的透明，统一使用一个stageGroup，通过不同的commands 区分
-//作废，20250411
-// export class stageGroup {
-//     opaque: BaseStage | undefined;
-//     transparent: BaseStage | undefined;
-// }
-
+ 
 
 
 /**stage input option */

@@ -1,11 +1,9 @@
 
-import { AmbientLight, optionAmbientLight } from '../light/ambientLight';
-import { BaseLight } from '../light/baseLight';
+ 
 import * as coreConst from "../const/coreConst"
 import { DrawCommand } from '../command/DrawCommand';
 import { ComputeCommand } from '../command/ComputeCommand';
-import { CopyCommandT2T } from '../command/copyCommandT2T';
-import { CameraActor } from '../actor/cameraActor';
+import { CopyCommandT2T } from '../command/copyCommandT2T'; 
 import { boundingBox, generateBox3ByArrayBox3s, } from '../math/Box';
 import { boundingSphere, generateSphereFromBox3, } from '../math/sphere';
 import { renderKindForDCCC } from '../const/coreConst';

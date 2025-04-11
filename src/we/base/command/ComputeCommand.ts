@@ -1,31 +1,9 @@
-import { BaseCommand, uniformBufferAll, baseOptionOfCommand, } from './baseCommand';
+// import { BaseCommand, uniformBufferAll, baseOptionOfCommand, } from './baseCommand';
+
+import { BaseCommand, uniformBufferAll } from "./baseCommand";
+import { computeOptionOfCommand } from "./commandDefine";
 
 
-export interface computePart {
-    code: string,
-    entryPoint: string,
-    /**GPU 的常数替换*/
-    constants?: any,
-}
-
-export interface computeOptionOfCommand extends baseOptionOfCommand {
-    compute: computePart,
-    /** 
-     * callback function 
-     * 
-     * 进行map操作，由上级程序保障正确性
-     * 
-     * examp：
-     *  encoder.copyBufferToBuffer(workgroupBuffer, 0, workgroupReadBuffer, 0, size);
-     * 
-     * workgroupBuffer=this.unifromBuffer[0][0],对应：@group(0)@binding(0)  
-     */
-    map?: (scope: any, encode: GPUCommandEncoder) => Promise<any>,
-    /**
-     * 数组 ,长度3
-     */
-    dispatchCount: number[],
-}
 
 
 
