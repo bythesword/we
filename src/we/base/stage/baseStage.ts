@@ -18,10 +18,11 @@ import { renderKindForDCCC } from "../const/coreConst";
 // }
 
 //todo，更改：20250404，取消一个stage下的透明和不同的stage的透明，统一使用一个stageGroup，通过不同的commands 区分
-export class stageGroup {
-    opaque: BaseStage | undefined;
-    transparent: BaseStage | undefined;
-}
+//作废，20250411
+// export class stageGroup {
+//     opaque: BaseStage | undefined;
+//     transparent: BaseStage | undefined;
+// }
 
 
 
@@ -115,8 +116,8 @@ export class BaseStage extends BaseScene {
         [name: string]: cameraCommands
     }
     /** 透明渲染队列 */
-    camerasCommandsOfTransparent:{
-        [name: string]: cameraCommands
+    camerasCommandsOfTransparent: {
+        [name: string]: commmandType[]
     };
 
     //作废，使用lightsManagement 管理
@@ -131,46 +132,12 @@ export class BaseStage extends BaseScene {
     /**   @param input optionBaseStage     */
     constructor(input: optionBaseStage) {
         super(input.scene.input);//采用与scene相同的初始化参数,主要考虑的ReversedZ
-        this.idOfRoot = 1;
+        //////////////////////////////////////////////////////////////////////////////////////
+        //初始化空值
         this.RPD_ForDeferDepth = {};
         this.depthTextureOnly = {};
-        this.device = input.scene!.device;
-        this.scene = input.scene;
-        this.backgroudColor = this.scene.backgroudColor;
-        this.presentationFormat = this.scene.presentationFormat;
-        // this.depthDefaultFormat=this.scene.depthDefaultFormat;
-        this._cache = false;
-        if (input.scene)
-            this.scene = input.scene;
-
         this.root = [];
-        this.enable = true;
-        this.visible = true;
-        // this.depthTest = true;//20250404
-        // this.transparent = false;//20250404
         this.camerasCommandsOfTransparent = {};
-        this.deferRender = input.deferRender!.enable;
-
-        if (input.enable != undefined && input.enable === false) {
-            this.enable = input.enable;
-        }
-        if (input.visible != undefined && input.visible === false) {
-            this.visible = input.visible;
-        }
-        // if (input.depthTest != undefined && input.depthTest === false) {
-        //     this.depthTest = input.depthTest;
-        // }
-        //20250404
-        // if (input.transparent != undefined && input.transparent === true) {
-        //     this.transparent = input.transparent;
-        // }
-        let name = input.name;
-        let addonName = "";
-        //20250404
-        // if (input.transparent)            addonName = "_transparent";
-
-        this.name = input.name + addonName;
-
         this.camerasCommands = {
             default: {
                 commands: [],
@@ -180,6 +147,51 @@ export class BaseStage extends BaseScene {
         };
         // this.lightsCommands = {}
 
+        ////////////////////////////////////////////////////////////////////////////////////
+        //初始化默认值
+        this.idOfRoot = 1;
+        this._cache = false;
+        this.enable = true;
+        this.visible = true;
+
+        ///////////////////////////////////////////////////////////////////////////////////
+        //赋值从input
+        this.device = input.scene!.device;
+        this.scene = input.scene;
+        this.backgroudColor = this.scene.backgroudColor;
+
+
+        if (input.scene)
+            this.scene = input.scene;
+
+        this.deferRender = input.deferRender!.enable;
+
+        if (input.enable != undefined && input.enable === false) {
+            this.enable = input.enable;
+        }
+        if (input.visible != undefined && input.visible === false) {
+            this.visible = input.visible;
+        }
+        //从scene中复制
+        this.presentationFormat = this.scene.presentationFormat;
+        this.depthDefaultFormat = input.scene!.depthDefaultFormat;
+        this.deferRenderDepth = input.scene!.deferRenderDepth;
+        this.deferRenderColor = input.scene!.deferRenderColor;
+        this._isReversedZ = input.scene!._isReversedZ;
+        this.depthStencilOfZ = input.scene!.depthStencilOfZ;
+        this.depthStencil = input.scene!.depthStencil;
+        this.backgroudColor = input.scene!.backgroudColor;
+
+
+
+        ///////////////////////////////////////////////////////////////////////////////////
+        //设置
+        let name = input.name;
+        let addonName = "";
+        //20250404
+        // if (input.transparent)            addonName = "_transparent";
+
+        this.name = input.name + addonName;
         //这个是写死的，后期改成公共functon，需要同步更改pickup.ts getTargetID()中的内容
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */
         for (let i in coreConst.stagesOfSystem) {
@@ -244,8 +256,8 @@ export class BaseStage extends BaseScene {
 
     }
 
-
-
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //RPD
     /**延迟单像素depth通道描述 RPD*/
     createRPD_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         // this.depthStencilAttachment = this.depthTexture.createView();
@@ -261,8 +273,6 @@ export class BaseStage extends BaseScene {
         };
         return renderPassDescriptor;
     }
-
-
     /**获取前向渲染通道 */
     getRenderPassDescriptor(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.renderPassDescriptor[camera];
@@ -272,6 +282,11 @@ export class BaseStage extends BaseScene {
         return this.RPD_ForDeferDepth[camera];
     }
 
+    getRenderPassDescriptorOfLight(values: valuesForCreateDCCC): GPURenderPassDescriptor | false {
+        return this.scene.lightsManagement.gettShadowMapRPD(values);
+    }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //uniform
     /** camera 获取bingGroup
      * 
      * @param pipeline 
@@ -343,7 +358,8 @@ export class BaseStage extends BaseScene {
     updateToDepth(_deltaTime: number, _startTime: number, _lastTime: number) {
 
     }
-
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //render
     //todo 20241020，未进行距离、方向、可见性、视锥、BVH等的剔除
 
 
@@ -414,6 +430,34 @@ export class BaseStage extends BaseScene {
             }
         }
     }
+    /**渲染每个摄像机的透明材质 */
+    renderTransparent() {
+        for (let Ci in this.camerasCommandsOfTransparent) {
+            if (Ci == this.scene.defaultCameraActor.id.toString() || this.scene.multiCamera) {
+                const commands = this.camerasCommandsOfTransparent[Ci];
+                if (commands.length > 0) {
+                    //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
+                    for (let i in commands) {
+                        if (i == "0") {
+                            //todo，20250410 RPD 需要使用新的为透明的RPD
+                            for (let i in this.renderPassDescriptor[Ci].colorAttachments as GPURenderPassColorAttachment[]) {
+                                let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor[Ci].colorAttachments)[i];
+                                perOne.loadOp = "clear";
+                            }
+                        }
+                        else if (i == "1") {
+                            for (let i in this.renderPassDescriptor[Ci].colorAttachments as GPURenderPassColorAttachment[]) {
+                                let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor[Ci].colorAttachments)[i];
+                                perOne.loadOp = "load";
+                            }
+                        }
+                        commands[i].update();
+
+                    }
+                }
+            }
+        }
+    }
     /**
      * 前向渲染或是延迟单像素渲染的第二遍
      * @param deltaTime 
@@ -454,6 +498,8 @@ export class BaseStage extends BaseScene {
         }
 
     }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //update
     /**更新entities容器RooT的每个entity */
     update(deltaTime: number, startTime: number, lastTime: number) {
         if (Object.keys(this.GBuffers).length == 0) {
@@ -528,6 +574,8 @@ export class BaseStage extends BaseScene {
         return true;
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //ADD 
     /**
      * entity add
      * 
@@ -571,12 +619,15 @@ export class BaseStage extends BaseScene {
     set cache(enable: boolean) {
         this._cache = enable;
     }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // shader 合并
     // getWGSLOfSystemShaderFS(renderType: renderKindForDCCC): string {
     //     return this.scene!.getWGSLOfSystemShaderFS(renderType);
     // }
     // getWGSLOfSystemShaderVS(renderType: renderKindForDCCC): string {
     //     return this.scene!.getWGSLOfSystemShaderVS(renderType);
-    // }
+    // } 
     getWGSLOfSystemShaderOnlyVS(renderType: renderKindForDCCC): string {
         return this.scene!.getWGSLOfSystemShaderOnlyVS(renderType);
     }
@@ -584,7 +635,4 @@ export class BaseStage extends BaseScene {
         return this.scene!.getWGSLOfSystemShader(renderType);
     }
 
-    getRenderPassDescriptorOfLight(values: valuesForCreateDCCC): GPURenderPassDescriptor | false {
-        return this.scene.lightsManagement.gettShadowMapRPD(values);
-    }
 }

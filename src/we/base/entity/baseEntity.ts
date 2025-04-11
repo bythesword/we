@@ -230,7 +230,7 @@ export abstract class BaseEntity extends Root {
     /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
     _entityIdSizeForWGSL = 4;//以u32（f32）计算
 
-    /**顶点信息 */ 
+    /**顶点信息 */
     _vertexAndMaterialGroup!: entityContentGroup;
     // _vertexes!: geometryBufferOfEntity;
     // _material!: BaseMaterial;
@@ -339,7 +339,7 @@ export abstract class BaseEntity extends Root {
     commandsOfShadow: commandsOfShadowOfEntity;
     // commandsOfShadowOfTransparent: commandsOfShadowOfEntity;
 
-    
+
 
     // /**局部的，按需更新 */
     // matrixInstances!: Mat4[];
@@ -368,7 +368,7 @@ export abstract class BaseEntity extends Root {
         this._init = initStateEntity.constructing;
         this.flagUpdateForPerInstance = false;
         this._output = true;
-        
+
         this.input = input;
         this._dynamicPostion = false;
         this._dynamicMesh = false;
@@ -390,7 +390,7 @@ export abstract class BaseEntity extends Root {
         // this.commandsOfTransparent = {};
         this.commandsOfShadow = {};
         // this.commandsOfShadowOfTransparent = {};
-        
+
         this._vertexAndMaterialGroup = {};
         this.enable = true;
         this._position = vec3.create();
@@ -441,25 +441,25 @@ export abstract class BaseEntity extends Root {
         //     depth: [],
         //     color: []
         // };
-        
+
     }
     abstract getTransparent(): boolean;
     /**
      * 三段式初始化的第二步：init
      * @param values
      */
-    async init(values: optionBaseEntityStep2):Promise<number> {
+    async init(values: optionBaseEntityStep2): Promise<number> {
         this.transparent = this.getTransparent();
         this.stage = values.stage;
         this.stageID = values.stage.ID;
         this.reversedZ = values.reversedZ;
         this.deferRenderDepth = values.deferRenderDepth;
-        this.deferRenderColor = values.deferRenderColor; 
+        this.deferRenderColor = values.deferRenderColor;
         await this.setRootENV(values.stage.scene);//为获取在scene中注册的resource
 
         //如果是OBJ等，需要递归设置ID，或采用一个相同的ID，这个需要在OBJ、GLTF、FBX等中进行开发；基础的entity，不考虑这种情况
         this.ID = values.ID;//这个在最后，update需要判断ID是否存在，以开始更新
-        return this.ID+1;
+        return this.ID + 1;
     }
 
     abstract generateBoxAndSphere(): void
@@ -988,6 +988,12 @@ export abstract class BaseEntity extends Root {
      * @returns GPUColorTargetState[]
      */
     getFragmentTargets(): GPUColorTargetState[] {
-        return this.stage!.colorAttachmentTargets;
+        if (this.transparent === true) {
+            return this.stage!.colorAttachmentTargetsTransparent;
+        }
+        else {
+            return this.stage!.colorAttachmentTargets;
+        }
     }
+
 }

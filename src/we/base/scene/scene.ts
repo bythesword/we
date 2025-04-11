@@ -8,11 +8,11 @@ import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
 import { Clock } from '../scene/clock';
 import { cameraRayValues } from "../camera/baseCamera";
-import { BaseScene, sceneJson } from './baseScene';
+import { BaseScene, commmandType, sceneJson } from './baseScene';
 import { BaseCamera } from "../camera/baseCamera"
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
-import { BaseStage, stageGroup } from '../stage/baseStage';
+import { BaseStage } from '../stage/baseStage';
 import { BaseEntity, valuesForCreateDCCC } from "../entity/baseEntity";
 import { BaseLight, lightStructSize, lightStructSizeOfShadowMapMVP } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
@@ -257,6 +257,14 @@ export class Scene extends BaseScene {
             height: number,
         },
     }
+    /////////////////////////////////////////////////////////////////////////////////
+    //
+
+    /**每帧的webGPU的command集合   
+     * 每个stage的command集合 
+    * 一个实体可以由多个command，分布在不同的stage，比如透明，不透明
+    */
+    commands: commmandType[];//scene 在使用 for scene.root
 
     ////////////////////////////////////////////////////////////////////////////////
     /** 进行GBuffer合并的对象集合 */
@@ -265,9 +273,14 @@ export class Scene extends BaseScene {
     GBuffersVisualize!: GBuffersVisualize;
     /**GBuffer 可视化的配置interface  */
     _GBuffersVisualize: GBuffersVisualizeViewport;
-    /**最终copy到surface的最后一个GPUTexture */
-    sourceOfcopyToSurface: { [name: string]: GPUTexture };
 
+    /////////////////////////////////////////////////////////////////////////////////
+    //camera
+    /**最终copy到surface的最后一个GPUTexture (FrameBuffer)*/
+    cameraFrameBuffer: { [name: string]: GPUTexture };
+    /**每个摄像机的透明GBuffer ，render透明队列使用 */
+    GBuffersOfTransparentA: coreConst.MultiGBuffers;
+    GBuffersOfTransparentB: coreConst.MultiGBuffers;
     ////////////////////////////////////////////////////////////////////////////////
     /**GBuffer&GPU 的拾取管理器 */
     pickUp!: Pickup;
@@ -302,6 +315,46 @@ export class Scene extends BaseScene {
     */
     lightsManagement!: LightsManagement;
 
+    /**最大光源数量 
+     * 默认在coreConst.ts 中:lightNumber=8
+     * 这个实际上是没有限制的，考虑两个因素
+     *  1、渲染：
+     *          A、前向渲染，不可能太多
+     *          B、延迟渲染，基本不影响
+     *  2、阴影
+     *          A、这个是主要的影响，由于使用shadow map，还是需要进行一遍灯光视角的渲染，全向光/点光源/spot角度过大的会产生cube shadow map
+     *          B、如果光源不产生阴影，就无所谓数量了
+    */
+    _maxlightNumber!: number;
+    /////////////////////////////////////////////////////////////
+    //about Z and reversed Z
+    /**深度输出的纹理格式 */
+    // depthDefaultFormat!: GPUTextureFormat;
+    /**正常Z的清除值 */
+    // depthClearValueOfZ = 1.0;
+    // /**反向Z的清除值 */
+    // depthClearValueOfReveredZ = 0.0;
+    // /**正常Z的深度模板设置 */
+    // depthStencilOfZ: GPUDepthStencilState = {
+    //     depthWriteEnabled: true,
+    //     depthCompare: 'less',
+    //     format: 'depth32float',
+    // };
+    // /**反向Z的深度模板设置 */
+    // depthStencilOfReveredZ: GPUDepthStencilState = {
+    //     depthWriteEnabled: true,
+    //     depthCompare: 'greater',
+    //     format: 'depth32float',
+    // }
+    /**是否使用反向Z的标志位 */
+    // _isReversedZ!: boolean;
+
+    // /**是否开启延迟渲染 */
+    // deferRender!: boolean;
+    // /**单像素延迟渲染 */
+    // deferRenderDepth: boolean;
+    // /**todo：fs 合批延迟渲染 */
+    // deferRenderColor: boolean;
 
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -310,54 +363,52 @@ export class Scene extends BaseScene {
     /**完成基础参数的初始化，不包括webGPU和依赖webGPU device的function */
     constructor(input: sceneInputJson) {
         super(input);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //空值初始化
         this.lastCommand = [];
+        this.commands = [];
         this.root = [];
         this.cameraActors = [];
         this.actors = {};
-        this.sourceOfcopyToSurface = {}
+        this.cameraFrameBuffer = {}
+        this.GBuffersOfTransparentA = {};
+        this.GBuffersOfTransparentB = {};
+        this.multiCameraViewport = [];
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //默认值初始化
+        //start move from baseScene.ts 
+        this.deferRenderDepth = false;//为了测试方便,后期更改为:true,20241128
+        this.deferRenderColor = false;//为了测试方便,后期更改为:true,20241128
+        this._isReversedZ = false;//20241125,release 后更改为 true
+        this.depthDefaultFormat = 'depth32float';//depth texture 的默认格式 32bit
+
+        //正向Z的深度模板的默认设置，未使用
+        this.depthStencilOfZ = {
+            depthWriteEnabled: true,
+            depthCompare: 'less',
+            format: this.depthDefaultFormat,
+        };
+        //深度模板的默认设置
+        this.depthStencil = {
+            depthWriteEnabled: true,
+            depthCompare: this._isReversedZ ? "greater" : 'less',
+            format: this.depthDefaultFormat//'depth32float',
+        };
+        this._maxlightNumber = coreConst.lightNumber;
+
+        ///end move from baseScene.ts 
+
         this.stagesOfSystem = coreConst.stagesOfSystem;
         this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage];
-        this.multiCamera = false;
-        this.multiCameraViewport = [];
-        if (input.multiCameraViewport) {
-            this.multiCameraViewport = input.multiCameraViewport;
-            this.multiCamera = true;
-        }
         this.stagesOrders = coreConst.defaultStageList;
         this.stageStatus = "all";
-        //这个部分是为stage自定义部分
-        // if (input.stageSetting && input.stageSetting.sceneStageInit && input.stageSetting.stageStatus == "userdefine") {
-        //     this.stagesOfSystem = input.stageSetting.sceneStageInit.stages;
-        //     this.defaultStageName = input.stageSetting.sceneStageInit.defaultStageName;
-        //     this.stagesOrders = input.stageSetting.sceneStageInit.stagesOrders;
-        //     this.stageStatus = "userdefine";
-        // }
-        // else
-        if (input.stageSetting) {
-            this.stageStatus = input.stageSetting;
-            if (this.stageStatus == "world") {
-                this.stagesOfSystem = ["World"];
-                this.defaultStageName = "World";
-                this.stagesOrders = [0];
-            }
-        }
-        if (input.color) {
-            this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
-        }
+
         this._realTimeRender = true;
         this._reSize = false;
         this._updateForce = false;
         this.userDefineUpdateArray = [];
 
-        if (input.lightNumber) {
-            this._maxlightNumber = input.lightNumber;
-        }
-        if (input.name) {
-            this.name = input.name;
-        }
-        else {
-            this.name = "Scene";
-        }
         this._GBuffersVisualize = {
             enable: false,
             layout: {
@@ -367,12 +418,72 @@ export class Scene extends BaseScene {
             },
             statueChange: true,//因为默认状态下，enable=false，如果使用（enable-->true），GBuffer开始时需要初始化，所以，statueChange=true
         }
-
         this.systemUniformBuffers = {
             MVP: {},
         };
         this.clock = new Clock();
         this.input = input;
+
+        this.multiCamera = false;
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //input赋值
+        //是否由指定深度纹理格式
+        if (input.depthDefaultFormat) {
+            this.depthDefaultFormat = input.depthDefaultFormat;
+        }
+        //是否由延迟渲染
+        if (input.deferRender && input.deferRender.enable == true) {
+            this.deferRender = true;
+            if (input.deferRender.type == "depth")
+                this.deferRenderDepth = true;
+            else if (input.deferRender.type == "color")
+                this.deferRenderColor = true;
+        }
+        //是否使用反向Z
+        if (input.reversedZ) {
+            this._isReversedZ = input.reversedZ;
+        }
+        //如果有深度模板输入
+        if ("depthStencil" in input) {
+            this.depthStencil = input.depthStencil as GPUDepthStencilState;
+            if (input.reversedZ) {
+                this.depthStencil.depthCompare = "greater";
+            }
+        }
+        //是否使用多摄像机
+        if (input.multiCameraViewport) {
+            this.multiCameraViewport = input.multiCameraViewport;
+            this.multiCamera = true;
+        }
+        //是否由自定义stage
+        if (input.stageSetting) {
+            this.stageStatus = input.stageSetting;
+            if (this.stageStatus == "world") {
+                this.stagesOfSystem = ["World"];
+                this.defaultStageName = "World";
+                this.stagesOrders = [0];
+            }
+        }
+        //是否有背景色
+        if (input.color) {
+            this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
+        }
+        //是否由自定义光源数量
+        if (input.lightNumber) {
+            this._maxlightNumber = input.lightNumber;
+        }
+        //是否由自定义名称
+        if (input.name) {
+            this.name = input.name;
+        }
+        else {
+            this.name = "Scene";
+        }
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //配置
+
+
         return this;
     }
     ////////////////////////////////////////////////////////////////////////////////
@@ -447,9 +558,9 @@ export class Scene extends BaseScene {
         this.observer();
     }
     /**创建 textture：为每个相机 */
-    async createSourceOfcopyToSurfaceForPerCamera(camera: string) {
+    async createCameraFrameBufferForPerCamera(camera: string) {
         return this.device.createTexture({
-            label: "sourceOfcopyToSurface of " + camera,
+            label: "CameraFrameBuffer of " + camera,
             size: [this.canvas.width, this.canvas.height],
             format: this.presentationFormat,
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
@@ -543,7 +654,7 @@ export class Scene extends BaseScene {
                 width: this.canvas.width,
                 height: this.canvas.height
             },
-            copyToTarget: this.sourceOfcopyToSurface[camera],
+            copyToTarget: this.cameraFrameBuffer[camera],
             camera,
         }
         this.GBufferPostprocess[camera] = new GBufferPostProcess(option);
@@ -552,7 +663,7 @@ export class Scene extends BaseScene {
     initPostProcess() {
         this.postProcessManagement = new PostProcessMangement({
             parent: this,
-            copyToTarget: this.sourceOfcopyToSurface,
+            copyToTarget: this.cameraFrameBuffer,
         });
     }
 
@@ -889,26 +1000,41 @@ export class Scene extends BaseScene {
             for (let i in this.GBufferPostprocess) {
                 this.GBufferPostprocess[i].render();   //render GBuffer
             }
-            //todo：20250127，在这里增加MSAA
+
+            // this.renderTransparent();//render transparent
 
             this.postProcessManagement.render();  //进行后处理
             this.showMultiCamera();
             await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
         }
     }
+    /**
+     * 渲染每个摄像机、每个stage的透明队列 
+     * 工作在合并GBuffer之后
+    */
     renderTransparent() {
-                
+        //1、循环每个摄像机、每个stage的透明队列，进行渲染
+        //2、前置条件：
+        //      A、每个摄像机一套透明的GBuffer的透明GBUffe，只在Scene中；
+        //                  texture：color，depth（有png混合透明或不透明，比如alpha test（0，或任意值），需要更新depth，ID，uv，normal）/每个摄像机一套。或者说是，
+        //      B、透明的RPD，FS.targets.format(透明GBUffer的格式)
+        //      C、per entity输出的透明commands(1、每个entity只能是不透明或透明[由material决定]；2、透明没有深度commands，不透明有深度commands)；这里需要RPD，FS.targets.format;
+        //3、执行每个stage的每个camera的透明队列的render
+        for (let i in this.stagesOrders) {
+            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
+            const name = this.stagesOfSystem[perList];
+            {//每个stageGroup进行update，包含透明和不透明两个stage 
+                if (this.stages[name]) {
+                    this.stages[name].renderTransparent();
+                }
+                //20241212:透明render移动到GBufferPostprocess中进行油画法
+                // if (this.stages[name].transparent) {
+                //     this.stages[name].transparent!.update(deltaTime, startTime, lastTime);
+                // }
+            }
+        }
 
     }
-    // renderShadowMap() {
-    //     for (let i in this.stagesOrders) {
-    //         const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
-    //         const name = this.stagesOfSystem[perList];
-    //         if (this.stages[name]) {
-    //             this.stages[name]!.renderForLightsShadowMap();
-    //         }
-    //     }
-    // }
     /**render perstage 
      * 逐个处理camerasCommands的队列渲染
      */
@@ -945,13 +1071,13 @@ export class Scene extends BaseScene {
             this.multiCameras.render();
         }
         else {
-            this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+            this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
         }
         //测试多camera
-        // for (let i in this.sourceOfcopyToSurface) {
+        // for (let i in this.cameraFrameBuffer) {
         //     if (i == this.defaultCameraActor.id.toString()) {
         //         // console.log("相同", i, this.defaultCameraActor.id.toString());
-        //         this.copyTextureToTexture(this.sourceOfcopyToSurface[i], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        //         this.copyTextureToTexture(this.cameraFrameBuffer[i], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
         //     }
         //     else {
         //         // console.log("不相同", i, this.defaultCameraActor.id.toString());
@@ -959,12 +1085,12 @@ export class Scene extends BaseScene {
         // }
         //基础测试World
         // this.copyTextureToTexture(this.stages["World"]!!.GBuffers[this.defaultCameraActor.id]["color"], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
-        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
+        // this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
     }
     /**每帧渲染的最后步骤 */
     async copyToSurface() {
         this.copyTextureToTexture(this.finalTarget, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
-        // this.copyTextureToTexture(this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
+        // this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
 
         //直接测试：world -->scene
         // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
@@ -1203,7 +1329,7 @@ export class Scene extends BaseScene {
                             height: this.canvas.height,
                         },
                         layout: this._GBuffersVisualize,
-                        // copyToTarget: this.sourceOfcopyToSurface[this.defaultCameraActor.id.toString()],//ok,20241229 多摄像机之前
+                        // copyToTarget: this.cameraFrameBuffer[this.defaultCameraActor.id.toString()],//ok,20241229 多摄像机之前
                         copyToTarget: this.finalTarget,
                     });
                     this._GBuffersVisualize.statueChange = false;//更新statue状态
@@ -1397,12 +1523,15 @@ export class Scene extends BaseScene {
         }
         const id = one.id.toString();
         this.cameraActors.push(one);//增加cameraActor数组中
-        this.sourceOfcopyToSurface[id] = await this.createSourceOfcopyToSurfaceForPerCamera(id);
-        this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);
+        this.cameraFrameBuffer[id] = await this.createCameraFrameBufferForPerCamera(id);
+        this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//不透明的GBuffer，合并使用
+        this.GBuffersOfTransparentA[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
+        this.GBuffersOfTransparentB[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
         for (let i in this.stages) {
             await this.stages[i]?.initCameraGBuffer(id);
         }
         await this.initGBuffersPostProcess(id);
+
         if (this.multiCamera)//若多camera，check是多
             await this.multiCameras.check(id);
         if (isDefault === true) {
