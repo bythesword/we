@@ -58,6 +58,8 @@ export interface GBuffersVisualizeViewport {
     */
     forOtherDepth?: {
         depthTextureView: GPUTextureView,
+        width: number,
+        height: number,
     }
     /**状态：boolan，layout布局是否更改过的状态,人工保障正确性 */
     statueChange?: boolean,
@@ -86,16 +88,26 @@ export class GBuffersVisualize extends SingleRender {
         [name: string]: { [name in coreConst.GBufferName]: string }
     };
     colorTexture: GPUTexture;
-
+    depthTextureWidth: number ;
+    depthTextureHeight: number ;
 
     constructor(input: optionGBuffersVisualize) {
         super(input);
+
 
         this.width = input.surfaceSize.width;
         this.height = input.surfaceSize.height;
         this.GBuffers = input.GBuffers;
         this.presentationFormat = this.parent.presentationFormat;
         this.depthDefaultFormat = this.parent.depthDefaultFormat;
+        if(input.layout.forOtherDepth){
+            this.depthTextureWidth = input.layout.forOtherDepth.width;
+            this.depthTextureHeight = input.layout.forOtherDepth.height; 
+        }
+        else{
+            this.depthTextureWidth = this.width;
+            this.depthTextureHeight = this.height;
+        }
         // this.sampler = this.device.createSampler({
         //     magFilter: 'linear',
         //     minFilter: 'linear',
@@ -103,12 +115,14 @@ export class GBuffersVisualize extends SingleRender {
         this.sampler = this.device.createSampler({
             magFilter: 'nearest',
             minFilter: 'nearest',
-            mipmapFilter: 'nearest', 
-            // 其他属性，如地址模式等
-            addressModeU: 'clamp-to-edge',
-            addressModeV: 'clamp-to-edge',
-            addressModeW: 'clamp-to-edge',
+            // mipmapFilter: 'nearest', 
+            // // 其他属性，如地址模式等
+            // addressModeU: 'clamp-to-edge',
+            // addressModeV: 'clamp-to-edge',
+            // addressModeW: 'clamp-to-edge',
         });
+
+
         this.colorTexture = this.device.createTexture({
             size: [this.width, this.height],
             format: this.presentationFormat,
@@ -160,14 +174,21 @@ export class GBuffersVisualize extends SingleRender {
                         binding: 0,
                         resource: this.input.layout.forOtherDepth!.depthTextureView,
                     },
-                    {
-                        binding: 1,
-                        resource: this.sampler,
-                    },
+                    // {
+                    //     binding: 1,
+                    //     resource: this.depthSampler,
+                    // },
                 ]
             }
         ];
+        
+        let constants = {};
+        
 
+        constants = {
+            scaleWidth: this.depthTextureWidth/this.width,
+            scaleHeight: this.depthTextureHeight/this.height,
+        };
 
 
         let option: DrawOptionOfCommand = {
@@ -183,7 +204,7 @@ export class GBuffersVisualize extends SingleRender {
                     //color
                     { format: this.presentationFormat }
                 ],
-
+                constants: constants
             },
             draw: {
                 mode: "draw",
@@ -197,8 +218,7 @@ export class GBuffersVisualize extends SingleRender {
             },
             rawUniform: true,
             renderPassDescriptor: this.renderPassDescriptor,
-
-
+            renderForID: ""
         };
         let DC = new DrawCommand(option);
         this.commands.push(DC);
@@ -213,7 +233,26 @@ export class GBuffersVisualize extends SingleRender {
         };
         let uniforms: unifromGroup[];
 
-        if (layoutName != "entityID") {
+        if (layoutName == "depth") {
+            uniforms = [
+                {
+                    layout: 0,
+                    entries: [
+
+                        {
+                            binding: 0,
+                            resource: this.GBuffers[layoutName].createView(),
+                        },
+                        // {
+                        //     binding: 1,
+                        //     resource: this.sampler,
+                        // },
+                    ]
+                }
+            ];
+        }
+        
+        else if (layoutName != "entityID") {
             uniforms = [
                 {
                     layout: 0,
@@ -301,7 +340,31 @@ export class GBuffersVisualize extends SingleRender {
                 let height: number = Math.trunc(value.height * (this.height - 1));
                 let uniforms: unifromGroup[];
                 let constants = {};
-                if (key != "entityID") {
+                if (key == "depth") {
+                    uniforms = [
+                        {
+                            layout: 0,
+                            entries: [
+
+                                {
+                                    binding: 0,
+                                    resource: this.GBuffers[key].createView(),
+                                },
+                                // {
+                                //     binding: 1,
+                                //     resource: this.sampler,
+                                // },
+                            ]
+                        }
+                    ];
+                    constants = {
+                        scaleWidth:value.u32!.scale,
+                        scaleHeight: value.u32!.scale,
+                        u32OffsetX: value.u32!.offsetX*this.width,
+                        u32OffsetY: value.u32!.offsetY,
+                    };
+                }
+               else if (key != "entityID") {
                     uniforms = [
                         {
                             layout: 0,
@@ -333,7 +396,7 @@ export class GBuffersVisualize extends SingleRender {
                     ];
                     if (value.u32) {
                         constants = {
-                            u32OffsetX: value.u32!.offsetX,
+                            u32OffsetX: value.u32!.offsetX*this.width,
                             u32OffsetY: value.u32!.offsetY,
                             u32Scale: value.u32!.scale,
                         };

@@ -185,22 +185,28 @@ export var GBuffersVisualizeLayoutAssemble: GBuffersVisualizeLayout = {
             height: 1 - 0.25
         },
         [GBufferName.depth]: {
-            x: 0.25,
-            y: 0,
-            width: 0.25,
-            height: 0.25
-        },
-        [GBufferName.entityID]: {
             x: 0,
             y: 0,
             width: 0.25,
             height: 0.25,
             u32: {
-                scale: 4.0,
+                scale: 4.0,//采样放大
                 offsetX: 0.0,
                 offsetY: 0.0
             }
         },
+        [GBufferName.entityID]: {
+            x: 0.25,
+            y: 0,
+            width: 0.25,
+            height: 0.25,
+            u32: {
+                scale: 4.0,
+                offsetX: -0.250,//忘记了为什么是这个值，20250415
+                offsetY: 0.0
+            }
+        },
+
         [GBufferName.normal]: {
             x: 0.5,
             y: 0,

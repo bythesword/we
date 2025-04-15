@@ -14,6 +14,7 @@ import { initScene } from "../../../../src/we/base/scene/initScene"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 import { vec3 } from "wgpu-matrix"
 import { optionOrthProjection, OrthographicCamera } from "../../../../src/we/base/camera/orthographicCamera"
+import { shadowMapSize } from "../../../../src/we/base/const/coreConst"
 
 
 declare global {
@@ -203,5 +204,7 @@ scene.setGBuffersVisualize({
         baseArrayLayer: 0,
       }
     ),
+    width: shadowMapSize,
+    height: shadowMapSize
   }
 });
