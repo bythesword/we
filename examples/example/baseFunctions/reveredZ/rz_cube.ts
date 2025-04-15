@@ -8,6 +8,7 @@ import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { mat4, vec3 } from "wgpu-matrix"
+import { initScene } from "../../../../src/we/base/scene/initScene"
 
 
 declare global {
@@ -23,15 +24,15 @@ let input: sceneInputJson = {
     red: 0.1,
     green: 0.1,
     blue: 0.1,
-    alpha: 1
+    alpha: 0.21
   },
   reversedZ: true,
   stageSetting: "world"
 }
-let scene = new Scene(input);
-await scene.init();
+let scene = await initScene(input);
+window.scene = scene;
 
-// window.scene = scene;
+ 
 
 
 //摄像机初始化参数

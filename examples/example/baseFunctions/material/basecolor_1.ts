@@ -22,7 +22,7 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red:  0,
+    red: 0,
     green: 0.1,
     blue: 0.2,
     alpha: 1
@@ -35,6 +35,7 @@ let input: sceneInputJson = {
     },
     intensity: 0.13
   },
+  reversedZ: true,
   stageSetting: "world"
 }
 
@@ -116,16 +117,16 @@ let colorMaterial_1 = new ColorMaterial(
 //box实体
 let boxEntity = new Mesh(
   {
-    name:"透明plane",
+    name: "透明plane",
     geometry: planeGeometry,
     material: colorMaterial_1,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
     // position:vec3.create(1,0,0),
     // scale:[2,2,1],
-    rotate:{
-      axis:[0,1,0],
-      angleInRadians:0.5*Math.PI
+    rotate: {
+      axis: [0, 1, 0],
+      angleInRadians: 0.5 * Math.PI
     },
   }
 );

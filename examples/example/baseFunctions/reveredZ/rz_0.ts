@@ -20,13 +20,13 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.1,
-    green: 0.1,
-    blue: 0.1,
+    red: 1,
+    green: 1,
+    blue: 1,
     alpha: 1
   },
   // reversedZ: true,
-
+stageSetting: "world"
 }
 let scene = new Scene(input);
 await scene.init();

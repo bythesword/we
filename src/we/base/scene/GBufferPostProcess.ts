@@ -515,52 +515,52 @@ export class GBufferPostProcess extends SingleRender {
         return { renderPassDescriptor, colorAttachmentTargets };
     }
 
-    getTexturesOfUniformFromStageForTransparent(): unifromGroup[] {
-        let unifromGroup_0: unifromGroup = {
-            layout: 0,
-            entries: [
-                {
-                    label: "GBuffer post process GBuffer['depth']  for Render Transparent ",
-                    binding: 0,
-                    resource: this.GBuffers["depth"].createView()
-                },
-                {
-                    label: "GBuffer post proces texture'colorTexture'  for Render Transparent",
-                    binding: 1,
-                    resource: this.colorTexture.createView()
-                }]
-        };
-        let unifromGroup_1: unifromGroup = {
-            layout: 1,
-            entries: [
-            ]
-        };
-        let unifromGroup_2: unifromGroup = {
-            layout: 2,
-            entries: [
-            ]
-        };
+    // getTexturesOfUniformFromStageForTransparent(): unifromGroup[] {
+    //     let unifromGroup_0: unifromGroup = {
+    //         layout: 0,
+    //         entries: [
+    //             {
+    //                 label: "GBuffer post process GBuffer['depth']  for Render Transparent ",
+    //                 binding: 0,
+    //                 resource: this.GBuffers["depth"].createView()
+    //             },
+    //             {
+    //                 label: "GBuffer post proces texture'colorTexture'  for Render Transparent",
+    //                 binding: 1,
+    //                 resource: this.colorTexture.createView()
+    //             }]
+    //     };
+    //     let unifromGroup_1: unifromGroup = {
+    //         layout: 1,
+    //         entries: [
+    //         ]
+    //     };
+    //     let unifromGroup_2: unifromGroup = {
+    //         layout: 2,
+    //         entries: [
+    //         ]
+    //     };
 
-        for (let i of this.parent.stagesOrders) {
-            let name = this.parent.stagesOfSystem[i];
-            if (this.parent.stages[name].transparent && name != "UI" && name != "Sky") {
-                let stage = this.parent.stages[name].transparent
-                unifromGroup_1.entries.push({
-                    label: `GBuffer post process  for Render Transparent of depth ,stage:${stage}`,
-                    binding: i,
-                    resource: stage.GBuffers[this.camera]["depth"].createView()
-                });
-                unifromGroup_2.entries.push({
-                    label: `GBuffer post process  for Render Transparent of color ,stage:${stage}`,
-                    binding: i,
-                    resource: stage.GBuffers[this.camera]["color"].createView()
-                });
-            }
-        }
+    //     for (let i of this.parent.stagesOrders) {
+    //         let name = this.parent.stagesOfSystem[i];
+    //         if (this.parent.stages[name].transparent && name != "UI" && name != "Sky") {
+    //             let stage = this.parent.stages[name].transparent
+    //             unifromGroup_1.entries.push({
+    //                 label: `GBuffer post process  for Render Transparent of depth ,stage:${stage}`,
+    //                 binding: i,
+    //                 resource: stage.GBuffers[this.camera]["depth"].createView()
+    //             });
+    //             unifromGroup_2.entries.push({
+    //                 label: `GBuffer post process  for Render Transparent of color ,stage:${stage}`,
+    //                 binding: i,
+    //                 resource: stage.GBuffers[this.camera]["color"].createView()
+    //             });
+    //         }
+    //     }
 
 
-        return [unifromGroup_0, unifromGroup_1, unifromGroup_2];
-    }
+    //     return [unifromGroup_0, unifromGroup_1, unifromGroup_2];
+    // }
     getTexturesOfUniformFromStageForColor(stageName: string): unifromGroup[] {
         let uniformOther: unifromGroup = {
             layout: 1,

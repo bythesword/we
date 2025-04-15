@@ -25,7 +25,7 @@ let input: sceneInputJson = {
     alpha: 1
   },
   reversedZ: true,
-
+  stageSetting: "world"
 }
 let scene = new Scene(input);
 await scene.init();

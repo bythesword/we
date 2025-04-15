@@ -415,9 +415,11 @@ export class Scene extends BaseScene {
         //如果有深度模板输入
         if ("depthStencil" in input) {
             this.depthStencil = input.depthStencil as GPUDepthStencilState;
-            if (input.reversedZ) {
-                this.depthStencil.depthCompare = "greater";
-            }
+           
+        }
+        //如果由反向Z
+        if (input.reversedZ) {
+            this.depthStencil.depthCompare = "greater";
         }
         //是否使用多摄像机
         if (input.multiCameraViewport) {
@@ -1062,6 +1064,7 @@ export class Scene extends BaseScene {
 
         //直接测试：world -->scene
         // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+        this.copyTextureToTexture(this.stages["World"].GBuffers[this.defaultCameraActor.id.toString()]["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
 
         //中转测试：world-->  scene
         // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })

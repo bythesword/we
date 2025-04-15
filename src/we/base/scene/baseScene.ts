@@ -111,7 +111,7 @@ export abstract class BaseScene {
     };
     /**反向Z的深度模板设置 */
     depthStencilOfReveredZ: GPUDepthStencilState = {
-        depthWriteEnabled: true,
+        depthWriteEnabled: true, 
         depthCompare: 'greater',
         format: 'depth32float',
     }
