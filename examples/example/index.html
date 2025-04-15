@@ -10,27 +10,46 @@
 <body>
     <ul>
         <li>
-            <h1> ======基础功能======= </h1>
+            <h1> ======基础功能================== </h1>
         </li>
+
+
         <li>
-            <h2>----camera----</h2>
+            <h2>--------------------------------Draw command -------------------------- </h2>
+        </li>
+        <li><a href="./baseFunctions/DCComand/DC_vertex_index_instance_1.html">Draw command : vertex,index,instance,raw
+                unform</a></li>
+        <li><a href="./baseFunctions/DCComand/test_VS_depth_only.html">Draw command : test depth</a></li>
+        <li><a href="./baseFunctions/DCComand/cc_1.html"> Compute command :storage buffer</a></li>
+        <li><a href="./baseFunctions/DCComand/DC_viewport.html"> Draw command: viewport</a></li>
+
+
+        <li>
+            <h2>--------------------------------camera--------------------------------</h2>
         </li>
         <li><a href="./baseFunctions/camera/cameraActor_projection.html">cameraActor:透视相机</a></li>
         <li><a href="./baseFunctions/camera/camera_ortho.html">cameraActor:正交相机</a></li>
+
+
         <li>
-            <h2>----控制器----</h2>
+            <h2>--------------------------------控制器--------------------------------</h2>
         </li>
         <li><a href="./baseFunctions/control/arcball.html">arcball 控制器</a></li>
         <li><a href="./baseFunctions/control/wasd.html">wasd 控制器</a></li>
+
+
         <li>
-            <h2>----物体----</h2>
+            <h2>--------------------------------物体--------------------------------</h2>
         </li>
+
         <li>
             <h3>***物体:点***</h3>
         </li>
+
         <li>
             <h3>***物体:线***</h3>
         </li>
+
         <li>
             <h3>***物体:mesh:几何体***</h3>
         </li>
@@ -48,36 +67,56 @@
         <li><a href="./baseFunctions/entities/OctahedronGeometry.html">八面 OctahedronGeometry geometry </a></li>
         <li><a href="./baseFunctions/entities/LatheGeometry.html">车削 LatheGeometry geometry </a></li>
 
+
         <li>
-            <h2> ----材质---- </h2>
+            <h2> --------------------------------材质-------------------------------- </h2>
+        </li>
+
+        <li>
+            <h3> ***基础材质*** </h3>
+        </li>
+        <li><a href="./baseFunctions/material/basecolor_1.html">基础 color </a></li>
+        <li><a href="./baseFunctions/material/basecolor_alpha.html">基础 color alpha值透明度 </a></li>
+        <li><a href="./baseFunctions/material/basecolor_transparent_transparent_1.html">基础 color 整体透明度</a></li>
+
+        <li>
+            <h3> ***基础纹理*** </h3>
+        </li>
+        <li><a href="./baseFunctions/material/basecolor_1.html">基础 纹理 </a></li>
+        <li><a href="./baseFunctions/material/basecolor_1.html">基础 半透明 :透明度值 </a></li>
+        <li><a href="./baseFunctions/material/basecolor_1.html">基础 纹理 : PNG alpha test  </a></li>
+        <li><a href="./baseFunctions/material/basecolor_1.html">基础  </a></li>
+
+        <li>
+            <h3> ***Bulinn-phone 材质*** </h3>
         </li>
         <li><a href="./baseFunctions/material/sphere_phong_1.html">Bulin-Phong color </a></li>
         <li><a href="./baseFunctions/material/specular_texture.html">Bulin-Phong specular 贴图 </a></li>
+        <li><a href="./baseFunctions/material">Bulin-Phong 凹凸贴图/法线贴图 </a></li>
 
         <li>
-            <h2> ----光源----</h2>
+            <h3> ***视频材质*** </h3>
+        </li>
+        <li><a href="./baseFunctions/material/">视频材质   </a></li>
+ 
+
+        <li>
+            <h2> --------------------------------光源--------------------------------</h2>
         </li>
         <li><a href="./baseFunctions/light/dirlight.html">方向光光源 </a></li>
         <li><a href="./baseFunctions/light/pointlight1.html">点光源 </a></li>
         <li><a href="./baseFunctions/light/spotlight1.html">聚光灯光源 </a></li>
 
-        <li>
-            <h2>--Draw command -- </h2>
-        </li>
-        <li><a href="./baseFunctions/DCComand/DC_vertex_index_instance_1.html">Draw command : vertex,index,instance,raw
-                unform</a></li>
-        <li><a href="./baseFunctions/DCComand/test_VS_depth_only.html">Draw command : test depth</a></li>
-        <li><a href="./baseFunctions/DCComand/cc_1.html"> Compute command :storage buffer</a></li>
-        <li><a href="./baseFunctions/DCComand/DC_viewport.html"> Draw command: viewport</a></li>
 
         <li>
-            <h2>----Revered Z----</h2>
+            <h2>--------------------------------Revered Z--------------------------------</h2>
         </li>
         <li><a href="./baseFunctions/reveredZ/rz_0.html"> 两个矩形:手动拖动鼠标,懒得做旋转了</a></li>
         <li><a href="./baseFunctions/reveredZ/rz_1.html"> 两个立方体</a></li>
 
+
         <li>
-            <h2>----更新机制----</h2>
+            <h2>--------------------------------更新机制--------------------------------</h2>
         </li>
         <li> 单体组件更新机制:实体对象、actor
             <a href="./baseGraphics/rotatingCube.html"> 旋转的彩色盒子</a>
@@ -90,7 +129,12 @@
         </li>
 
 
-        <h1> ====== 基础示例 =======</h1>
+        <li>
+            <h2>-------------------------------- entity--------------------------------</h2>
+        </li>
+
+        <li>
+            <h3> ***mesh 实例化*** </h3>
         </li>
         <li>
             <a href="./baseGraphics/rotatingCube.html"> 旋转的彩色盒子</a>
@@ -107,32 +151,43 @@
         <li>
             <a href="./baseGraphics/FractalCube.html"> Fractal Cube,这个与webgpu sample的原理相同,但texture是通过postprocess取的</a>
         </li>
+
+        <li>
+            <h3> ***天空盒*** </h3>
+        </li>
         <li>
             <a href="./baseGraphics/cubeSky.html"> cube天空盒子, 通过scale控制大小,wasd控制器</a>
         </li>
+
+
         <li>
-            <h2>---- Stage----</h2>
+            <h2>-------------------------------- Stage--------------------------------</h2>
         </li>
         <li> <a href="./baseGraphics/stage/boxAndSky.html"> 两个stage: box in world and cube sky</a> </li>
         </li>
 
 
-        <li>
-            <h1> ======WE 场景======= </h1>
-        </li>
 
         <li>
-            <h2>---- input----</h2>
+            <h1> ======WE 场景================== </h1>
+        </li>
+
+
+        <li>
+            <h2>-------------------------------- input--------------------------------</h2>
         </li>
         <li><a href="../example/baseFunctions/inputColtrol/input.html">WE input </a></li>
+
+
         <li>
-            <h2>---- Stage----</h2>
+            <h2>-------------------------------- Stage--------------------------------</h2>
         </li>
         <li> <a href="./baseGraphics/stage/boxAndSky.html"> 两个stage: box in world and cube sky</a> </li>
         </li>
 
+
         <li>
-            <h2>---- pickup----</h2>
+            <h2>-------------------------------- pickup--------------------------------</h2>
         </li>
         <li> <a href="./baseGraphics/pickup/pickupBox.html"> 拾取一个stage 、多个实体</a> </li>
         </li>
@@ -141,74 +196,101 @@
         <li> <a href="./baseGraphics/pickup/boxAndSky.html"> 拾取多个stage</a> </li>
         </li>
 
+
         <li>
-            <h2>---- 后期处理----</h2>
+            <h2>-------------------------------- 后期处理--------------------------------</h2>
         </li>
         <li><a href="./baseGraphics/postprocess/box_1.html">后处理-卷积-blur: a red box</a></li>
         <li><a href="./baseGraphics/postprocess/sphere_1.html">后处理-卷积-blur: a red sphere</a></li>
         <li><a href="./baseGraphics/postprocess/specular_texture.html">后处理-卷积-blur: a wood box</a></li>
 
+
         <li>
-            <h2>----GBuffer 可视化----</h2>
+            <h2>--------------------------------GBuffer 可视化--------------------------------</h2>
         </li>
         <li><a href="./baseGraphics/GBuffersVisualize/V1_boxAndSky.html">GBuffer 可视化 多视口default 模式</a></li>
         <li><a href="./baseGraphics/GBuffersVisualize/V2_boxAndSky.html">GBuffer 可视化 single 模式</a></li>
         <li><a href="./baseGraphics/GBuffersVisualize/rotatingCubeX2.html">GBuffer 可视化 single 模式:同一个stage的entity ID</a>
         </li>
 
-        <li>
-            <h2>----web worker and OffscreenCanvas----</h2>
-        </li>
-        <li> 离屏canvas +worker 渲染</li>
 
         <li>
-            <h2>----canvas 相关----</h2>
+            <h2>--------------------------------canvas 相关--------------------------------</h2>
         </li>
         <li> 调整canvas大小（延迟）</li>
         <li> 多个canvas输出（延迟）</li>
 
-        <li>
-            <h2>----视频 相关----</h2>
-        </li>
 
         <li>
-            <h2>----多摄像机 相关----</h2>
+            <h2>--------------------------------多摄像机 相关--------------------------------</h2>
         </li>
         <li><a href="./baseFunctions/multiCamera/mulitiCameraActor_1.html"> 2个摄像机</a></li>
 
-        <li>
-            <h1> ======WE 图形学功能=======</h1>
-        </li>
+
 
         <li>
-            <h2>----延迟渲染----</h2>
+            <h1> ======WE 图形学功能==================</h1>
+        </li>
+
+        
+        <li>
+            <h2>--------------------- web worker and OffscreenCanvas ------------------</h2>
+        </li>
+        <li> 离屏canvas +worker 渲染</li>
+
+        <li>
+            <h2>--------------------------------延迟渲染--------------------------------</h2>
         </li>
         <li><a href="./Graphics_Techniques/deferRender/defer_1.html">单像素延迟渲染:2个旋转的彩色盒子</a></li>
         <li><a href="./Graphics_Techniques/deferRender/defer_2.html">单像素延迟渲染:一个red box</a></li>
         <li><a href="./Graphics_Techniques/deferRender/boxAndSky.html">单像素延迟渲染+pickup:一个stage多个物体</a></li>
         <li><a href="./Graphics_Techniques/deferRender/long1.html">单像素延迟渲染:simple model dragon</a></li>
 
+  
         <li>
-            <h2>----camera渲染剔除----</h2>
+            <h2>--------------------------------阴影-----------------------------------------</h2>
         </li>
-        <li> </li>
 
         <li>
-            <h2>----阴影----</h2>
+            <h3> ***阴影可视化*** </h3>
         </li>
-        <li>----------------阴影可视化-----------------</li>
+
         <li><a href="./Graphics_Techniques/shadowmap/shadowmapViewByDepth.html"> 方向光阴影depth可视化:[0, 1, 1]方向</a> </li>
-        <li><a href="./Graphics_Techniques/shadowmap/shadowmapViewByDepth_1.html"> 方向光阴影(sphere)depth可视化:[1, 1, 0]方向</a> </li>
-        <li>----------------软阴影-----------------</li>
+        <li><a href="./Graphics_Techniques/shadowmap/shadowmapViewByDepth_1.html"> 方向光阴影(sphere)depth可视化:[1, 1, 0]方向</a>
+        </li>
+
+        <li>
+            <h3> ***方向光阴影*** </h3>
+        </li>
+
         <li><a href="./Graphics_Techniques/shadowmap/dirlightShadowMap.html"> 方向光阴影(sphere):一个shadow map</a> </li>
         <li><a href="./Graphics_Techniques/shadowmap/dirlightShadowMap_box.html"> 方向光阴影(box):一个shadow map</a> </li>
         <li><a href="./Graphics_Techniques/shadowmap/dirlightShadowMap_multi.html"> 方向光阴影(sphere):多个光源</a> </li>
-        <br>
-        <li><a href="./Graphics_Techniques/shadowmap/pointLightShadowMap0.html">点光源阴影 1</a></li>
-        <li><a href="./Graphics_Techniques/shadowmap/pointLightShadowMap1.html">点光源阴影 2,动态光源：todo  Bulin-Phong的高光不对</a></li>
-        <li> <a href="./Graphics_Techniques/shadowmap/spotLightShadowMap0.html">spot阴影:一个 shadow map</a> </li>
-        <li> 透明物体的颜色光阴影</li>
 
+        <li>
+            <h3> ***点光源阴影*** </h3>
+        </li>
+        <li><a href="./Graphics_Techniques/shadowmap/pointLightShadowMap0.html">点光源阴影 1</a></li>
+        <li><a href="./Graphics_Techniques/shadowmap/pointLightShadowMap1.html">点光源阴影 2,动态位置光源</a>
+        </li>
+
+        <li>
+            <h3> ***spot光源阴影*** </h3>
+        </li>
+        <li> <a href="./Graphics_Techniques/shadowmap/spotLightShadowMap0.html">spot阴影:一个 shadow map</a> </li>
+
+        <li>
+            <h3> ***透明物体阴影*** </h3>
+        </li>
+        <li> <a href="./Graphics_Techniques/shadowmap/">整体透明物体颜色阴影混合: shdowmap,transparent,blending</a> </li>
+        <li> <a href="./Graphics_Techniques/shadowmap/">非整体透明物体颜色阴影: +alphatest</a> </li>
+
+
+
+        <li>
+            <h2>--------------------------------camera渲染剔除--------------------------------</h2>
+        </li>
+        <li> </li>
 
     </ul>
 </body>

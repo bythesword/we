@@ -1,4 +1,4 @@
-import { uniformEntries } from "../../command/baseCommand";
+import { uniformEntries } from "../../command/commandDefine";
 import { weSamplerKind } from "../../resource/weResource";
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import FSOfColor from "../../shader/material/simple/oneColorCube/oneColorCube.color.fs.wgsl?raw"

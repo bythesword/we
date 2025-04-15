@@ -26,6 +26,8 @@ fn vs(@builtin(vertex_index) VertexIndex: u32) -> outpuVertex {
 @fragment
 fn fs(@location(0) uv: vec2f) -> @location(0)  vec4f {
     let depth = textureSample(gBuffer_depth, u_Sampler, uv);
-    // return vec4f(depth, depth, depth, 1);
+
     return vec4f(depth, depth, depth, 1);
+   
+    //return vec4f(1);
 }

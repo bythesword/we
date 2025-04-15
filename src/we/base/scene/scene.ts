@@ -15,7 +15,7 @@ import { BaseLight } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
 import { GBufferPostProcess, optionGBPP } from "./GBufferPostProcess";
 import { PostProcessMangement } from "../postprocess/postProcessMangement";
-import { GBuffersVisualize } from "./GBufferVisualize";
+import { GBuffersVisualize, GBuffersVisualizeViewport } from "./GBufferVisualize";
 import { optionPickup, Pickup, pickupTargetOfIDs } from "../pickup/pickup";
 import { InputControl, typeOfInputControl } from "../control/inputControl";
 import { CamreaControl } from "../control/cameracCntrol";
@@ -84,35 +84,6 @@ export interface sceneInputJson extends sceneJson {
     multiCameraViewport?: cameraViewport[],
 }
 
-/**scene 中配置是否使用GBuffer可视化的interface，
- * ·
- * showGBuffersVisualize()与run()循环配合使用 
- * 
- * setGBuffersVisualize()设置此interface的状态
- * */
-export interface GBuffersVisualizeViewport {
-    /**是否开启可视化 */
-    enable: boolean,
-    /**两种模式的布局，single与非single */
-    layout?: {
-        /**
-         * layout有两种名称状态：
-         * 
-         * single模式下：使用coreConst.GBufferName的enum
-         * 
-         * 非single模式下：使用oreConst.GBuffersVisualizeLayoutAssemble-->name
-         */
-        name: string,
-        single: boolean,
-        // singleType?: ,
-    },
-    /**其他深度纹理的可视化 */
-    forOtherDepth?: {
-        depthTextureView: GPUTextureView,
-    }
-    /**状态：boolan，layout布局是否更改过的状态,人工保障正确性 */
-    statueChange?: boolean,
-}
 /** system uniform 的结构 ，都是GPUBuffer，为更新uniform使用，*/
 export declare interface systemUniformBuffer {
     /**

@@ -34,6 +34,11 @@ export abstract class BaseCommand {
     pipelineLayout!: GPUPipelineLayout | "auto";
 
     /**
+     * todo：20250414
+     * bindGroupLayout 句柄 
+     * 先创建 bindGroupLayout  */
+    bindGroupLayout: GPUBindGroupLayout;
+    /**
      * bindingGroup 描述 
      * 
      * [0]=系统的uniform参数
@@ -46,7 +51,7 @@ export abstract class BaseCommand {
      * 所有的uniform 中使用的Buffer的收集器 ，
      *  0：系统的uniform参数
      *  1-3：用户的uniform参数
-     */ 
+     */
     unifromBuffer!: uniformBufferAll;
 
 
@@ -62,6 +67,7 @@ export abstract class BaseCommand {
 
     /**这个类的webGPU的 commandEncoder */
     input!: baseOptionOfCommand;
+
 
     constructor(options: baseOptionOfCommand) {
         if (options.name) {
@@ -184,8 +190,10 @@ export abstract class BaseCommand {
     }
 
 
-    /**
-     * 创建 bindGroup 1--3 
+    /**创建 bindGroup 1--3 ,先获取pipelineLayout,auto模式，再创建bindGroup，然后再创建pipeline
+     * 
+     * layout from a pipeline by calling somePipeline.getBindGroupLayout(groupNumber)
+     * 
      * @returns localUniformGroups
      */
     createUniformGroups(): localUniformGroups {
@@ -196,15 +204,24 @@ export abstract class BaseCommand {
         let unifromGroupSource = this.input.uniforms as unifromGroup[];
         for (let perGroup of unifromGroupSource) {
             let entries: GPUBindGroupEntry[] = [];
-            for (let perOne of perGroup.entries) {
-                if ("size" in perOne) {
+            for (let perOne of perGroup.entries) {//循环entries
+                if ("size" in perOne) {//如果是DCC自定义的uniformBufferPart，即size存在的
+                    /**
+                     * 1、创建uniform buffer的描述，并将uniformBuffer(GPUBuffer) 存储到this.unifromBuffer中。
+                     * 2、创建GPUBindGroupEntry
+                     */
                     const perOneBuffer = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
                     entries.push(perOneBuffer);
                 }
-                else {
+                else {//其他的webGPU的1、创建GPUBindGroupEntry，即size不存在的
                     entries.push(perOne as GPUBindGroupEntry);
                 }
             };
+            //layout from a pipeline by calling somePipeline.getBindGroupLayout(groupNumber)
+            //这个是通过pipeline获取的，而不是在构造函数中传入的。从逻辑上看，两种方式都可以（也是一样的）。
+            //A、这种形式是获取layout的定义("auto"),然后再创建bindGroup。
+            //B、另外的一种，就是创建bindGroupLayout 和createPipelineLayout，两种保持格式一致即可。
+
             const bindLayout = pipeline.getBindGroupLayout(perGroup.layout);
             let groupDesc: GPUBindGroupDescriptor = {
                 label: "bind to " + perGroup.layout,
@@ -218,6 +235,72 @@ export abstract class BaseCommand {
         return bindGroup;
     }
 
+    /**
+    * todo：20250414
+    * 创建 bindGroup 1--3 
+    *  
+    * 这种先创建descriptor: GPUBindGroupLayoutDescriptor ，再创建bindGroupLayout，再创建pipelineLayout，最后再创建pipeline，
+    * 
+    *       是因为，在创建pipelineLayout时，需要传入bindGroupLayout，而bindGroupLayout是在创建pipelineLayout时创建的。
+    *       所以，需要先创建bindGroupLayout，再创建pipelineLayout，最后再创建pipeline。 
+    *       最后，在submit时，绑定对应bindGroup（bindGroupLayout一致的）
+    * 
+    * 但，这种有个问题，创建descriptor: GPUBindGroupLayoutDescriptor 时，需要传入entries的具体类型，而且具体类型需要具体的程度会非常具体，todo
+    * 
+    * @returns localUniformGroups
+    */
+    createUniformGroupsByLayout(): localUniformGroups {
+        let device = this.device;
+        let pipeline = this.pipeline;
+        let bindGroup: localUniformGroups = [];
+
+        let unifromGroupSource = this.input.uniforms as unifromGroup[];
+        for (let perGroup of unifromGroupSource) {
+            let entries: GPUBindGroupEntry[] = [];
+            for (let perOne of perGroup.entries) {//循环entries
+                if ("size" in perOne) {//如果是DCC自定义的uniformBufferPart，即size存在的
+                    /**
+                     * 1、创建uniform buffer的描述，并将uniformBuffer(GPUBuffer) 存储到this.unifromBuffer中。
+                     * 2、创建GPUBindGroupEntry
+                     */
+                    const perOneBuffer = this.createUniformBufferBindGroupDescriptor(perGroup.layout, perOne as uniformBufferPart);
+                    entries.push(perOneBuffer);
+                }
+                else {//其他的webGPU的1、创建GPUBindGroupEntry，即size不存在的
+                    entries.push(perOne as GPUBindGroupEntry);
+                }
+            };
+            //layout from a pipeline by calling somePipeline.getBindGroupLayout(groupNumber)
+            //这个是通过pipeline获取的，而不是在构造函数中传入的。从逻辑上看，两种方式都可以（也是一样的）。
+            //A、这种形式是获取layout的定义("auto"),然后再创建bindGroup。
+            //B、另外的一种，就是创建bindGroupLayout 和createPipelineLayout，两种保持格式一致即可。
+
+            /*示例：
+            const bindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {}, },
+                    { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+                    { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: {} },
+                ],
+            });
+            */
+           
+           //这个转换肯定时错的，需要具体展开，visibility项和resoure中对应到GPUBindGroupLayoutEntry的类型一致。
+            const bindGroupLayout = device.createBindGroupLayout({
+                entries: entries as unknown as GPUBindGroupLayoutEntry[],//todo:20250414，需要验证正确性，未作验证。
+            });
+            this.bindGroupLayout = bindGroupLayout;
+            let groupDesc: GPUBindGroupDescriptor = {
+                label: "bind to " + perGroup.layout,
+                layout: bindGroupLayout,
+                entries: entries,
+            }
+            const uniformBindGroup = device.createBindGroup(groupDesc);
+            bindGroup[perGroup.layout] = uniformBindGroup;
+        }
+
+        return bindGroup;
+    }
     /**
      * For RAW 
      * 更新单个layout的uniform buffer的TypedArray
@@ -290,4 +373,3 @@ export abstract class BaseCommand {
         }
     }
 }
- 

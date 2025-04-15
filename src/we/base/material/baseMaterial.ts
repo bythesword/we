@@ -1,4 +1,4 @@
-import { uniformEntries } from "../command/baseCommand";
+import { uniformEntries } from "../command/commandDefine";
 import * as coreConst from "../const/coreConst"
 import { Root } from "../scene/root";
 import { Scene } from "../scene/scene";
@@ -8,19 +8,38 @@ import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.
 
 import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
 
-export type textureType = ImageBitmap | string | GPUTexture;
+/**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
+export type textureType = string | GPUTexture |  GPUCopyExternalImageSource;
 
-export interface optionBaseMaterial {
-    /**
-     * 两种情况：
+// /**纹理的收集器，GPUTexture */
+// export interface textures {
+//     [name: string]: GPUTexture
+// }
+
+
+/**透明材质的初始化参数 */
+export interface optionTransparentOfMaterial {
+    /** 不透明度，float32，默认=1.0 */
+    opacity?: number,
+    /**alphaTest时要使用的alpha值。如果不透明度低于此值，则不会渲染材质。默认值为0 */
+    alphaTest?: number,
+    /** blending ，直接使用webGPU的GPUBlendState interface格式
+     * 
+     * 如果动态更改blending内容，则entity的pipeline需要重新创建
+     * 
+     * The blending behavior for this color target. 
+    */
+    blend?: GPUBlendState,
+}
+
+/**基础材质的初始化参数
      * 
      * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
      * 
-     * 2、代码实时构建，可以显示的带入parent，则不用等待
-     * 
-     * 3、加载场景模式，原则上是通过加载器带入parent参数。todo
+     * 2、加载场景模式，原则上是通过加载器带入parent参数。todo
      */
-    // parent?: BaseScene,
+export interface optionBaseMaterial {
+
     /**基础颜色 */
     color?: coreConst.color4F//number[],
     /**顶点颜色，boolean */
@@ -29,18 +48,16 @@ export interface optionBaseMaterial {
     depthTest?: boolean,
     /**此材质是否对深度缓冲区有任何影响。默认为true */
     depthWrite?: boolean,
-
-    // /** 不透明度，float32，默认=1.0 */
-    opacity?: number,
-    // /**alphaTest时要使用的alpha值。如果不透明度低于此值，则不会渲染材质。默认值为0 */
-    alphaTest?: number,
-
     /**指定的fragment code */
     code?: string
+    /**透明材质的初始化参数
+     * 默认不透明：没有此参数
+     */
+    transparent?: optionTransparentOfMaterial,
 }
 /**三段式初始化的第二步：init */
 export interface optionBaseMaterialStep2 {
-    parent:BaseEntity,
+    parent: BaseEntity,
     scene: Scene,//为获取在scene中注册的resource
     deferRenderDepth: boolean,
     deferRenderColor: boolean,
@@ -64,7 +81,7 @@ export abstract class BaseMaterial extends Root {
     deferRenderColor!: boolean;
     reversedZ!: boolean;
     _shadow!: optionShadowEntity;
-    parent!:BaseEntity;
+    parent!: BaseEntity;
 
     constructor(input?: optionBaseMaterial) {
         super();
@@ -88,8 +105,8 @@ export abstract class BaseMaterial extends Root {
         this._already = false;
     }
     async init(values: optionBaseMaterialStep2) {
-        this.parent=values.parent;
-        this._shadow=values.parent._shadow;
+        this.parent = values.parent;
+        this._shadow = values.parent._shadow;
         this.deferRenderDepth = values.deferRenderDepth;
         this.deferRenderColor = values.deferRenderColor;
         this.reversedZ = values.reversedZ;
@@ -97,9 +114,22 @@ export abstract class BaseMaterial extends Root {
         await this.__init();
     }
     abstract __init(): any;
+    /**由entity调用，获取FS code
+     *   @param startBinding  入参 ：startBinding： 从这个位置开始，为这个材质的所有texture分配binding。
+     *  返回值：FS code 
+     */
     abstract getCodeFS(startBinding: number): string;
     abstract destroy(): any
+    /**获取uniform
+     * 
+     * 绑定的顺序：需要由getCodeFS()的顺序一致
+     * 
+     * 入参 ：startBinding： 从这个位置开始，为这个材质的所有texture分配binding。
+     * 
+     * @param startBinding 
+     */
     abstract getUniform(startBinding: number): uniformEntries[] | false
+    
     /**是否为透明材质 */
     abstract getTransparent(): boolean;
 

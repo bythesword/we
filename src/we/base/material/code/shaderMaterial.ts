@@ -1,6 +1,6 @@
 import { BaseMaterial, optionBaseMaterial, textureType } from "../baseMaterial";
 import codeOnlyFS from "../../shader/material/code/code.fs.wgsl?raw"
-import { uniformEntries } from "../../command/baseCommand";
+import { uniformEntries } from "../../command/commandDefine";
 
 
 export interface optionShaderMaterial extends optionBaseMaterial {

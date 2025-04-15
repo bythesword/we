@@ -1,5 +1,5 @@
-import { DrawCommand, drawMode, DrawOptionOfCommand } from "../command/DrawCommand";
-import { unifromGroup } from "../command/baseCommand";
+import { DrawCommand } from "../command/DrawCommand";
+import { unifromGroup, drawMode, DrawOptionOfCommand } from "../command/commandDefine";
 import { GBuffers, GBuffersRPDAssemble } from "../const/coreConst";
 import { Scene } from "./scene";
 import { SingleRender, optionSingleRender } from "./singleRender";

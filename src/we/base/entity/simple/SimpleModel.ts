@@ -1,5 +1,5 @@
-import { uniformEntries, unifromGroup } from "../../command/baseCommand";
-import { DrawCommand, drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes } from "../../command/DrawCommand";
+import { uniformEntries, unifromGroup , drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes} from "../../command/commandDefine";
+import { DrawCommand } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseStage } from "../../stage/baseStage";
 import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";

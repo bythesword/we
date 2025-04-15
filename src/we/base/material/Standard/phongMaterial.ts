@@ -1,9 +1,17 @@
-
+/**
+ * 基础Bulin-Phong光照模型
+ * 1、顶点颜色
+ * 2、纹理
+ * 3、光照（三种光源）
+ * 4、阴影（三种光源）
+ * 5、透明：todo
+  */
 import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
-import { uniformEntries } from "../../command/baseCommand";
+
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
-import { weSamplerKind } from "../../resource/weResource";
+import { weResourceTexture, weSamplerKind } from "../../resource/weResource";
 import {  textureType } from "../baseMaterial";
+import { uniformEntries } from "../../command/commandDefine";
 
 
 /*
@@ -17,15 +25,14 @@ export interface optionPhongMaterial extends optionPhongColorMaterial {
 
     },
     samplerFilter?: GPUMipmapFilterMode,
+    mipmap?: boolean,
 }
-interface textures {
-    [name: string]: GPUTexture
-}
+
 
 export class PhongMaterial extends PhongColorMaterial {
 
     declare input: optionPhongMaterial;
-    textures!: textures
+    textures!: weResourceTexture
     countOfTextures!: number;
     countOfTexturesOfFineshed!: number;
     // {
@@ -61,9 +68,11 @@ export class PhongMaterial extends PhongColorMaterial {
             let texture = this.input.texture;
             if (texture.texture) {
                 let kind = "texture";
+                //url
                 if (typeof texture.texture == "string") {
                     this.generateTextureByString(texture.texture, kind);
                 }
+                //GPUTexture
                 else if (typeof texture.texture == "object" && "usage" in texture.texture) {
                     this.textures.texture = texture.texture;
                     this.countOfTexturesOfFineshed++;
@@ -71,6 +80,7 @@ export class PhongMaterial extends PhongColorMaterial {
                         this._already = true;
                     }
                 }
+                //GPUCopyExternalImageSource
                 else if (typeof texture.texture == "object" && "width" in texture.texture) {
                     this.generateTextureByBitmap(texture.texture as ImageBitmap, kind);
                 }
@@ -133,7 +143,7 @@ export class PhongMaterial extends PhongColorMaterial {
         //     ;
         let scope = this;
         // const response =
-         new Promise((resolve) => {
+        new Promise((resolve) => {
             resolve(fetch(res));
         }).then(
             async (res) => {
@@ -182,15 +192,14 @@ export class PhongMaterial extends PhongColorMaterial {
             scope._already = true;
         }
     };
-
     /**
-     * 
-     * @returns  FS code
-     */
+         * 
+         * @returns  FS code
+         */
     getCodeFS(startBinding: number) {
         let code = lightsFS;
         let binding = startBinding;
-        
+
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
         code = code.replaceAll("$green", this.green.toString());
@@ -214,8 +223,8 @@ export class PhongMaterial extends PhongColorMaterial {
 
         //判断texture种类，增加对应贴图，增加一个采样（uniform中，binding 4）
         if (this.countOfTextures > 0) {
-           
-            code += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;
+
+            code += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;//这个需要与getUniform(startBinding: number)中的sampler对应，都是在texture之前
             // let binding = 3;
             binding++;
             for (let i in this.textures) {
@@ -228,7 +237,7 @@ export class PhongMaterial extends PhongColorMaterial {
                 if (i == "normalTexture") {
                     flag_normal = true;
                 }
-                code += `@group(1) @binding(${binding}) var u_${i}: texture_2d<f32>;\n`;
+                code += `@group(1) @binding(${binding}) var u_${i}: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
                 binding++;
             }
         }

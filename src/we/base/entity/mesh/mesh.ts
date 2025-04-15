@@ -2,9 +2,9 @@ import * as coreConst from "../../const/coreConst";
 import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
-import { DrawCommand, drawMode, drawModeIndexed, drawModeType, DrawOptionOfCommand, indexBuffer } from "../../command/DrawCommand";
+import { DrawCommand} from "../../command/DrawCommand";
 
-import { uniformEntries, unifromGroup } from "../../command/baseCommand";
+import { uniformEntries, unifromGroup , drawMode, drawModeIndexed, drawModeType, DrawOptionOfCommand, indexBuffer } from "../../command/commandDefine";
 //for wireframe
 import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"

@@ -1,6 +1,6 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import cubeSky from "../../shader/sky/cubeSky.fs.wgsl?raw"
-import { uniformEntries } from "../../command/baseCommand";
+import { uniformEntries } from "../../command/commandDefine";
 import { weSamplerKind } from "../../resource/weResource";
 
 export interface optionCubeSkyMaterial extends optionBaseMaterial {
@@ -16,6 +16,10 @@ interface textures {
 
 
 export class CubeSkyMaterial extends BaseMaterial {
+    getTransparent(): boolean {
+        // throw new Error("Method not implemented.");
+        return false;
+    }
 
 
     declare input: optionCubeSkyMaterial;

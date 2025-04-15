@@ -1,10 +1,10 @@
 import { CameraActor } from "../actor/cameraActor";
-import { DrawCommand, drawMode, DrawOptionOfCommand } from "../command/DrawCommand";
+import { DrawCommand } from "../command/DrawCommand";
 import { MultiGBuffers } from "../const/coreConst";
 import { cameraViewport } from "./scene";
 import { optionSingleRender, SingleRender } from "./singleRender";
 import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";
-import { unifromGroup } from "../command/baseCommand";
+import { unifromGroup, drawMode, DrawOptionOfCommand } from "../command/commandDefine";
 
 export interface optionMulitCameras extends optionSingleRender {
     multiCameraViewport: cameraViewport[],

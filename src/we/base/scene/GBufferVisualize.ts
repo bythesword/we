@@ -1,12 +1,12 @@
-import { DrawCommand, drawMode, DrawOptionOfCommand } from "../command/DrawCommand";
+import { DrawCommand } from "../command/DrawCommand";
 import * as coreConst from "../const/coreConst";
 import { optionSingleRender, SingleRender } from "./singleRender";
 // import shaderCodeDepth from "../shader/GBuffersVisualize/depth.wgsl?raw";
 // import shaderCodeEID from "../shader/GBuffersVisualize/entityID.wgsl?raw";
 // import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
-import { unifromGroup } from "../command/baseCommand";
-import { GBuffersVisualizeViewport } from "./scene";
+import { unifromGroup, drawMode, DrawOptionOfCommand } from "../command/commandDefine";
+// import { GBuffersVisualizeViewport } from "./scene";
 
 //GBuffer可视化至于GBuffers、layout、compyToTarget像刚刚
 
@@ -22,6 +22,46 @@ import { GBuffersVisualizeViewport } from "./scene";
 //4、如何scene.run()通过调用的scene.showGBuffersVisualize()调用本类的
 
 
+/**scene 中配置是否使用GBuffer可视化的interface，
+ * ·
+ * showGBuffersVisualize()与run()循环配合使用 
+ * 
+ * setGBuffersVisualize()设置此interface的状态
+ * */
+export interface GBuffersVisualizeViewport {
+    /**是否开启可视化 */
+    enable: boolean,
+    /**两种模式的布局，single与非single 
+     * 用于整个GBuffer的可视化，
+     * 非single模式下，需要指定layout的名称，
+     * 然后在GBuffersVisualizeLayoutAssemble中指定
+     *
+     * 与下面的forOtherDepth互斥
+    */
+    layout?: {
+        /**
+         * layout有两种名称状态：
+         * 
+         * single模式下：使用coreConst.GBufferName的enum
+         * 
+         * 非single模式下：使用oreConst.GBuffersVisualizeLayoutAssemble-->name
+         */
+        name: string,
+        single: boolean,
+        // singleType?: ,
+    },
+    /**其他深度纹理的可视化 ，需要明确指定出深度纹理的view，
+     * 
+     * 与上面的layout互斥
+     *
+     * 
+    */
+    forOtherDepth?: {
+        depthTextureView: GPUTextureView,
+    }
+    /**状态：boolan，layout布局是否更改过的状态,人工保障正确性 */
+    statueChange?: boolean,
+}
 export interface optionGBuffersVisualize extends optionSingleRender {
     layout: GBuffersVisualizeViewport,
     copyToTarget: GPUTexture,
