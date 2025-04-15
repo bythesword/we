@@ -24,6 +24,9 @@ export interface optionTextureMaterial extends optionBaseMaterial {
 }
 
 export class TextureMaterial extends BaseMaterial {
+    getBlend(): GPUBlendState | undefined {
+        throw new Error("Method not implemented.");
+    }
     sampler!: GPUSampler;
     declare input: optionTextureMaterial;
 

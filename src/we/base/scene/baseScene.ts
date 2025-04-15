@@ -136,12 +136,12 @@ export abstract class BaseScene {
      * 
     */
     colorAttachmentTargets!: GPUColorTargetState[];
-    /** 透明通道的输出纹理格式 
-     * 至少包括：
-     *          format: GPUTextureFormat;
-     *          blend?: GPUBlendState;
-    */
-    colorAttachmentTargetsTransparent!: GPUColorTargetState[];
+    // /** 透明通道的输出纹理格式 
+    //  * 至少包括：
+    //  *          format: GPUTextureFormat;
+    //  *          blend?: GPUBlendState;
+    // */
+    // colorAttachmentTargetsTransparent!: GPUColorTargetState[];
 
     //  {
     //     depthWriteEnabled: true,

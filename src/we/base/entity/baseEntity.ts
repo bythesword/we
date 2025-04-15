@@ -256,6 +256,7 @@ export abstract class BaseEntity extends Root {
     /**实例化数量，默认为1 */
     numInstances: number;
 
+    _cullMode!: GPUCullMode;
 
     ///////////////////////////////////////////////////////////////////
     //空间属性
@@ -382,6 +383,10 @@ export abstract class BaseEntity extends Root {
         if (input.dynamicMesh) {
             this._dynamicMesh = input.dynamicMesh
         }
+        this._cullMode = "back";
+        if (input.cullmode) {
+            this._cullMode = input.cullmode;
+        }
         this._id = 0;//在stage中的ID，默认=0，如果_id=0，则与ID相关的功能失效 
         this.stageID = 0;
         this._LOD = [];
@@ -443,6 +448,7 @@ export abstract class BaseEntity extends Root {
         // };
 
     }
+    abstract getBlend(): GPUBlendState | undefined;
     abstract getTransparent(): boolean;
     /**
      * 三段式初始化的第二步：init
@@ -989,11 +995,18 @@ export abstract class BaseEntity extends Root {
      */
     getFragmentTargets(): GPUColorTargetState[] {
         if (this.transparent === true) {
-            return this.stage!.colorAttachmentTargetsTransparent;
+            let targets = this.stage!.colorAttachmentTargets;
+            let blending = this.getBlend();
+            if (blending != undefined) {
+                targets[0].blend = blending;
+            }
+            return targets;
+
         }
         else {
             return this.stage!.colorAttachmentTargets;
         }
     }
+
 
 }

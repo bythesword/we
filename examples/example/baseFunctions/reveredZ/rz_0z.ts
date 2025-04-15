@@ -3,8 +3,7 @@ import { ArcballCameraControl } from "../../../../src/we/base/control/arcballCam
 import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
-import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
+import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene" 
 import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"

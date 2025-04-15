@@ -9,7 +9,7 @@ import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.
 import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
 
 /**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
-export type textureType = string | GPUTexture |  GPUCopyExternalImageSource;
+export type textureType = string | GPUTexture | GPUCopyExternalImageSource;
 
 // /**纹理的收集器，GPUTexture */
 // export interface textures {
@@ -76,12 +76,27 @@ export abstract class BaseMaterial extends Root {
      * 如果更改为为true，在材质不工作
     */
     _already: boolean;
+    /**
+     * blending混合的状态interface
+     * 
+     * 1、如果是undefined，说明不混合
+     * 2、如果是object，说明混合
+     */
+    _transparent: optionTransparentOfMaterial|undefined;
+
 
     deferRenderDepth!: boolean;
     deferRenderColor!: boolean;
     reversedZ!: boolean;
     _shadow!: optionShadowEntity;
     parent!: BaseEntity;
+
+    /**
+     * 是否更新过，由entity调用，
+     * 1、如果是true，说明已经更新过（比如非uniform的内容，FS code、texture等），entity则需要重新生成command、pipeline。
+     * 2、如果是false，说明没有更新过。
+     */
+    _reBuild: boolean = false;
 
     constructor(input?: optionBaseMaterial) {
         super();
@@ -99,11 +114,17 @@ export abstract class BaseMaterial extends Root {
                 this.blue = input.color.blue;
                 this.alpha = input.color.alpha;
             }
+            if (input.transparent) {
+                this._transparent = input.transparent;
+            } 
         }
         else
             this.input = {};
         this._already = false;
     }
+    get needUpdate() { return this._reBuild; }
+    set needUpdate(value: boolean) { this._reBuild = value; }
+
     async init(values: optionBaseMaterialStep2) {
         this.parent = values.parent;
         this._shadow = values.parent._shadow;
@@ -129,10 +150,17 @@ export abstract class BaseMaterial extends Root {
      * @param startBinding 
      */
     abstract getUniform(startBinding: number): uniformEntries[] | false
-    
-    /**是否为透明材质 */
-    abstract getTransparent(): boolean;
 
+    /**
+     * 是否为透明材质
+     * @returns boolean  true：是透明材质，false：不是透明材质
+     */
+    abstract getTransparent(): boolean;
+    /**
+     * 获取混合状态
+     * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
+     */
+    abstract getBlend(): GPUBlendState | undefined;
     /**
      * 材质是否已经准备好，
      * 判断两个值，

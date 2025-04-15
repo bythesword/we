@@ -34,11 +34,21 @@ export class ColorMaterial extends BaseMaterial {
                     }
                 }
             };
-            this.input.transparent = transparent;
+            this._transparent = transparent;
+            this.red=this.red*this.alpha;
+            this.green=this.green*this.alpha;
+            this.blue=this.blue*this.alpha;
         }
         this._already = true;
     }
+    /** 获取混合状态
+     * 
+     * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
+     */
 
+    getBlend() :GPUBlendState | undefined{
+        return this._transparent?.blend; 
+    }
     getCodeFS(_startBinding: number) {
         let code = colorOnlyFS
         code = code.replaceAll("$red", this.red.toString());

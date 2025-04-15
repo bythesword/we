@@ -3,13 +3,14 @@ import { ArcballCameraControl } from "../../../../src/we/base/control/arcballCam
 import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
-import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
+import { sceneInputJson } from "../../../../src/we/base/scene/scene"
+import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
- 
-import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMaterial"
+
 import { PointLight } from "../../../../src/we/base/light/pointLight"
-import { mat4, vec3 } from "wgpu-matrix"
+import { initScene } from "../../../../src/we/base/scene/initScene"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
+import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
 
 declare global {
   interface Window {
@@ -21,9 +22,9 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0.5,
-    green: 0.5,
-    blue: 0.5,
+    red:  0,
+    green: 0.1,
+    blue: 0.2,
     alpha: 1
   },
   ambientLight: {
@@ -32,12 +33,12 @@ let input: sceneInputJson = {
       green: 1,
       blue: 1
     },
-    intensity: 0.5
-  }
+    intensity: 0.13
+  },
+  stageSetting: "world"
 }
-let scene = new Scene(input);
-await scene.init();
 
+let scene = await initScene(input)
 window.scene = scene;
 
 
@@ -47,7 +48,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [0, 0, 3],
+  position: [9, 3, 9],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -76,44 +77,69 @@ scene.addCameraActor(actor, true)
 
 
 ////enities 初始化
-//box
-let boxGeometry = new BoxGeometry();
-//极简测试材质，red
-let redMaterial = new PhongMaterial({
-  color: { red: 0, green: 1, blue: 0, alpha: 1 },
-  metalness: 1,
-  texture: {
-    texture: "/examples/resource/images/box/container2.png",
-    specularTexture: "/examples/resource/images/box/container2_specular.png",
-  }
+
+let planeGeometry = new PlaneGeometry({
+  width: 10,
+  height: 10
 });
+let groundMaterial = new ColorMaterial({
+  color: { red: 1, green: 1, blue: 1, alpha: 1 },
+});
+
+let bottomPlane = new Mesh({
+  name: "bottomPlane",
+  geometry: planeGeometry,
+  material: groundMaterial,
+  position: [0, -1, 0],
+  rotate: {
+    axis: [1, 0, 0],
+    angleInRadians: -Math.PI / 2,
+  },
+  wireFrame: false,
+  cullmode: "none"
+});
+await scene.add(bottomPlane);
+
+
+
+//box
+// let Geometry = new SphereGeometry({
+//   radius: 1,
+//   widthSegments: 128,
+//   heightSegments: 128
+// });
+//极简测试材质，red
+let colorMaterial_1 = new ColorMaterial(
+  {
+    color: { red: 1, green: 0.3, blue: 0.5, alpha: 0.51 },
+  });
 //box实体
 let boxEntity = new Mesh(
   {
-    geometry: boxGeometry,
-    material: redMaterial,
+    name:"透明plane",
+    geometry: planeGeometry,
+    material: colorMaterial_1,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
-    // dynamicPostion: true,
-    update: (scope, deltaTime, startTime, lastTime) => {
-      // console.log("12");
-      scope.matrix = mat4.identity(); 
-      const now = Date.now() / 1000;    
-      scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);      
-      return true;
+    // position:vec3.create(1,0,0),
+    // scale:[2,2,1],
+    rotate:{
+      axis:[0,1,0],
+      angleInRadians:0.5*Math.PI
     },
   }
 );
 //增加实体到scene
 await scene.add(boxEntity)
-let light1= new PointLight(
+
+let light1 = new PointLight(
   {
     position: [0.0, 0.0, 8.0],
-    intensity: 12.0,
+    intensity: 2.0,
 
   }
 );
 
 scene.addLight(light1);
 
-//运行场景
-scene.run()
+

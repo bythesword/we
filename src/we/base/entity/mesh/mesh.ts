@@ -45,6 +45,7 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
+ 
     getTransparent(): boolean {
         // throw new Error("Method not implemented.");
         return this._material.getTransparent();
@@ -54,14 +55,14 @@ export class Mesh extends BaseEntity {
     _material!: BaseMaterial;
     _wireframeColor!: coreConst.color4F;
     _wireframeEnable!: boolean;
-    _cullMode!: GPUCullMode;
+    // _cullMode!: GPUCullMode;
     _wireFrameOnly?: boolean;
     constructor(input: optionMeshEntity) {
         super(input);
-        this._cullMode = "back";
-        if (input.cullmode) {
-            this._cullMode = input.cullmode;
-        }
+        // this._cullMode = "back";
+        // if (input.cullmode) {
+        //     this._cullMode = input.cullmode;
+        // }
         this._wireFrameOnly = false;
         if (input.wireFrameOnly) {
             this._wireFrameOnly = true;
@@ -94,6 +95,10 @@ export class Mesh extends BaseEntity {
             reversedZ: this.reversedZ,
             parent: this,
         });
+        if(this._material.getTransparent() === true){//如果不是透明的，就设置为透明
+            this._cullMode="none";
+        }
+        
         // await this._material.setRootENV(this.scene);
     }
     destroy() {
@@ -583,5 +588,9 @@ export class Mesh extends BaseEntity {
         }
 
         return initStateEntity.initializing;
+    }
+
+    getBlend(): GPUBlendState | undefined {
+        return this._material.getBlend();
     }
 }
