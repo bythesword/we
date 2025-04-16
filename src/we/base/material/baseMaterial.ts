@@ -19,14 +19,17 @@ export type textureType = string | GPUTexture | GPUCopyExternalImageSource;
 
 /**透明材质的初始化参数 */
 export interface optionTransparentOfMaterial {
-    /** 不透明度，float32，默认=1.0 */
+    /** 不透明度，float32，默认=1.0 
+     * 
+     * 如果opacity与alpha同时存在，那么alpha会覆盖opacity。
+    */
     opacity?: number,
     /**alphaTest时要使用的alpha值。如果不透明度低于此值，则不会渲染材质。默认值为0 */
     alphaTest?: number,
     /** blending ，直接使用webGPU的GPUBlendState interface格式
      * 
      * 如果动态更改blending内容，则entity的pipeline需要重新创建
-     * 
+     * opacityopacity
      * The blending behavior for this color target. 
     */
     blend?: GPUBlendState,

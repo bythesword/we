@@ -22,6 +22,9 @@ export interface optionPhongColorMaterial extends optionBaseMaterial {
  * phong 模型的颜色版本，无texture
  */
 export class PhongColorMaterial extends BaseMaterial {
+    getBlend(): GPUBlendState | undefined {
+        throw new Error("Method not implemented.");
+    }
     __init() {
         // throw new Error("Method not implemented.");
     }

@@ -112,7 +112,10 @@ await scene.add(bottomPlane);
 //极简测试材质，red
 let colorMaterial_1 = new ColorMaterial(
   {
-    color: { red: 1, green: 0.3, blue: 0.5, alpha:  1 },
+    color: { red: 1, green: 0.3, blue: 0.5, alpha: 1 },
+    transparent: {
+      opacity: 0.9, 
+    }
   });
 //box实体
 let boxEntity = new Mesh(

@@ -19,7 +19,7 @@ export class ColorMaterial extends BaseMaterial {
     declare input: optionColorMaterial;
     constructor(input: optionColorMaterial) {
         super(input);
-        if (input.color.alpha < 1.0 && input.transparent == undefined) {//如果是透明的，就设置为透明
+        if (input.color.alpha < 1.0 || (this.input.transparent != undefined && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0)) {//如果是透明的，就设置为透明
             let transparent: optionTransparentOfMaterial = {
                 blend: {
                     color: {
@@ -35,10 +35,21 @@ export class ColorMaterial extends BaseMaterial {
                 }
             };
             this._transparent = transparent;
-            this.red=this.red*this.alpha;
-            this.green=this.green*this.alpha;
-            this.blue=this.blue*this.alpha;
+            if (this.alpha < 1.0) {//如果alpha<1.0，就设置为alpha
+                //预乘
+                this.red = this.red * this.alpha;
+                this.green = this.green * this.alpha;
+                this.blue = this.blue * this.alpha;
+            }
+            else if (this.input.transparent != undefined && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0) {//如果alpha=1.0，就设置为opacity
+                //预乘
+                this.red = this.red * this.input.transparent.opacity;
+                this.green = this.green * this.input.transparent.opacity;
+                this.blue = this.blue * this.input.transparent.opacity;
+                this.alpha = this.input.transparent.opacity;
+            }
         }
+
         this._already = true;
     }
     /** 获取混合状态
@@ -46,8 +57,8 @@ export class ColorMaterial extends BaseMaterial {
      * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
      */
 
-    getBlend() :GPUBlendState | undefined{
-        return this._transparent?.blend; 
+    getBlend(): GPUBlendState | undefined {
+        return this._transparent?.blend;
     }
     getCodeFS(_startBinding: number) {
         let code = colorOnlyFS
@@ -70,7 +81,16 @@ export class ColorMaterial extends BaseMaterial {
     }
 
     getTransparent(): boolean {
-        return this.alpha != 1.0 ? true : false;
+        if (this.alpha < 1.0) {
+            return true;
+        }
+        else if (this.input.transparent?.opacity != undefined && this.input.transparent.opacity < 1.0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+        // return this.alpha != 1.0 ? true : false;
     }
     __init() {
         // throw new Error("Method not implemented.");
