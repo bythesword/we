@@ -1,12 +1,13 @@
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/phongcolor.fs.wgsl?raw"
 import { uniformBufferPart, uniformEntries } from "../../command/commandDefine";
+import { ColorMaterial, optionColorMaterial } from "./colorMaterial";
 
 
 /**
  * 这个phong模型是PBR的，结果只是近似
  */
-export interface optionPhongColorMaterial extends optionBaseMaterial {
+export interface optionPhongColorMaterial extends optionColorMaterial {
     /**反射指数(高光区域集中程度)：默认：32 */
     Shininess?: number,
     /** 高光反射系数(金属度)，0.0（非金属）--1.0（金属），默认：0.5 */
@@ -21,10 +22,8 @@ export interface optionPhongColorMaterial extends optionBaseMaterial {
 /**
  * phong 模型的颜色版本，无texture
  */
-export class PhongColorMaterial extends BaseMaterial {
-    getBlend(): GPUBlendState | undefined {
-        throw new Error("Method not implemented.");
-    }
+export class PhongColorMaterial extends ColorMaterial {
+ 
     __init() {
         // throw new Error("Method not implemented.");
     }
@@ -35,7 +34,7 @@ export class PhongColorMaterial extends BaseMaterial {
     declare input: optionPhongColorMaterial;
 
 
-    constructor(input?: optionPhongColorMaterial) {
+    constructor(input: optionPhongColorMaterial) {
         super(input);
         if (this.input.Shininess == undefined) {
             this.input.Shininess = 32;

@@ -16,6 +16,8 @@ fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {
     $output
 
     output.color = vec4f($red, $green, $blue, $alpha);
+
+    $vertexColor
     // if uv.y > 0.5 {
         // output.color = vec4f(fsInput.position.z, fsInput.position.z, fsInput.position.z, 1);
     // } else {

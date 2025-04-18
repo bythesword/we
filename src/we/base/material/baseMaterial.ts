@@ -1,27 +1,21 @@
 import { uniformEntries } from "../command/commandDefine";
 import * as coreConst from "../const/coreConst"
-import { Root } from "../scene/root";
+import { RootOfGPU } from "../scene/root";
 import { Scene } from "../scene/scene";
 import partHead_GBuffer_Add_FS from "../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.fs.wgsl?raw"
 
 import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
+import { optionTextureSource } from "../texture/texture";
+ 
 
-/**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
-export type textureType = string | GPUTexture | GPUCopyExternalImageSource;
-
-// /**纹理的收集器，GPUTexture */
-// export interface textures {
-//     [name: string]: GPUTexture
-// }
-
-
-/**透明材质的初始化参数 */
+// type names="texture"|"normal"|"specspecular"|"AO"|"light"|"alpha";
+ /**透明材质的初始化参数 */
 export interface optionTransparentOfMaterial {
     /** 不透明度，float32，默认=1.0 
      * 
-     * 如果opacity与alpha同时存在，那么alpha会覆盖opacity。
+     * 如果opacity与alphaTest同时存在，那么alphaTest会覆盖opacity。
     */
     opacity?: number,
     /**alphaTest时要使用的alpha值。如果不透明度低于此值，则不会渲染材质。默认值为0 */
@@ -34,7 +28,7 @@ export interface optionTransparentOfMaterial {
     */
     blend?: GPUBlendState,
 }
-
+ 
 /**基础材质的初始化参数
      * 
      * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
@@ -45,14 +39,20 @@ export interface optionBaseMaterial {
 
     /**基础颜色 */
     color?: coreConst.color4F//number[],
-    /**顶点颜色，boolean */
+    /**顶点颜色，boolean 
+     * 
+     * 1、如果为true，说明顶点颜色是有效的，会被使用。
+     * 2、与color混合使用，color会被忽略。
+     * 3、与texture混合使用，texture会被忽略。
+    */
     vertexColor?: boolean,
-    /**此材质时启用深度测试。默认为 true */
-    depthTest?: boolean,
-    /**此材质是否对深度缓冲区有任何影响。默认为true */
-    depthWrite?: boolean,
+    // /**此材质时启用深度测试。默认为 true */
+    // depthTest?: boolean,
+    // /**此材质是否对深度缓冲区有任何影响。默认为true */
+    // depthWrite?: boolean,
     /**指定的fragment code */
-    code?: string
+    code?: string,
+
     /**透明材质的初始化参数
      * 默认不透明：没有此参数
      */
@@ -67,11 +67,12 @@ export interface optionBaseMaterialStep2 {
     reversedZ: boolean,
 }
 
-export abstract class BaseMaterial extends Root {
+export abstract class BaseMaterial extends RootOfGPU {
     red: number;
     green: number;
     blue: number;
     alpha: number;
+    vertexColor: boolean;
     input: optionBaseMaterial;
     _destroy: boolean;
     /**新的材质，这个是需要处理的（异步数据的加载后，改为true，或没有异步数据加载，在init()中改为true）；
@@ -85,7 +86,7 @@ export abstract class BaseMaterial extends Root {
      * 1、如果是undefined，说明不混合
      * 2、如果是object，说明混合
      */
-    _transparent: optionTransparentOfMaterial|undefined;
+    _transparent: optionTransparentOfMaterial | undefined;
 
 
     deferRenderDepth!: boolean;
@@ -108,6 +109,7 @@ export abstract class BaseMaterial extends Root {
         this.green = 1.0;
         this.blue = 1.0;
         this.alpha = 1.0;
+        this.vertexColor = false;
         // this.reversedZ = false;
         if (input) {
             this.input = input;
@@ -119,7 +121,10 @@ export abstract class BaseMaterial extends Root {
             }
             if (input.transparent) {
                 this._transparent = input.transparent;
-            } 
+            }
+            if (input.vertexColor) {
+                this.vertexColor = input.vertexColor;
+            }
         }
         else
             this.input = {};
@@ -196,13 +201,37 @@ export abstract class BaseMaterial extends Root {
      * */
     shaderCodeProcess(code: string): string {
         let shaderCode = this.shaderCodeAdd_partOfLocationOfEntityID(code);
-        shaderCode = shaderCode.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
+
+        //FS 输出
+        if (code.indexOf("$output"))//替换output结构体的输出。就是GBuffer的多个attachement的输出(color,id,depth,uv,normal)。
+            shaderCode = shaderCode.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
+
+        //延迟渲染的深度输出
         if (this.deferRenderDepth) {//如果需要深度输出，就需要替换深度输出的代码。
-            shaderCode = shaderCode.replaceAll("$deferRender_Depth", defer_depth_replace_FS.toString());
+            if (code.indexOf("$deferRender_Depth"))
+                shaderCode = shaderCode.replaceAll("$deferRender_Depth", defer_depth_replace_FS.toString());
         }
         else {//如果不需要深度输出，就需要替换空的代码。
-            shaderCode = shaderCode.replaceAll("$deferRender_Depth", "");
+            if (code.indexOf("$deferRender_Depth"))
+                shaderCode = shaderCode.replaceAll("$deferRender_Depth", "");
         }
+
+        //顶点着色
+        if (this.vertexColor && code.indexOf("$vertexColor")) {//如果需要顶点颜色，就需要替换顶点颜色的代码。
+            let tempCode = ``;
+            if (this._transparent) {//如果是透明材质，就需要预乘alpha。
+                tempCode = `output.color = vec4f(fsInput.color * ${this.alpha},${this.alpha}); `;
+            }
+            else {//如果不是透明材质，就不需要预乘alpha。
+                tempCode = "output.color =vec4f(fsInput.color,1.0);";
+            }
+            shaderCode = shaderCode.replaceAll("$vertexColor", tempCode);
+        } else {//如果不需要顶点颜色，就需要替换空的代码。
+            if (code.indexOf("$vertexColor"))
+                shaderCode = shaderCode.replaceAll("$vertexColor", "");
+        }
+
+
         return shaderCode;
     }
 }

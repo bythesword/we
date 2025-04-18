@@ -10,7 +10,7 @@ import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
 import { weResourceTexture, weSamplerKind } from "../../resource/weResource";
-import {  textureType } from "../baseMaterial";
+import { textureType } from "../../texture/texture";
 import { uniformEntries } from "../../command/commandDefine";
 
 
@@ -41,7 +41,7 @@ export class PhongMaterial extends PhongColorMaterial {
     //     specularTexture: GPUTexture,
     // }
     sampler!: GPUSampler
-    constructor(input?: optionPhongMaterial) {
+    constructor(input: optionPhongMaterial) {
         super(input);
         this.countOfTextures = 0;
         this.countOfTexturesOfFineshed = 0;

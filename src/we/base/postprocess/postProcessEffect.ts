@@ -1,6 +1,6 @@
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { GBuffers, userFN } from "../const/coreConst";
-import { Root } from "../scene/root";
+import { RootOfGPU } from "../scene/root";
 import { commmandType } from "../scene/baseScene";
 import { Scene } from "../scene/scene";
 
@@ -16,7 +16,7 @@ export interface optionBasePostprocessEffectStep2 {
     scene: Scene,
     update?: userFN
 }
-export abstract class PostProcessEffect extends Root {
+export abstract class PostProcessEffect extends RootOfGPU {
     commands: commmandType[];
     copyToTarget!: { [name: string]: GPUTexture };
     rawColorTexture!: GPUTexture;

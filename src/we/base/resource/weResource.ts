@@ -1,4 +1,4 @@
-import { Root } from "../scene/root";
+import { RootOfGPU } from "../scene/root";
 
 //todo:20241126,还有多种组合模式，等待扩展
 export enum weSamplerKind {
@@ -22,7 +22,7 @@ export interface weResourceImageBitmap {
 }
 
 
-export class WeResource extends Root {
+export class WeResource extends RootOfGPU {
     
     sampler!: weResourceSampler;
     buffers: weResourceBuffer;

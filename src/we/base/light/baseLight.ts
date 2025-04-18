@@ -1,6 +1,6 @@
 import * as coreConst from "../const/coreConst";
 import { mat4, Mat4, Vec3, } from "wgpu-matrix";
-import { Root } from "../scene/root";
+import { RootOfGPU } from "../scene/root";
 import { WeGenerateID } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
 
@@ -70,7 +70,7 @@ interface optionBaseShadowMapOfST_Light{
     shadow_map_enable: number,  //depth texture array 会在light add之后的下一帧生效，这个是标志位
 }
 
-export abstract class BaseLight/* extends Root */ {
+export abstract class BaseLight/* extends RootOfGPU */ {
     _kind!: lightType;
     /**
      * 

@@ -9,6 +9,7 @@
 import { BaseMaterial, optionBaseMaterial, optionTransparentOfMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
 import { color4F } from "../../const/coreConst";
+import { uniformEntries } from "../../command/commandDefine";
 
 export interface optionColorMaterial extends optionBaseMaterial {
     color: color4F
@@ -75,7 +76,7 @@ export class ColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(_startBinding: number): false {
+    getUniform(_startBinding: number): uniformEntries[]|false {
         // throw new Error("Method not implemented.");
         return false;
     }

@@ -2,7 +2,7 @@ import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
 import { BaseStage } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
-import { Root } from "../scene/root";
+import { RootOfGPU } from "../scene/root";
 
 import partAdd_st_entity_VS from "../shader/entities/part_add.st_entity.vs.wgsl?raw"
 import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.VertexShaderOutput.vs.wgsl?raw"
@@ -215,7 +215,7 @@ export interface commandsOfEntity {
 export interface commandsOfShadowOfEntity {
     [name: string]: commmandType[]
 }
-export abstract class BaseEntity extends Root {
+export abstract class BaseEntity extends RootOfGPU {
 
     ////////////////////////////////////////////////////////////////////
     //基础属性

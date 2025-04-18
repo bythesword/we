@@ -1,7 +1,7 @@
 import { Scene } from "./scene";
 import { BaseStage } from "../stage/baseStage";
 
-export abstract class Root {
+export abstract class RootOfGPU {
     device!: GPUDevice;
     scene!: Scene;
     canvas!: HTMLCanvasElement;

@@ -73,6 +73,7 @@ export interface color3F {
 /** RGB三个数值的颜色interface，0--255 */
 export type color3U = color3F;
 
+export var textureAlphaZero=0.001
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //shadowMapSize
@@ -255,4 +256,6 @@ export var varOfshaderCodeSingleOfGBuffersVisualizeLayout: { [name: string]: str
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-//
+//material
+
+ 

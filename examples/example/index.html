@@ -13,6 +13,16 @@
             <h1> ======基础功能================== </h1>
         </li>
 
+        <li>
+            <h2>--------------------------------背景色 -------------------------- </h2>
+        </li>
+        <li><a href="./baseFunctions/scene/scene_transparent.html"> 透明背景色(0,0,0,0),全透，ok </a></li>
+        <li><a href="./baseFunctions/scene/scene_transparent_canvas.html"> 透明背景色(0,0,0,0),有canvas图案，,ok </a></li>
+        <li><a href="./baseFunctions/scene/scene_half_transparent_0_canvas.html"> 半透明背景色(1,0,0,0) ,有canvas图案 ,这个即使alpha=0，也是有颜色的？？ </a></li>
+        <li><a href="./baseFunctions/scene/scene_half_transparent_0.5_canvas.html"> 半透明背景色(1,0,0,0.5)  ,有canvas图案 </a></li>
+        <li><a href="./baseFunctions/scene/scene_color.html"> 不透明背景色 </a></li>
+        <li><a href="./baseFunctions/scene/scene_half_transparent_0.html"> 半透明背景色(1,0,0,0) ,无canvas图案  </a></li>
+        <li><a href="./baseFunctions/scene/scene_half_transparent_0.html"> 半透明背景色(1,0,0,0) ,无canvas图案  </a></li>
 
         <li>
             <h2>--------------------------------Draw command -------------------------- </h2>
@@ -73,50 +83,57 @@
         </li>
 
         <li>
-            <h3> ***基础材质*** </h3>
+            <h3> ***基础材质*** todo:在透明层叠加;透明材质只与不透明物体比较深度值 </h3>
         </li>
         <li><a href="./baseFunctions/material/basecolor_1.html">基础颜色color </a></li>
         <li><a href="./baseFunctions/material/basecolor_alpha.html">基础 color alpha值透明度 </a></li>
-        <li><a href="./baseFunctions/material/basecolor_transparent_transparent_1.html">基础 color 整体透明度</a></li>
+        <li><a href="./baseFunctions/material/basecolor_alpha_2.html">基础 color alpha值透明度:2个透明体叠加。</a></li>
+        <li><a href="./baseFunctions/material/basecolor_opacity.html">基础 color 透明度(opacity)</a></li>
+        <li><a href="./baseFunctions/material/vertexcolor_1.html">顶点颜色color </a></li>
+        <li><a href="./baseFunctions/material/vertexcolor_opacity.html">顶点颜色color 透明度(opacity)</a></li>
 
         <li>
             <h3> ***混合参数*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/blending_1.html">webGPU Blending 参数</a></li>
+        <li><a href="./baseFunctions/material/blending_1.html">todo webGPU Blending 参数</a></li>
 
 
         <li>
             <h3> ***基础纹理*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 纹理 url</a></li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 纹理 imageBitmap</a></li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 纹理 imageData</a></li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 纹理 HTMLImageElement</a></li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 视频材质 HTMLVideoElement</a></li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 视频材质 VideoFrame</a></li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 凹凸贴图(normal map)</a></li>
+        <li><a href="./baseFunctions/material/texture_base_1.html">基础纹理 url</a></li>
+        <li><a href="./baseFunctions/material/texture_mipmap_1.html">todo 基础纹理 mipmap </a></li>
+        <li><a href="./baseFunctions/material/texture_base_imageBitmap.html">todo 基础纹理 imageBitmap</a></li>
+        <li><a href="./baseFunctions/material/texture_base_imageData.html">todo 基础纹理 imageData</a></li>
+        <li><a href="./baseFunctions/material/texture_base_HTMLImageElement.html">todo 基础纹理 HTMLImageElement</a></li>
+        <li><a href="./baseFunctions/material/texture_base_HTMLVideoElement.html">todo  视频材质 HTMLVideoElement</a></li>
+        <li><a href="./baseFunctions/material/texture_base_VideoFrame.html">todo  视频材质 VideoFrame</a></li>
+        <li><a href="./baseFunctions/material/texture_normalmap_1.html">todo ? 凹凸贴图(normal map)</a></li>
 
         <li>
             <h3> ***基础透明纹理*** </h3>
-        </li>
-        <li><a href="./baseFunctions/material/basecolor_2.html">基础 半透明 :透明度值(opacity)</a></li>
-        <li><a href="./baseFunctions/material/basecolor_1.html">基础 纹理 </a></li>
-        <li><a href="./baseFunctions/material/basecolor_3.html">基础 纹理贴花(alpha map) </a></li>
-        <li><a href="./baseFunctions/material/basecolor_3.html">基础 纹理贴花(alpha test) </a></li>
+        </li> 
+        <li><a href="./baseFunctions/material/texture_transparent_alpha_png.html">纹理贴花(alpha map|PNG) </a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_alpha_test.html">纹理贴花(alpha test) </a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_opacity_canvas.html">ok   半透明(背景色透明&canvas有图案 ) :透明度值(opacity)</a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_opacity.html"> 半透明(背景色透明&canvas无色 ) :透明度值(opacity) <div style="background-color: red; color: white;">error:没有透明,而且混合了html底色</div>   </a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_opacity_bgcolor_canvas.html">半透明(背景不透明&canvas有图案) :透明度值(opacity)<div style="background-color: red; color: white;"> error:有透明，但是直接透到了cavans图案上，没有了底色的预乘 </div> </a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_opacity_bgcolor.html">半透明(背景不透明&canvas无色) :透明度值(opacity)<div style="background-color: red; color: white;">error:没有透明,混合了html底色  </div> </a></li>
+        
 
         <li>
             <h3> ***Bulin-phong 材质*** </h3>
         </li>
         <li><a href="./baseFunctions/material/sphere_phong_1.html">Bulin-Phong color </a></li>
         <li><a href="./baseFunctions/material/specular_texture.html">Bulin-Phong specular 贴图 </a></li>
-        <li><a href="./baseFunctions/material">Bulin-Phong 凹凸贴图/法线贴图 </a></li>
+        <li><a href="./baseFunctions/material">todo Bulin-Phong 凹凸贴图/法线贴图 </a></li>
 
 
         <li>
             <h3> ***Bulin-phong 材质:透明*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/sphere_phong_1.html">Bulin-Phong color 带alpha </a></li>
-        <li><a href="./baseFunctions/material/sphere_phong_1.html">Bulin-Phong color 透明度(opacity) </a></li>
+        <li><a href="./baseFunctions/material/sphere_phong_1.html">todo Bulin-Phong color 带alpha </a></li>
+        <li><a href="./baseFunctions/material/sphere_phong_1.html">todo Bulin-Phong color 透明度(opacity) </a></li>
 
         <li>
             <h3> ***PBR*** </h3>
