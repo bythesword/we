@@ -141,7 +141,7 @@ export class BaseStage extends BaseScene {
         //赋值从input
         this.device = input.scene!.device;
         this.scene = input.scene;
-        this.backgroudColor = this.scene.backgroudColor;
+        // this.backgroudColor = this.scene.backgroudColor;
 
 
         if (input.scene)

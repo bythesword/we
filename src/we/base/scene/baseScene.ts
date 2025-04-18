@@ -240,6 +240,14 @@ export abstract class BaseScene {
     //异步执行，需要单独调用
     abstract init(): any
 
+    getBackgroudColor(premultipliedAlpha: boolean = true):number[]{
+        if (premultipliedAlpha) {
+            return [this.backgroudColor[0] * this.backgroudColor[3], this.backgroudColor[1] * this.backgroudColor[3], this.backgroudColor[2] * this.backgroudColor[3], this.backgroudColor[3]]; 
+        }
+        else {
+            return [this.backgroudColor[0], this.backgroudColor[1], this.backgroudColor[2], this.backgroudColor[3]];
+        } 
+    }
     /** 前向渲染renderPassDescriptor(GPURenderPassDescriptor) */
     async createRenderPassDescriptor(camera: string) {
         let colorAttachments: GPURenderPassColorAttachment[] = [];
@@ -250,7 +258,8 @@ export abstract class BaseScene {
                 if (key == "color") {
                     one = {
                         view: this.GBuffers[camera][key].createView(),
-                        clearValue: this.backgroudColor,
+                        clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置
+                        // clearValue: [0, 0, 0, 0],
                         loadOp: 'clear',
                         storeOp: "store"
                     };

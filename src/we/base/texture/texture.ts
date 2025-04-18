@@ -55,10 +55,18 @@ export interface optionTextureSource {
      * 默认=true；
      */
     upsideDownY?: boolean,
-    // /**透明材质的初始化参数
-    //  * 默认不透明：没有此参数
-    //  */
-    // transparent?: optionTransparentOfTexture,
+
+    /**
+     * 纹理的格式，默认=rgba8unorm
+     */
+    format?: GPUTextureFormat,
+    /**
+     * 纹理的使用方式：使用GPUTextureUsage
+     * COPY_SRC，COPY_DST，TEXTURE_BINDING，STORAGE_BINDING，RENDER_ATTACHMENT
+     * 默认为:GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
+     *
+     */
+    usage?: GPUTextureUsageFlags,
 }
 
 export class Texture {
@@ -196,10 +204,11 @@ export class Texture {
 
         this.texture = this.device.createTexture({
             size: [width, height, 1],
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.TEXTURE_BINDING |
-                GPUTextureUsage.COPY_DST |
-                GPUTextureUsage.RENDER_ATTACHMENT,
+            format: 'rgba8unorm',//bgra8unorm
+            // mipLevelCount: this.numMipLevels([width, height]),
+            // sampleCount: 1,
+            // dimension: '2d',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
         });
         this.device.queue.copyExternalImageToTexture(
             { source: source, flipY: this._upsideDownY }, //webGPU 的UV从左下角开始，所以需要翻转Y轴。

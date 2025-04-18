@@ -495,6 +495,7 @@ export class Scene extends BaseScene {
             }
         }
         const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+        console.log("presentationFormat:", presentationFormat);
         this.presentationFormat = presentationFormat;
 
         context.configure({

@@ -430,7 +430,8 @@ export class GBufferPostProcess extends SingleRender {
                 // if (key == "color") {
                 one = {
                     view: this.GBuffers[key].createView(),
-                    clearValue: this.parent.backgroudColor,
+                    // clearValue: this.parent.backgroudColor,
+                    clearValue: this.parent.getBackgroudColor(),
                     loadOp: 'clear',//透明背景问题所在，todo，20250404
                     storeOp: "store"
                 };
@@ -470,7 +471,8 @@ export class GBufferPostProcess extends SingleRender {
                     resolveTarget: this.GBuffers[key].createView(),
                     view: this.multisampleTexture.createView(),  //MSAA
                     // clearValue: [1,1,1,1],
-                    clearValue: this.parent.backgroudColor,
+                    // clearValue: this.parent.backgroudColor,
+                    clearValue: this.parent.getBackgroudColor(),
                     loadOp: 'load',//如果是clear，则物体颜色会被backgroundColor覆盖,但背景还是透明的,20250403，这个与MSAA有关，但与背景透明无关
                     // loadOp: 'clear',//如果是clear，则物体颜色会被backgroundColor覆盖,但背景还是透明的,20250403
                     storeOp: "store"
@@ -507,7 +509,8 @@ export class GBufferPostProcess extends SingleRender {
         const renderPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [{
                 view: this.GBuffers["color"].createView(),
-                clearValue: this.parent.backgroudColor,
+                // clearValue: this.parent.backgroudColor,
+                clearValue:this.parent.getBackgroudColor(),
                 loadOp: 'clear',
                 storeOp: "store"
             },]
