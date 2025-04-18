@@ -23,9 +23,9 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 0,
+    red: 1,
     green: 0.51,
-    blue: 1,
+    blue: 0,
     alpha: 1
   },
   ambientLight: {
@@ -86,7 +86,7 @@ let planeGeometry = new PlaneGeometry({
 });
 let groundMaterial = new TextureMaterial({
   transparent: {
-    alphaTest:0.6 
+    alphaTest:0. 
   },
   textures: {
     texture: {
@@ -121,7 +121,7 @@ await scene.add(bottomPlane);
 //极简测试材质，red
 let colorMaterial_1 = new TextureMaterial({
   transparent: {
-    alphaTest:0.5 
+    alphaTest:0.  
   },
   textures: {
     texture: {

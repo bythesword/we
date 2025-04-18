@@ -86,7 +86,7 @@ let planeGeometry = new PlaneGeometry({
 });
 let groundMaterial = new TextureMaterial({
   transparent: {
-    alphaTest:0.59, 
+    alphaTest:0., 
   },
   textures: {
     texture: {
@@ -125,7 +125,7 @@ let colorMaterial_0 = new ColorMaterial(
   });
 let colorMaterial_1 = new TextureMaterial({
   transparent: {
-    opacity: 0.10,    
+    opacity: 0.30,    
   
   },
   textures: {

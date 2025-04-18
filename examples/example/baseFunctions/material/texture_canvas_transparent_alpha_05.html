@@ -18,17 +18,25 @@
       /* make body fill the browser window */
       display: flex;
       place-content: center center;
-      background-color: rgb(62, 53, 53);
+      background-color: bisque;
     }
 
     canvas {
       width: 600px;
       height: 600px;
       max-width: 100%;
-      display: block; 
+      display: block;
+      background-color: #404040;
+      background-image:
+        linear-gradient(45deg, #808080 25%, transparent 25%),
+        linear-gradient(-45deg, #808080 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #808080 75%),
+        linear-gradient(-45deg, transparent 75%, #808080 75%);
+      background-size: 32px 32px;
+      background-position: 0 0, 0 16px, 16px -16px, -16px 0px;
     }
   </style>
-  <script defer src="./texture_transparent_opacity_bgcolor.ts" type="module"></script>
+  <script defer src="./texture_canvas_transparent_alpha_05.ts" type="module"></script>
 </head>
 
 <body>

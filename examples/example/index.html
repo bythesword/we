@@ -16,17 +16,21 @@
         <li>
             <h2>--------------------------------背景色 -------------------------- </h2>
         </li>
-        <li><a href="./baseFunctions/scene/scene_color.html"> 不透明背景色 </a></li>
-        <li><a href="./baseFunctions/scene/scene_transparent.html"> 透明背景色(0,0,0,0),全透，ok </a></li>
-        <br>
-        <li><a href="./baseFunctions/scene/scene_transparent_canvas.html"> 透明背景色(0,0,0,0),有canvas图案，,ok </a></li>
-        <li><a href="./baseFunctions/scene/scene_half_transparent_0_canvas.html"> 半透明背景色(1,0,0,0) ,有canvas图案
+        <li><a href="./baseFunctions/scene/scene_canvas_color.html"> 有canvas图案 ：不透明背景色(1,1,1,1) </a></li>
+        <li><a href="./baseFunctions/scene/scene_canvas_transparent_0000.html"> 有canvas图案 ：全透透明背景色(0,0,0,0) </a></li>
+        <li><a href="./baseFunctions/scene/scene_canvas_transparent_1000.html"> 有canvas图案 ：半透明背景色(1,0,0,0)
                 ,(ok,RPD的clearvalue 也需要预乘) </a></li>
-        <li><a href="./baseFunctions/scene/scene_half_transparent_0.5_canvas.html"> 半透明背景色(1,0,0,0.5) ,有canvas图案 </a>
+        <li><a href="./baseFunctions/scene/scene_canvas_transparent_1000.5.html"> 有canvas图案 ：半透明背景色(1,0,0,0.5) </a>
         </li>
         <br>
-        <li><a href="./baseFunctions/scene/scene_half_transparent_0.html"> 半透明背景色(1,0,0,0) ,无canvas图案 </a></li>
-        <li><a href="./baseFunctions/scene/scene_half_transparent_0.5.html"> 半透明背景色(1,0,0,0.5) ,无canvas图案 </a></li>
+        <li><a href="./baseFunctions/scene/scene_no_canvas_transparent_1111.html"> 无canvas图案 ：不全透明背景色(1,0,0,1) </a></li>
+        <li><a href="./baseFunctions/scene/scene_no_canvas_transparent_0000.html"> 无canvas图案 ：全透明背景色(1,0,0,0) </a></li>
+        <li><a href="./baseFunctions/scene/scene_no_canvas_transparent_0000.5.html"> 无canvas图案 ：半透明背景色(1,0,0,0.5) </a>
+        </li>
+
+
+        <br>
+
 
         <li>
             <h2>--------------------------------Draw command -------------------------- </h2>
@@ -99,7 +103,7 @@
         <li>
             <h3> ***混合参数*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/blending_1.html">todo webGPU Blending 参数</a></li>
+        <li><a href="./baseFunctions/blending/blending_1.html">webGPU Blending 参数</a></li>
 
 
         <li>
@@ -117,28 +121,18 @@
         <li>
             <h3> ***基础透明纹理*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/texture_transparent_alpha_png.html">纹理贴花(alpha
-                map|PNG):bgcolor不透明&&canvas无图案&&alphaTest:0.0 </a></li>
-        <li><a href="./baseFunctions/material/texture_transparent_alpha_png_canvas.html">纹理贴花(alpha
-                map|PNG):bgcolor不透明&&canvas有图案&&alphaTest:0.0 </a></li>
-        <li><a href="./baseFunctions/material/texture_transparent_alpha_test.html">纹理贴花(alpha test)
-                :bgcolor不透明&&canvas有图案&&alphaTest:0.5 </a></li>
+        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_alpha_00.html"> 无canvas图案 : bgcolor=1,0.15,0,1 + alphaTest=0.0 ； 有alpha>0.0的混色到了html底色上</a></li>
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_alpha_00.html"> 有canvas图案 : bgcolor=1,0.15,0,1 + alphaTest:0.0 ； 有alpha>0.0的混色到了canvas底色上</a></li>
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_alpha_05.html">有canvas图案 : bgcolor=1,0.15,0,1 + alphaTest:0.5 ； 有alpha>0.50的混色到了canvas底色上</a></li>
 
         <br>
-        <li><a href="./baseFunctions/material/texture_transparent_opacity_canvas.html">ok
-                opacity半透明:bgcolor透明&&canvas有图案&&透明度值(opacity: 0.10)</a></li>
-
-        <li><a href="./baseFunctions/material/texture_transparent_opacity.html">
-                opacity半透明:bgcolor透明&&canvas无色&&透明度值(opacity: 0.10, )
-                <div style="background-color: red; color: white;">error:没有透明,而且混合了html底色</div>
-            </a></li>
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_opacity_01.html">有canvas图案 : bgcolor=0,0,0,0 + opacity: 0.10</a></li>
+        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_opacity_01.html"> 无canvas图案 : bgcolor=0,0,0,0 + opacity: 0.10 ; 混合了html底色 </a></li>
 
         <br>
-        <li><a href="./baseFunctions/material/texture_transparent_opacity_bgcolor_canvas.html">半透明(背景不透明&canvas有图案)
-                :透明度值(opacity)<div style="background-color: red; color: white;"> error:有透明，但是直接透到了cavans图案上，没有了底色的预乘
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_opacity_01_bgcolor_00105.html">有canvas图案 : bgcolor=0,0,1,0.5 + opacity=0.1;<div style="background-color: red; color: white;"> error:有透明 , 没有与bgcolor底色进行混合,但是直接透到了cavans图案上.
                 </div> </a></li>
-        <li><a href="./baseFunctions/material/texture_transparent_opacity_bgcolor.html">半透明(背景不透明&canvas无色)
-                :透明度值(opacity)<div style="background-color: red; color: white;">error:没有透明,混合了html底色 </div> </a></li>
+        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_opacity_01_bgcolor_00105.html">无canvas图案: bgcolor=0,0,1,0.5 + opacity=0.1;<div style="background-color: red; color: white;">error:没有透明,混合了html底色 </div> </a></li>
 
 
         <li>

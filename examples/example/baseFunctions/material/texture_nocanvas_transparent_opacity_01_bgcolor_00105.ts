@@ -24,9 +24,9 @@ let input: sceneInputJson = {
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
     red: 0,
-    green: 0.51,
+    green: 0,
     blue: 1,
-    alpha: 1
+    alpha: 0.5 
   },
   ambientLight: {
     color: {
@@ -86,7 +86,8 @@ let planeGeometry = new PlaneGeometry({
 });
 let groundMaterial = new TextureMaterial({
   transparent: {
-    alphaTest:0. 
+    alphaTest:0.59,
+    // opacity: 0.0,
   },
   textures: {
     texture: {
@@ -119,12 +120,17 @@ await scene.add(bottomPlane);
 //   heightSegments: 128
 // });
 //极简测试材质，red
+let colorMaterial_0 = new ColorMaterial(
+  {
+    color: { red: 1, green: 0.3, blue: 0.5, alpha: 0.31 },
+  });
 let colorMaterial_1 = new TextureMaterial({
   transparent: {
-    alphaTest:0.  
+    opacity: 0.1,    
   },
   textures: {
     texture: {
+      premultipliedAlpha:true,
       name: "skyforce",
       texture: "/examples/resource/images/img/skyforce.png"
     },

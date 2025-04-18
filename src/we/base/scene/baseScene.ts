@@ -258,8 +258,8 @@ export abstract class BaseScene {
                 if (key == "color") {
                     one = {
                         view: this.GBuffers[camera][key].createView(),
-                        clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置
-                        // clearValue: [0, 0, 0, 0],
+                        // clearValue: this.backgroudColor,//未预乘alpha
+                        clearValue: this.getBackgroudColor(),//预乘alpha,需要在初始化的时候设置 
                         loadOp: 'clear',
                         storeOp: "store"
                     };
