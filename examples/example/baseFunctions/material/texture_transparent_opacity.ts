@@ -126,10 +126,11 @@ let colorMaterial_0 = new ColorMaterial(
 let colorMaterial_1 = new TextureMaterial({
   transparent: {
     opacity: 0.10,    
+  
   },
   textures: {
     texture: {
-      premultipliedAlpha:false,
+      premultipliedAlpha:true,
       name: "skyforce",
       texture: "/examples/resource/images/img/skyforce.png"
     },

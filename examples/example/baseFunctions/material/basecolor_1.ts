@@ -25,7 +25,7 @@ let input: sceneInputJson = {
     red: 0,
     green: 0.1,
     blue: 0.2,
-    alpha: 1
+    alpha: 0.51
   },
   ambientLight: {
     color: {

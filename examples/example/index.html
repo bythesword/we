@@ -117,12 +117,23 @@
         <li>
             <h3> ***基础透明纹理*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/texture_transparent_alpha_png.html">纹理贴花(alpha map|PNG) </a></li>
-        <li><a href="./baseFunctions/material/texture_transparent_alpha_test.html">纹理贴花(alpha test) </a></li>
-        <li><a href="./baseFunctions/material/texture_transparent_opacity_canvas.html">ok 半透明(背景色透明&canvas有图案 )
-                :透明度值(opacity)</a></li>
-        <li><a href="./baseFunctions/material/texture_transparent_opacity.html"> 半透明(背景色透明&canvas无色 ) :透明度值(opacity)
-                <div style="background-color: red; color: white;">error:没有透明,而且混合了html底色</div> </a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_alpha_png.html">纹理贴花(alpha
+                map|PNG):bgcolor不透明&&canvas无图案&&alphaTest:0.0 </a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_alpha_png_canvas.html">纹理贴花(alpha
+                map|PNG):bgcolor不透明&&canvas有图案&&alphaTest:0.0 </a></li>
+        <li><a href="./baseFunctions/material/texture_transparent_alpha_test.html">纹理贴花(alpha test)
+                :bgcolor不透明&&canvas有图案&&alphaTest:0.5 </a></li>
+
+        <br>
+        <li><a href="./baseFunctions/material/texture_transparent_opacity_canvas.html">ok
+                opacity半透明:bgcolor透明&&canvas有图案&&透明度值(opacity: 0.10)</a></li>
+
+        <li><a href="./baseFunctions/material/texture_transparent_opacity.html">
+                opacity半透明:bgcolor透明&&canvas无色&&透明度值(opacity: 0.10, )
+                <div style="background-color: red; color: white;">error:没有透明,而且混合了html底色</div>
+            </a></li>
+
+        <br>
         <li><a href="./baseFunctions/material/texture_transparent_opacity_bgcolor_canvas.html">半透明(背景不透明&canvas有图案)
                 :透明度值(opacity)<div style="background-color: red; color: white;"> error:有透明，但是直接透到了cavans图案上，没有了底色的预乘
                 </div> </a></li>
