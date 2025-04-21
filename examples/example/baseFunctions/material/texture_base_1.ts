@@ -85,8 +85,13 @@ let planeGeometry = new PlaneGeometry({
   height: 10
 });
 let groundMaterial = new TextureMaterial({
+  transparent: {
+    
+    // opacity: 0.0,
+  },
   textures: {
     texture: {
+      premultipliedAlpha:false,
       name: "we logo",
       texture: "/examples/resource/images/we/logo.png"
     },
@@ -105,17 +110,9 @@ let bottomPlane = new Mesh({
   wireFrame: false,
   cullmode: "none"
 });
-await scene.add(bottomPlane);
 
 
-
-//box
-// let Geometry = new SphereGeometry({
-//   radius: 1,
-//   widthSegments: 128,
-//   heightSegments: 128
-// });
-//极简测试材质，red
+ 
 let colorMaterial_1 = new TextureMaterial({
   textures: {
 
@@ -126,7 +123,7 @@ let colorMaterial_1 = new TextureMaterial({
   }
 });
 //box实体
-let boxEntity = new Mesh(
+let sky = new Mesh(
   {
     name: "透明plane",
     geometry: planeGeometry,
@@ -139,11 +136,13 @@ let boxEntity = new Mesh(
       axis: [0, 1, 0],
       angleInRadians: 0.5 * Math.PI
     },
+    cullmode: "none"
   }
 );
-//增加实体到scene
-await scene.add(boxEntity)
 
+//增加实体到scene
+await scene.add(sky)
+await scene.add(bottomPlane);
 let light1 = new PointLight(
   {
     position: [0.0, 0.0, 8.0],

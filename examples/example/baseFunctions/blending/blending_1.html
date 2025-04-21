@@ -6,8 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <title>WE 3D</title>
   <style>
-    :root {
-      color-scheme: light;
+    .flex-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .flex-item { 
+      padding: 20px;
     }
 
     html,
@@ -40,12 +46,15 @@
 </head>
 
 <body>
+  <div class="flex-container">
+    <div class="flex-item">
 
-  <canvas id="render"></canvas>
-  <div  >  
-  
-    参考：
-    https://webgpufundamentals.org/webgpu/lessons/webgpu-transparency.html
+      <canvas id="render"></canvas>
+    </div>
+    <div class="flex-item">
+      参考：
+      https://webgpufundamentals.org/webgpu/lessons/webgpu-transparency.html
+    </div>
   </div>
   <br>
 </body>

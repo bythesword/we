@@ -26,7 +26,7 @@ let input: sceneInputJson = {
     red: 0,
     green: 0,
     blue: 0,
-    alpha: 0 
+    alpha: 0
   },
   ambientLight: {
     color: {
@@ -84,22 +84,42 @@ let planeGeometry = new PlaneGeometry({
   width: 10,
   height: 10
 });
+
 let groundMaterial = new TextureMaterial({
   transparent: {
-    alphaTest:0.59, 
+    alphaTest: 0.59,
   },
   textures: {
     texture: {
-      name: "we logo",     
+      name: "we logo",
       texture: "/examples/resource/images/we/logo.png"
     },
   }
 });
 
+let colorMaterial_0 = new ColorMaterial(
+  {
+    color: { red: 1, green: 0.3, blue: 0.5, alpha: 0.31 },
+  });
+
+let skyforceMaterial = new TextureMaterial({
+  transparent: {
+    opacity: 0.50,
+  },
+  textures: {
+    texture: {
+      premultipliedAlpha: true,
+      name: "skyforce",
+      texture: "/examples/resource/images/img/skyforce.png"
+    },
+  }
+});
+
+
 let bottomPlane = new Mesh({
   name: "bottomPlane",
   geometry: planeGeometry,
-  material: groundMaterial,
+  material: skyforceMaterial,
   position: [0, -1, 0],
   rotate: {
     axis: [1, 0, 0],
@@ -109,38 +129,11 @@ let bottomPlane = new Mesh({
   cullmode: "none"
 });
 await scene.add(bottomPlane);
-
-
-
-//box
-// let Geometry = new SphereGeometry({
-//   radius: 1,
-//   widthSegments: 128,
-//   heightSegments: 128
-// });
-//极简测试材质，red
-let colorMaterial_0 = new ColorMaterial(
+let skyforce = new Mesh(
   {
-    color: { red: 1, green: 0.3, blue: 0.5, alpha: 0.31 },
-  });
-let colorMaterial_1 = new TextureMaterial({
-  transparent: {
-    opacity: 0.10,    
-  },
-  textures: {
-    texture: {
-      premultipliedAlpha:false,
-      name: "skyforce",
-      texture: "/examples/resource/images/img/skyforce.png"
-    },
-  }
-});
-//box实体
-let boxEntity = new Mesh(
-  {
-    name: "透明plane",
+    name: "skyforce",
     geometry: planeGeometry,
-    material: colorMaterial_1,
+    material: skyforceMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
     // position:vec3.create(1,0,0),
@@ -152,7 +145,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-await scene.add(boxEntity)
+await scene.add(skyforce)
 
 let light1 = new PointLight(
   {

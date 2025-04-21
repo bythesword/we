@@ -86,7 +86,7 @@ let planeGeometry = new PlaneGeometry({
 });
 let groundMaterial = new TextureMaterial({
   transparent: {
-    alphaTest:0. 
+    alphaTest:0.5 
   },
   textures: {
     texture: {
@@ -108,7 +108,6 @@ let bottomPlane = new Mesh({
   wireFrame: false,
   cullmode: "none"
 });
-await scene.add(bottomPlane);
 
 
 
@@ -135,7 +134,7 @@ let boxEntity = new Mesh(
   {
     name: "透明plane",
     geometry: planeGeometry,
-    material: colorMaterial_1,
+    material: groundMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
     // position:vec3.create(1,0,0),
@@ -148,6 +147,7 @@ let boxEntity = new Mesh(
 );
 //增加实体到scene
 await scene.add(boxEntity)
+await scene.add(bottomPlane);
 
 let light1 = new PointLight(
   {

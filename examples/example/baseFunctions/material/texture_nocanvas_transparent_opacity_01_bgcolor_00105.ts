@@ -126,7 +126,7 @@ let colorMaterial_0 = new ColorMaterial(
   });
 let colorMaterial_1 = new TextureMaterial({
   transparent: {
-    opacity: 0.1,    
+    opacity: 0.5,    
   },
   textures: {
     texture: {

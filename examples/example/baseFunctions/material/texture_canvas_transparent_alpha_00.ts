@@ -112,14 +112,8 @@ await scene.add(bottomPlane);
 
 
 
-//box
-// let Geometry = new SphereGeometry({
-//   radius: 1,
-//   widthSegments: 128,
-//   heightSegments: 128
-// });
-//极简测试材质，red
-let colorMaterial_1 = new TextureMaterial({
+ 
+let skyforceMaterial = new TextureMaterial({
   transparent: {
     alphaTest:0.  
   },
@@ -131,11 +125,11 @@ let colorMaterial_1 = new TextureMaterial({
   }
 });
 //box实体
-let boxEntity = new Mesh(
+let skyforce = new Mesh(
   {
     name: "透明plane",
     geometry: planeGeometry,
-    material: colorMaterial_1,
+    material: groundMaterial,
     // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
     wireFrame: false,
     // position:vec3.create(1,0,0),
@@ -147,7 +141,7 @@ let boxEntity = new Mesh(
   }
 );
 //增加实体到scene
-await scene.add(boxEntity)
+await scene.add(skyforce)
 
 let light1 = new PointLight(
   {

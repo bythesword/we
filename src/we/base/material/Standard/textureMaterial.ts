@@ -86,13 +86,21 @@ export class TextureMaterial extends BaseMaterial {
                     }
                 }
             };
-            //如果有设置，就使用设置的
-            if (input.transparent.blend != undefined) {
-                this._transparent = transparent;
-            }
-            else {
+            
+            if (input.transparent!= undefined) {
                 this._transparent = input.transparent;
             }
+            else {
+                this._transparent = transparent; 
+            }
+            
+            if (input.transparent.blend != undefined) {
+                this._transparent.blend = input.transparent.blend;
+            }
+            else {
+                this._transparent.blend = transparent.blend;
+            }
+
             if (input.transparent.alphaTest == undefined && input.transparent.opacity == undefined) {//如果没有设置alphaTest,且没有opacity，就设置为0.0
                 this._transparent.alphaTest = 0.0;//直接使用texture的alpha，（因为有其他alpha的半透明）；就是不做任何处理。
             }
@@ -174,9 +182,12 @@ export class TextureMaterial extends BaseMaterial {
                     else if (this._transparent?.opacity != undefined) {
                         materialColorAdd = `materialColor = materialColor* ${this._transparent.opacity};\n        `;//如果opacity!=0.0，就使用opacity进行再次的预乘。 alpha也会被预乘，透明度进一步降低。
                     }
+                    // materialColorAdd = `  materialColor=vec4f(0.5);\n        `;//没有透明 。 
+
                 }
                 else {
-                    materialColorAdd = `if( materialColor.a < ${AlphaZero}){ materialColor.a=1.0;}\n        `;//如果没有透明，就需要进行alphaTest比较。 
+                    materialColorAdd = `  materialColor.a=1.0;\n        `;//没有透明 。 
+                    // materialColorAdd = `if( materialColor.a < ${AlphaZero}){ materialColor.a=1.0;}\n        `;//如果没有透明，就需要进行alphaTest比较。 
                 }
                 materialColor = materialColor + materialColorAdd;
                 code = code.replaceAll("$materialColor", materialColor);

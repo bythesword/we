@@ -94,8 +94,8 @@
             <h3> ***基础材质*** todo:在透明层叠加;透明材质只与不透明物体比较深度值 </h3>
         </li>
         <li><a href="./baseFunctions/material/basecolor_1.html">基础颜色color </a></li>
-        <li><a href="./baseFunctions/material/basecolor_alpha.html">基础 color alpha值透明度 </a></li>
-        <li><a href="./baseFunctions/material/basecolor_alpha_2.html">基础 color alpha值透明度:2个透明体叠加。</a></li>
+        <li><a href="./baseFunctions/material/basecolor_alpha.html">基础 color alpha值透明度: alpha: 0.5 </a></li>
+        <li><a href="./baseFunctions/material/basecolor_alpha_2.html">基础 color alpha值透明度: alpha: 0.5; 结果(V):2个透明体叠加了。</a></li>
         <li><a href="./baseFunctions/material/basecolor_opacity.html">基础 color 透明度(opacity)</a></li>
         <li><a href="./baseFunctions/material/vertexcolor_1.html">顶点颜色color </a></li>
         <li><a href="./baseFunctions/material/vertexcolor_opacity.html">顶点颜色color 透明度(opacity)</a></li>
@@ -109,7 +109,7 @@
         <li>
             <h3> ***基础纹理*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/texture_base_1.html">基础纹理 url</a></li>
+        <li><a href="./baseFunctions/material/texture_base_1.html">基础纹理 url(sky(不透明）->ground(透明),)</a></li>
         <li><a href="./baseFunctions/material/texture_mipmap_1.html">todo 基础纹理 mipmap </a></li>
         <li><a href="./baseFunctions/material/texture_base_imageBitmap.html">todo 基础纹理 imageBitmap</a></li>
         <li><a href="./baseFunctions/material/texture_base_imageData.html">todo 基础纹理 imageData</a></li>
@@ -121,18 +121,18 @@
         <li>
             <h3> ***基础透明纹理*** </h3>
         </li>
-        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_alpha_00.html"> 无canvas图案 : bgcolor=1,0.15,0,1 + alphaTest=0.0 ； 有alpha>0.0的混色到了html底色上</a></li>
-        <li><a href="./baseFunctions/material/texture_canvas_transparent_alpha_00.html"> 有canvas图案 : bgcolor=1,0.15,0,1 + alphaTest:0.0 ； 有alpha>0.0的混色到了canvas底色上</a></li>
-        <li><a href="./baseFunctions/material/texture_canvas_transparent_alpha_05.html">有canvas图案 : bgcolor=1,0.15,0,1 + alphaTest:0.5 ； 有alpha>0.50的混色到了canvas底色上</a></li>
+        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_alpha_00.html"> 无canvas图案 : bgcolor=1,0.15,0,1 + alphaTest=0.0 ； 有alpha>0.0的混色到了html底色上,这个和depth绘制有关，使用透明流程会解决</a></li>
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_alpha_00.html"> 有canvas图案 : bgcolor=1,0.15,0,1 + alphaTest:0.0 ； 有alpha>0.0的混色到了canvas底色上,这个和depth绘制有关，使用透明流程会解决</a></li>
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_alpha_05.html">有canvas图案 : bgcolor=1,0.15,0,1 + alphaTest:0.5 ； 有alpha>0.50的混色到了canvas底色上,这个和depth绘制有关，使用透明流程会解决</a></li>
 
         <br>
-        <li><a href="./baseFunctions/material/texture_canvas_transparent_opacity_01.html">有canvas图案 : bgcolor=0,0,0,0 + opacity: 0.10</a></li>
-        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_opacity_01.html"> 无canvas图案 : bgcolor=0,0,0,0 + opacity: 0.10 ; 混合了html底色 </a></li>
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_opacity_01.html">有canvas图案 : bgcolor=0,0,0,0 + opacity: 0.50;结果(V):opacity半透明有 </a></li>
+        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_opacity_01.html"> 无canvas图案 : bgcolor=0,0,0,0 + opacity: 0.10 ;结果(V): 混合了html底色 </a></li>
 
         <br>
-        <li><a href="./baseFunctions/material/texture_canvas_transparent_opacity_01_bgcolor_00105.html">有canvas图案 : bgcolor=0,0,1,0.5 + opacity=0.1;<div style="background-color: red; color: white;"> error:有透明 , 没有与bgcolor底色进行混合,但是直接透到了cavans图案上.
+        <li><a href="./baseFunctions/material/texture_canvas_transparent_opacity_01_bgcolor_00105.html">有canvas图案 : bgcolor=0,0,1,0.5 + opacity=0.1;
                 </div> </a></li>
-        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_opacity_01_bgcolor_00105.html">无canvas图案: bgcolor=0,0,1,0.5 + opacity=0.1;<div style="background-color: red; color: white;">error:没有透明,混合了html底色 </div> </a></li>
+        <li><a href="./baseFunctions/material/texture_nocanvas_transparent_opacity_01_bgcolor_00105.html">无canvas图案: bgcolor=0,0,1,0.5 + opacity=0.1;
 
 
         <li>
