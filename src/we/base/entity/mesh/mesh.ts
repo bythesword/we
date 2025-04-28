@@ -2,9 +2,9 @@ import * as coreConst from "../../const/coreConst";
 import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
-import { DrawCommand} from "../../command/DrawCommand";
+import { DrawCommand } from "../../command/DrawCommand";
 
-import { uniformEntries, unifromGroup , drawMode, drawModeIndexed, drawModeType, DrawOptionOfCommand, indexBuffer } from "../../command/commandDefine";
+import { uniformEntries, unifromGroup, drawMode, drawModeIndexed, drawModeType, DrawOptionOfCommand, indexBuffer } from "../../command/commandDefine";
 //for wireframe
 import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
@@ -45,11 +45,8 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
- 
-    getTransparent(): boolean {
-        // throw new Error("Method not implemented.");
-        return this._material.getTransparent();
-    }
+
+
 
     _geometry!: BaseGeometry;
     _material!: BaseMaterial;
@@ -95,10 +92,10 @@ export class Mesh extends BaseEntity {
             reversedZ: this.reversedZ,
             parent: this,
         });
-        if(this._material.getTransparent() === true){//如果不是透明的，就设置为透明
-            this._cullMode="none";
+        if (this._material.getTransparent() === true) {//如果不是透明的，就设置为透明
+            this._cullMode = "none";
         }
-        
+
         // await this._material.setRootENV(this.scene);
     }
     destroy() {
@@ -152,7 +149,7 @@ export class Mesh extends BaseEntity {
      * DCC push 到this.commmands.forward中 
      * @param parent 
      * @returns 完成标志位：initStateEntity.finished
-     */ 
+     */
     createDCCC(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
@@ -286,6 +283,230 @@ export class Mesh extends BaseEntity {
 
             let DC = new DrawCommand(options);
             this.commmands[camera].forward.push(DC);
+        }
+
+        /////////////////////////////// wire frame
+        if (this._wireframeEnable === true) {
+            let wireFrameShaderCodeVS = this._geometry.getWireFrameShdaerCodeVS(this._wireframeColor);//获取线框的shader code ，传入线框颜色
+            wireFrameShaderCodeVS = this.shaderCodeProcess(wireFrameShaderCodeVS);
+
+            let wireFrameShaderCodeFS = this._geometry.getWireFrameShdaerCodeFS(this._wireframeColor);//获取线框的shader code ，传入线框颜色
+            wireFrameShaderCodeFS = partHead_GBuffer_Add_FS + wireFrameShaderCodeFS;
+            wireFrameShaderCodeFS = wireFrameShaderCodeFS.replaceAll("$output", partOutput_GBuffer_Replace_FS.toString());
+            let wireFrameShaderCode = wireFrameShaderCodeVS + wireFrameShaderCodeFS;
+
+            let wireFrameVsa = this._geometry.getAttribute();
+
+            let wireFrameIndexBuffer = this._geometry.getWireFrameIndeices();
+            let wireFrameCounts = this._geometry.getWireFrameDrawCount();
+            let wireFrameValues: drawModeIndexed = {
+                indexCount: wireFrameCounts,
+                instanceCount: this.numInstances,
+            }
+            let drawMode: drawModeType;
+            let wireFrameOptions: DrawOptionOfCommand;
+            if (wireFrameIndexBuffer === false) {
+                drawMode = {
+                    mode: "draw",
+                    values: {
+                        vertexCount: wireFrameCounts,
+                    }
+                }
+            }
+            else {
+                drawMode = {
+                    mode: "index",
+                    values: {
+                        indexCount: wireFrameCounts,
+                        instanceCount: this.numInstances,
+                    },
+                }
+            }
+            wireFrameOptions = {
+                label: this.name == "" ? "Mesh wireframe" : this.name + " wireframe",
+                parent: parent,
+                vertex: {
+                    code: wireFrameShaderCode,
+                    entryPoint: "vs",
+                    buffers: wireFrameVsa
+                },
+                fragment: {
+                    code: wireFrameShaderCode,
+                    entryPoint: "fs",
+                    targets: this.getFragmentTargets()
+                    // targets: [{ format: parent.presentationFormat }]
+                },
+                primitive: {
+                    topology: "line-list",
+                    cullMode: this._cullMode,
+                },
+                uniforms: [
+                    {
+                        layout: 1,
+                        entries: [
+                            {
+                                label: "Mesh matrixWorld",
+                                binding: 0,
+                                size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                                get: () => { return scope.getUniformOfMatrix(); },
+                            }
+                        ]
+                    },
+                ],
+                // rawUniform: true,
+                draw: drawMode,
+                //  {
+                //     mode: "index",
+                //     values: wireFrameValues
+                // },
+                indexBuffer: wireFrameIndexBuffer as indexBuffer,
+                // instanceCount: this.numInstances,
+                renderForID: camera,
+                renderForType: kind as renderKindForDCCC,
+                systemUniforms: parent.createSystemUnifromGroupForPerShader,
+                renderPassDescriptor,
+            }
+            let wireFrameDC = new DrawCommand(wireFrameOptions);
+            this.commmands[camera].forward.push(wireFrameDC);
+        }
+        return initStateEntity.finished;
+    }
+    createDCCCForTransparent(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+        const parent: BaseStage = valuesOfDCCC.parent;
+        const camera: string = valuesOfDCCC.id;
+        const kind: string = valuesOfDCCC.kind
+        let matrixIndex = 0;
+        if (valuesOfDCCC.matrixIndex) {
+            matrixIndex = valuesOfDCCC.matrixIndex;
+        }
+
+        if (this.commandsOfTransparent[camera] == undefined) {
+            this.commandsOfTransparent[camera] = [];
+        }
+        let scope = this;
+
+        ///////////////////////////////
+
+        const renderPassDescriptor = this.stage!.getRenderPassDescriptorOfTransparent(camera);
+        const depthStencilState = this.stage.getDepthStencilOfTransparent(camera);
+        /////////////////////box  
+        let shader;
+        let binding = 0;
+        let constants = {};
+        let uniforms: unifromGroup[] = [];
+        if (this._wireFrameOnly === false) {
+            uniforms.push(
+                {
+                    layout: 1,
+                    entries: [
+                        {
+                            label: "Mesh matrixWorld",
+                            binding: binding++,
+                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                            get: () => { return scope.getUniformOfMatrix() },
+                        },
+                        {
+                            label: "透明的depth texture",
+                            binding: binding,
+                            resource: this.stage!.getDepthTextureOfTransparentOfUniform(camera).createView()
+                        }
+                    ]
+                });
+            //如果是延迟渲染(单像素) ，增加depth texture
+            if (this.deferRenderDepth) {
+                uniforms[0].entries.push({
+                    binding: binding++,
+                    resource: this.stage!.depthTextureOnly[camera].createView()
+                });
+                // constants = {
+                //     canvasSizeWidth: this.stage!.parent.canvas.width,
+                //     canvasSizeHeight: this.stage!.parent.canvas.height,
+                // }
+            }
+            if (this.input?.shaderCode) {
+                shader = this.input.shaderCode;
+            }
+            else {
+                let shaderFS = this._material.getCodeFS(binding);
+                let shaderVS = this._geometry.getCodeVS();
+                shader = shaderVS + shaderFS;
+                shader = this.shaderCodeProcess(shader);
+            }
+
+            let vsa = this._geometry.getAttribute();
+            let indexBuffer = this._geometry.getIndeices();
+            let counts = this._geometry.getDrawCount();
+
+            let values: drawModeIndexed | drawMode = {
+                indexCount: counts,
+                instanceCount: this.numInstances,
+            };
+            // let options: drawOptionOfCommand;
+            let uniformFS = this._material.getUniform(binding);
+
+            if (uniformFS !== false) {
+                for (let i of uniformFS as uniformEntries[])
+                    uniforms[0].entries.push(i);
+            }
+
+            //////////////////////////////////////////////////////////////////////
+
+            let drawMode: drawModeType;
+            let options: DrawOptionOfCommand;
+            if (indexBuffer === false) {
+                drawMode = {
+                    mode: "draw",
+                    values: {
+                        vertexCount: counts,
+                    }
+                }
+            }
+            else {
+                drawMode = {
+                    mode: "index",
+                    values: {
+                        indexCount: counts,
+                        instanceCount: this.numInstances,
+                    },
+                }
+            }
+            options = {
+                label: this.name == "" ? "Mesh" : this.name,
+                depthStencilState: depthStencilState,
+                parent: parent,
+                vertex: {
+                    code: shader,
+                    entryPoint: "vs",
+                    buffers: vsa
+                },
+                fragment: {
+                    code: shader,
+                    entryPoint: "fs",
+                    targets: this.getFragmentTargets(),
+                    constants: constants
+                    //[{ format: parent.presentationFormat }]
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    cullMode: this._cullMode,
+                },
+                // uniforms: [],
+                uniforms: uniforms,
+                // rawUniform: true,
+                draw: drawMode,
+                // draw: {
+                //     mode: "index",
+                //     values: values,
+                // },
+                indexBuffer: indexBuffer as indexBuffer,
+                renderForID: camera,
+                renderForType: kind as renderKindForDCCC,
+                systemUniforms: parent.createSystemUnifromGroupForPerShader,
+                renderPassDescriptor: renderPassDescriptor,
+            };
+
+            let DC = new DrawCommand(options);
+            this.commandsOfTransparent[camera].push(DC);
         }
 
         /////////////////////////////// wire frame
@@ -589,8 +810,15 @@ export class Mesh extends BaseEntity {
 
         return initStateEntity.initializing;
     }
+    createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): initStateEntity {
+        throw new Error("Method not implemented.");
+    }
 
     getBlend(): GPUBlendState | undefined {
         return this._material.getBlend();
+    }
+    getTransparent(): boolean {
+        // throw new Error("Method not implemented.");
+        return this._material.getTransparent();
     }
 }

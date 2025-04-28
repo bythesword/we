@@ -1,6 +1,6 @@
 import * as coreConst from "../const/coreConst";
 import { mat4, Mat4, Vec3, } from "wgpu-matrix";
-import { RootOfGPU } from "../scene/root";
+import { RootOfGPU } from "../organization/root";
 import { WeGenerateID } from "../math/baseFunction";
 import { Scene } from "../scene/scene";
 

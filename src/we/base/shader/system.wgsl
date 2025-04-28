@@ -57,7 +57,7 @@ struct ST_shadowMapMatrix {
 //}
 
 
-var<private> weZero = 0.000001;
+var<private> weZero = 0.00000001;
 //var<private> shadow_DepthTexture : texture_depth_2d_array<f32>;
 var<private > defaultCameraPosition : vec3f;
 var<private > modelMatrix : mat4x4f;

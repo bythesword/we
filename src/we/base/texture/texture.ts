@@ -1,5 +1,5 @@
 import { weResourceTexture } from "../resource/weResource";
-import { RootOfGPU } from "../scene/root";
+import { RootOfGPU } from "../organization/root";
 
 /**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
 export type textureType = string | GPUTexture | GPUCopyExternalImageSource;

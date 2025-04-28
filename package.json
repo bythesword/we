@@ -24,8 +24,7 @@
     "vite": "^4.4.0"
   },
   "dependencies": { 
-    "muigui": "^0.0.21",
-    "tweakpane": "^4.0.5",
+    "muigui": "^0.0.21", 
     "webgpu-utils": "^1.7.0",
     "wgpu-matrix": "^2.8.0",
     "wgsl-preprocessor": "^1.0.1"

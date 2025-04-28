@@ -3,8 +3,8 @@
  * 
  * GBuffer的合并、GBuffer可视化、后处理、pickup等
  */
-import { commmandType } from "./baseScene";
-import { Scene } from "./scene";
+import { commmandType } from "../scene/baseScene";
+import { Scene } from "../scene/scene";
 
 
 

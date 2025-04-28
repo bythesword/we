@@ -1,6 +1,6 @@
 import { uniformEntries } from "../command/commandDefine";
 import * as coreConst from "../const/coreConst"
-import { RootOfGPU } from "../scene/root";
+import { RootOfGPU } from "../organization/root";
 import { Scene } from "../scene/scene";
 import partHead_GBuffer_Add_FS from "../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"

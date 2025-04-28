@@ -1,12 +1,12 @@
 import { BaseEntity, valuesForCreateDCCC } from "../entity/baseEntity";
-import { BaseScene, commmandType, sceneJson } from "../scene/baseScene"; 
+import { BaseScene, commmandType, sceneJson } from "../scene/baseScene";
 import * as coreConst from "../const/coreConst"
 import { Scene } from "../scene/scene";
 import { CameraActor } from "../actor/cameraActor";
 import { renderKindForDCCC } from "../const/coreConst";
 
 
- 
+
 
 
 /**stage input option */
@@ -256,18 +256,28 @@ export class BaseStage extends BaseScene {
         };
         return renderPassDescriptor;
     }
-    /**获取前向渲染通道 */
+    /**获取前向渲染通道，不透明RPD */
     getRenderPassDescriptor(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.renderPassDescriptor[camera];
     }
-    /**获取单像素延迟渲染通道 */
+    /**透明RPD*/
+    getRenderPassDescriptorOfTransparent(camera: string, _kind?: string): GPURenderPassDescriptor {
+        return this.scene.getRenderPassDescriptorOfTransparent(camera);
+    }
+    /**获取摄像机的透明绘制通道的pipeline的depthStancil */
+    getDepthStencilOfTransparent(camera: string): GPUDepthStencilState {
+        return this.scene.cameraTransparentRender[camera].getDepthStencil();
+    }
+    /**深度RPD，获取单像素延迟渲染通道 */
     getRenderPassDescriptor_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.RPD_ForDeferDepth[camera];
     }
 
+    /** shadowmap 渲染RPD */
     getRenderPassDescriptorOfLight(values: valuesForCreateDCCC): GPURenderPassDescriptor | false {
         return this.scene.lightsManagement.gettShadowMapRPD(values);
     }
+    
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //uniform
     /** camera 获取bingGroup
@@ -490,62 +500,70 @@ export class BaseStage extends BaseScene {
         }
         this.Box3s = [];//清空包围盒
         this.camerasCommands = {};
+        this.camerasCommandsOfTransparent = {};
         // this.lightsCommands = {};
         for (let i of this.root) {
             if (i.enable && i.visible) {
-                let dcc = i.update(this, deltaTime, startTime, lastTime);
+                i.update(this, deltaTime, startTime, lastTime);
+                // let dcc = i.update(this, deltaTime, startTime, lastTime);
                 if (i.boundingBox)
                     this.Box3s.push(i.boundingBox);
-                if (Object.keys(dcc).length)//如果是有效的
-                    //CameraActor 循环
+                if (i.getTransparent()) {
+                    let dcc = i.getCommandsOfCamerasOfTransparent();//获取entity的渲染命令(摄像机的)
                     for (let oneCA of this.scene.cameraActors) {
-                        if (this.camerasCommands[oneCA.id.toString()] == undefined) {//若camera是有效的，清空stage中的cameresCommands中对应的内容
-                            this.camerasCommands[oneCA.id.toString()] = {
-                                commands: [],
-                                commandsDepth: [],
-                                commandsColor: []
-                            };
+                        if (this.camerasCommandsOfTransparent[oneCA.id.toString()] == undefined) {//若camera是有效的，清空stage中的cameresCommandsOfTransparent中对应的内容
+                            this.camerasCommandsOfTransparent[oneCA.id.toString()] = [];
                         }
-                        //这里需要将BaseEntity中的renderCommands转换到cameraCommands
-                        // if (oneCA.id == this.scene.defaultCameraActor.id) 
-                        if (this.getRenderVisibleForCamera(oneCA, i)) {//获取entity的可视性
-                            if (this.deferRenderDepth) {//单像素延迟渲染
-                                for (let j of dcc[oneCA.id].depth) {
-                                    // this.commandsDepth.push(j);
-                                    this.camerasCommands[oneCA.id.toString()].commandsDepth.push(j);
-                                }
-                            }
-                            for (let j of dcc[oneCA.id].forward) {//正常前向渲染
-                                // this.commands.push(j);
-                                this.camerasCommands[oneCA.id.toString()].commands.push(j);
-                            }
-
-                            //未涉及延迟渲染的color模式
-                        }
-                    }
-                //获取shadowmap的commands
-                const commandShadowMap = i.getCommandsOfShadowMap();
-                //输出到light management的lightsCommands中,按照lightID
-                if (Object.keys(commandShadowMap).length) {
-                    for (let oneSM in commandShadowMap) {
-                        if (this.scene.lightsManagement.lightsCommands[oneSM] == undefined) {
-                            this.scene.lightsManagement.lightsCommands[oneSM] = [];
-                        }
-                        for (let i of commandShadowMap[oneSM]) {
-                            this.scene.lightsManagement.lightsCommands[oneSM].push(i);
+                        for (let j of dcc[oneCA.id]) {//透明
+                            this.camerasCommandsOfTransparent[oneCA.id.toString()].push(j);
                         }
                     }
                 }
-                // if (Object.keys(commandShadowMap).length) {
-                //     for (let oneSM in commandShadowMap) {
-                //         if (this.lightsCommands[oneSM] == undefined) {
-                //             this.lightsCommands[oneSM] = [];
-                //         }
-                //         for (let i of commandShadowMap[oneSM]) {
-                //             this.lightsCommands[oneSM].push(i);
-                //         }
-                //     }
-                // }
+                else {
+                    let dcc = i.getCommandsOfCameras();//获取entity的渲染命令(摄像机的)
+                    if (Object.keys(dcc).length)//如果是有效的,dcc里面是camera的id的string形式
+                    {
+                        //CameraActor 循环
+                        for (let oneCA of this.scene.cameraActors) {
+                            if (this.camerasCommands[oneCA.id.toString()] == undefined) {//若camera是有效的，清空stage中的cameresCommands中对应的内容
+                                this.camerasCommands[oneCA.id.toString()] = {
+                                    commands: [],
+                                    commandsDepth: [],
+                                    commandsColor: []
+                                };
+                            }
+                            //这里需要将BaseEntity中的renderCommands转换到cameraCommands
+                            // if (oneCA.id == this.scene.defaultCameraActor.id) 
+                            if (this.getRenderVisibleForCamera(oneCA, i)) {//获取entity的可视性
+
+                                if (this.deferRenderDepth) {//单像素延迟渲染
+                                    for (let j of dcc[oneCA.id].depth) {
+                                        // this.commandsDepth.push(j);
+                                        this.camerasCommands[oneCA.id.toString()].commandsDepth.push(j);
+                                    }
+                                }
+                                for (let j of dcc[oneCA.id].forward) {//正常前向渲染
+                                    // this.commands.push(j);
+                                    this.camerasCommands[oneCA.id.toString()].commands.push(j);
+                                }
+                                //未涉及延迟渲染的color模式
+                            }
+                        }
+                    }
+                    //获取shadowmap的commands（光源的）
+                    const commandShadowMap = i.getCommandsOfShadowMap();
+                    //输出到light management的lightsCommands中,按照lightID
+                    if (Object.keys(commandShadowMap).length) {
+                        for (let oneSM in commandShadowMap) {
+                            if (this.scene.lightsManagement.lightsCommands[oneSM] == undefined) {
+                                this.scene.lightsManagement.lightsCommands[oneSM] = [];
+                            }
+                            for (let i of commandShadowMap[oneSM]) {
+                                this.scene.lightsManagement.lightsCommands[oneSM].push(i);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -618,4 +636,7 @@ export class BaseStage extends BaseScene {
         return this.scene!.getWGSLOfSystemShader(renderType);
     }
 
+    getDepthTextureOfTransparentOfUniform(cameraID: string): GPUTexture {
+        return this.scene.getDepthTextureOfTransparentOfUniform(cameraID);
+    }
 }

@@ -1,4 +1,4 @@
-import { Scene } from "./scene";
+import { Scene } from "../scene/scene";
 import { BaseStage } from "../stage/baseStage";
 
 export abstract class RootOfGPU {

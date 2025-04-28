@@ -7,7 +7,7 @@ import { ObjectControl } from "../control/objectControl";
 // import { ObjectControl } from "../control/objectControl";
 import { BaseLight, optionBaseLight, lightType } from "../light/baseLight";
 import { BaseCamera } from "../camera/baseCamera";
-import { RootOfGPU } from "../scene/root";
+import { RootOfGPU } from "../organization/root";
 
 export interface actorLight {
     /** 相当于actor局部坐标 原点的xyz的position */

@@ -8,6 +8,7 @@
 
 import { BaseMaterial, optionBaseMaterial, optionTransparentOfMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
+import colorTransparentOnlyFS from "../../shader/material/simple/colorTransparent.fs.wgsl?raw"
 import { color4F } from "../../const/coreConst";
 import { uniformEntries } from "../../command/commandDefine";
 
@@ -53,16 +54,15 @@ export class ColorMaterial extends BaseMaterial {
 
         this._already = true;
     }
-    /** 获取混合状态
-     * 
-     * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
-     */
 
-    getBlend(): GPUBlendState | undefined {
-        return this._transparent?.blend;
-    }
-    getCodeFS(_startBinding: number) {
-        let code = colorOnlyFS
+    getCodeFS(startBinding: number) {
+        let code = colorOnlyFS;
+        if (this.getTransparent()) {
+            code = colorTransparentOnlyFS;
+            // code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
+            code += `@group(1) @binding(${startBinding}) var u_depth_opacity : texture_depth_2d ; `;
+        }
+
         code = code.replaceAll("$red", this.red.toString());
         code = code.replaceAll("$blue", this.blue.toString());
         code = code.replaceAll("$green", this.green.toString());
@@ -76,9 +76,8 @@ export class ColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(_startBinding: number): uniformEntries[]|false {
-        // throw new Error("Method not implemented.");
-        return false;
+    getUniform(startBinding: number): uniformEntries[] | false {
+            return false;
     }
 
     getTransparent(): boolean {
@@ -95,5 +94,13 @@ export class ColorMaterial extends BaseMaterial {
     }
     __init() {
         // throw new Error("Method not implemented.");
+    }
+    /** 获取混合状态
+ * 
+ * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
+ */
+
+    getBlend(): GPUBlendState | undefined {
+        return this._transparent?.blend;
     }
 }

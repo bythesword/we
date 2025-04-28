@@ -1,8 +1,8 @@
 import { DrawCommand } from "../command/DrawCommand";
 import { unifromGroup, drawMode, DrawOptionOfCommand } from "../command/commandDefine";
 import { GBuffers, GBuffersRPDAssemble } from "../const/coreConst";
-import { Scene } from "./scene";
-import { SingleRender, optionSingleRender } from "./singleRender";
+import { Scene } from "../scene/scene";
+import { SingleRender, optionSingleRender } from "../organization/singleRender";
 
 import shaderDepthAndID from "../shader/GBuffers/gbuffers_render_depthAndID.wgsl?raw";
 import shaderOpaqueOther from "../shader/GBuffers/gbuffers_render_other.wgsl?raw";
@@ -106,9 +106,9 @@ export class GBufferPostProcess extends SingleRender {
 
 
 
-        let RenderTransparent = this.createRenderPassDescriptorOfTransparent();
-        this.renderPassDescriptorOfTransparent = RenderTransparent.renderPassDescriptor;
-        this.colorAttachmentTargetsOfTransparent = RenderTransparent.colorAttachmentTargets;
+        // let RenderTransparent = this.createRenderPassDescriptorOfTransparent();
+        // this.renderPassDescriptorOfTransparent = RenderTransparent.renderPassDescriptor;
+        // this.colorAttachmentTargetsOfTransparent = RenderTransparent.colorAttachmentTargets;
         this.init();
     }
     render() {
@@ -284,16 +284,18 @@ export class GBufferPostProcess extends SingleRender {
                 // if(run_i++ ==2 ) break;
             }
 
+            //20250428 ,copy涉及到透明层，功能移动到scene中
+
             //copy GBuffer的color到target
-            let copyToColorTexture = new CopyCommandT2T(
-                {
-                    A: this.GBuffers["color"],
-                    B: this.colorTexture,
-                    size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-                    device: this.device
-                }
-            );
-            this.commands.push(copyToColorTexture);
+            // let copyToColorTexture = new CopyCommandT2T(
+            //     {
+            //         A: this.GBuffers["color"],
+            //         B: this.colorTexture,
+            //         size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
+            //         device: this.device
+            //     }
+            // );
+            // this.commands.push(copyToColorTexture);
         }
         else if (this.parent.stageStatus == "world") {
             //copy GBuffer的color到target
@@ -308,6 +310,7 @@ export class GBufferPostProcess extends SingleRender {
                 );
                 this.commands.push(copyToColorTexture);
             }
+            //20250428 ,copy涉及到透明层，功能移动到scene中
             let copyToColorTexture = new CopyCommandT2T(
                 {
                     A: this.GBuffers["color"],
@@ -316,7 +319,7 @@ export class GBufferPostProcess extends SingleRender {
                     device: this.device
                 }
             );
-            this.commands.push(copyToColorTexture);
+            // this.commands.push(copyToColorTexture);
         }
         else {
             console.error("GBuffer post process init() error!");
@@ -497,26 +500,7 @@ export class GBufferPostProcess extends SingleRender {
         };
         return { renderPassDescriptor, colorAttachmentTargets };
     }
-    //作废，透明的采用前向渲染方式
-    //可以copy到透明渲染中适用
-    createRenderPassDescriptorOfTransparent(): renderPassDescriptorAndTaget {
 
-        let colorAttachmentTargets: GPUColorTargetState[] = [
-            { format: this.presentationFormat }
-        ];
-
-
-        const renderPassDescriptor: GPURenderPassDescriptor = {
-            colorAttachments: [{
-                view: this.GBuffers["color"].createView(),
-                // clearValue: this.parent.backgroudColor,
-                clearValue:this.parent.getBackgroudColor(),
-                loadOp: 'clear',
-                storeOp: "store"
-            },]
-        };
-        return { renderPassDescriptor, colorAttachmentTargets };
-    }
 
     // getTexturesOfUniformFromStageForTransparent(): unifromGroup[] {
     //     let unifromGroup_0: unifromGroup = {

@@ -19,14 +19,17 @@ export interface optionSimpleModel extends optionBaseEntity {
 }
 
 export class SimpleModel extends BaseEntity {
+
+    //todo, 增加shadowmap的支持。
+    /**
+     * 创建shadowmap的DCCC
+     * @param valuesOfDCCC 输入参数
+     * @returns  初始化状态
+     */ 
     createDCCCForShadowMap(values: valuesForCreateDCCC): initStateEntity {
         throw new Error("Method not implemented.");
     }
 
-    generateBoxAndSphere() {
-        this.boundingBox = this.generateBox(this.modelData.positions.flat());
-        this.boundingSphere = this.generateSphere(this.boundingBox);
-    }
 
     modelData: modelData;
     _material: BaseMaterial;
@@ -317,5 +320,20 @@ export class SimpleModel extends BaseEntity {
     getDrawCount(): number {
 
         return this.modelData.triangles.flat().length;
+    }
+
+
+    
+    generateBoxAndSphere() {
+        this.boundingBox = this.generateBox(this.modelData.positions.flat());
+        this.boundingSphere = this.generateSphere(this.boundingBox);
+    }
+
+    getBlend(): GPUBlendState | undefined {
+        return this._material.getBlend();
+    }
+    getTransparent(): boolean {
+        // throw new Error("Method not implemented.");
+        return this._material.getTransparent();
     }
 }

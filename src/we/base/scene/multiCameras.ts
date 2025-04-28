@@ -2,7 +2,7 @@ import { CameraActor } from "../actor/cameraActor";
 import { DrawCommand } from "../command/DrawCommand";
 import { MultiGBuffers } from "../const/coreConst";
 import { cameraViewport } from "./scene";
-import { optionSingleRender, SingleRender } from "./singleRender";
+import { optionSingleRender, SingleRender } from "../organization/singleRender";
 import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";
 import { unifromGroup, drawMode, DrawOptionOfCommand } from "../command/commandDefine";
 

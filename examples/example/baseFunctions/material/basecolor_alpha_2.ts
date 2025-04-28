@@ -84,7 +84,7 @@ let planeGeometry = new PlaneGeometry({
   height: 10
 });
 let groundMaterial = new ColorMaterial({
-  color: { red: 1, green: 1, blue: 1, alpha: 0.5 },
+  color: { red: 0, green: 1, blue: 0, alpha: 0.75 },
 });
 
 let bottomPlane = new Mesh({
@@ -112,7 +112,7 @@ await scene.add(bottomPlane);
 //极简测试材质，red
 let colorMaterial_1 = new ColorMaterial(
   {
-    color: { red: 1, green: 0.3, blue: 0.5, alpha: 0.5 },
+    color: { red: 1, green: 0., blue: 0., alpha: 0.5 },
   });
 //box实体
 let boxEntity = new Mesh(

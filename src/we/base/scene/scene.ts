@@ -1,10 +1,10 @@
 // declare global { interface Window { scene: any } }
-import wgsl_main from "../shader/system.wgsl?raw" 
-import wgsl_main_only_VS from "../shader/systemOnlyVS.wgsl?raw" 
+import wgsl_main from "../shader/system.wgsl?raw"
+import wgsl_main_only_VS from "../shader/systemOnlyVS.wgsl?raw"
 import wgsl_main_light from "../shader/shadow/systemForLight.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
-import { Clock } from '../scene/clock'; 
+import { Clock } from '../scene/clock';
 import { BaseScene, commmandType, sceneJson } from './baseScene';
 import { BaseCamera } from "../camera/baseCamera"
 import { BaseActor } from '../actor/baseActor';
@@ -13,9 +13,9 @@ import { BaseStage } from '../stage/baseStage';
 import { BaseEntity } from "../entity/baseEntity";
 import { BaseLight } from "../light/baseLight";
 import { WeResource } from "../resource/weResource"
-import { GBufferPostProcess, optionGBPP } from "./GBufferPostProcess";
+import { GBufferPostProcess, optionGBPP } from "../Gbuffers/GBufferPostProcess";
 import { PostProcessMangement } from "../postprocess/postProcessMangement";
-import { GBuffersVisualize, GBuffersVisualizeViewport } from "./GBufferVisualize";
+import { GBuffersVisualize, GBuffersVisualizeViewport } from "../Gbuffers/GBufferVisualize";
 import { optionPickup, Pickup, pickupTargetOfIDs } from "../pickup/pickup";
 import { InputControl, typeOfInputControl } from "../control/inputControl";
 import { CamreaControl } from "../control/cameracCntrol";
@@ -25,6 +25,8 @@ import { boundingBox, generateBox3ByArrayBox3s } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
 import { renderKindForDCCC } from "../const/coreConst";
 import { LightsManagement } from "../light/lightsManagement";
+import { TransparentRender } from "./transparentRender";
+import { CopyCommandT2T } from "../command/copyCommandT2T";
 
 
 declare global {
@@ -246,9 +248,12 @@ export class Scene extends BaseScene {
     //camera
     /**最终copy到surface的最后一个GPUTexture (FrameBuffer)*/
     cameraFrameBuffer: { [name: string]: GPUTexture };
+    // depthTextureOfUniform: { [name: string]: GPUTexture };
     /**每个摄像机的透明GBuffer ，render透明队列使用 */
-    GBuffersOfTransparentA: coreConst.MultiGBuffers;
-    GBuffersOfTransparentB: coreConst.MultiGBuffers;
+    // GBuffersOfTransparentA: coreConst.MultiGBuffers;
+    // GBuffersOfTransparentB: coreConst.MultiGBuffers;
+
+    cameraTransparentRender: { [name: string]: TransparentRender };
     ////////////////////////////////////////////////////////////////////////////////
     /**GBuffer&GPU 的拾取管理器 */
     pickUp!: Pickup;
@@ -340,8 +345,10 @@ export class Scene extends BaseScene {
         this.cameraActors = [];
         this.actors = {};
         this.cameraFrameBuffer = {}
-        this.GBuffersOfTransparentA = {};
-        this.GBuffersOfTransparentB = {};
+        // this.GBuffersOfTransparentA = {};
+        // this.GBuffersOfTransparentB = {};
+        this.cameraTransparentRender = {};
+        // this.depthTextureOfUniform = {};
         this.multiCameraViewport = [];
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //默认值初始化
@@ -415,7 +422,7 @@ export class Scene extends BaseScene {
         //如果有深度模板输入
         if ("depthStencil" in input) {
             this.depthStencil = input.depthStencil as GPUDepthStencilState;
-           
+
         }
         //如果由反向Z
         if (input.reversedZ) {
@@ -495,7 +502,7 @@ export class Scene extends BaseScene {
             }
         }
         const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-        console.log("presentationFormat:", presentationFormat);
+        // console.log("presentationFormat:", presentationFormat);
         this.presentationFormat = presentationFormat;
 
         context.configure({
@@ -693,9 +700,13 @@ export class Scene extends BaseScene {
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //GPU 
-    /** for raw uniform model*/
+    /** 不透明的RPD*/
     getRenderPassDescriptor(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.renderPassDescriptor[camera];
+    }
+    /**  透明的RPD*/
+    getRenderPassDescriptorOfTransparent(camera: string, _kind?: string): GPURenderPassDescriptor {
+        return this.cameraTransparentRender[camera].renderPassDescriptor;
     }
 
     /**
@@ -906,7 +917,6 @@ export class Scene extends BaseScene {
                     const lastTime = scope.clock.last;
                     await scope.update(deltaTime, startTime, lastTime);
                     await scope.oneFrameRender();
-                    await scope.copyToSurface();
                     if (userRun !== undefined)
                         await userRun(scope);
                 }
@@ -971,14 +981,34 @@ export class Scene extends BaseScene {
             for (let i in this.GBufferPostprocess) {
                 this.GBufferPostprocess[i].render();   //render GBuffer
             }
-
-            // this.renderTransparent();//render transparent
-
+            this.renderTransparent();//render transparent
+            this.copyRenderextureToCameraFrameBuffer();//copy GBuffer to camera framebuffer
             this.postProcessManagement.render();  //进行后处理
             this.showMultiCamera();
             await this.showGBuffersVisualize();     //按照配置或命令，进行GBuffer可视化
+            await this.copyFinalTextureToSurface();
+
         }
     }
+
+    /** 复制最终的渲染（GBuffer的color，【不透明-->透明渲染完成后的】）的纹理到摄像机的framebuffer */
+    copyRenderextureToCameraFrameBuffer(){
+        for (let i in this.cameraActors) {
+            const camera = this.cameraActors[i];
+            const cameraID = camera.id.toString();
+
+            let copyToColorTexture = new CopyCommandT2T(
+                {
+                    A: this.GBuffers[cameraID]["color"],
+                    B: this.cameraFrameBuffer[cameraID],
+                    size: { width: this.canvas.width, height: this.canvas.height },
+                    device: this.device
+                }
+            );
+            copyToColorTexture.update();
+        }
+    }
+
     /**
      * 渲染每个摄像机、每个stage的透明队列 
      * 工作在合并GBuffer之后
@@ -986,25 +1016,20 @@ export class Scene extends BaseScene {
     renderTransparent() {
         //1、循环每个摄像机、每个stage的透明队列，进行渲染
         //2、前置条件：
-        //      A、每个摄像机一套透明的GBuffer的透明GBUffe，只在Scene中；
-        //                  texture：color，depth（有png混合透明或不透明，比如alpha test（0，或任意值），需要更新depth，ID，uv，normal）/每个摄像机一套。或者说是，
-        //      B、透明的RPD，FS.targets.format(透明GBUffer的格式)
-        //      C、per entity输出的透明commands(1、每个entity只能是不透明或透明[由material决定]；2、透明没有深度commands，不透明有深度commands)；这里需要RPD，FS.targets.format;
-        //3、执行每个stage的每个camera的透明队列的render
-        for (let i in this.stagesOrders) {
-            const perList = this.stagesOrders[i];//number，stagesOfSystem的数组角标
-            const name = this.stagesOfSystem[perList];
-            {//每个stageGroup进行update，包含透明和不透明两个stage 
-                if (this.stages[name]) {
-                    this.stages[name].renderTransparent();
-                }
-                //20241212:透明render移动到GBufferPostprocess中进行油画法
-                // if (this.stages[name].transparent) {
-                //     this.stages[name].transparent!.update(deltaTime, startTime, lastTime);
-                // }
+        //      A、每个摄像机一个透明的渲染管理器e，只在Scene中；
+        //      B、透明的RPD，attachments =GBUffer
+        //      C、per entity输出的透明commands(
+        //          1、每个entity只能是不透明或透明[由material决定]；
+        //          2、透明没有深度commands，不透明有深度commands)；
+        // 3、执行每个stage的每个camera的透明队列的render
+
+        for (let i in this.cameraActors) {
+            const camera = this.cameraActors[i];
+            const cameraID = camera.id.toString();
+            if (this.cameraTransparentRender[cameraID] != undefined) {
+                this.cameraTransparentRender[cameraID].render();
             }
         }
-
     }
     /**render perstage 
      * 逐个处理camerasCommands的队列渲染
@@ -1034,13 +1059,14 @@ export class Scene extends BaseScene {
     //render ：output
 
     /**
-     * 多摄像机viewport显示
+     * 多摄像机viewport合并
      */
     showMultiCamera() {
         //多camera
         if (this.multiCamera) {
             this.multiCameras.render();
         }
+        //单camera
         else {
             this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
         }
@@ -1059,13 +1085,16 @@ export class Scene extends BaseScene {
         // this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
     }
     /**每帧渲染的最后步骤 */
-    async copyToSurface() {
+    async copyFinalTextureToSurface() {
         this.copyTextureToTexture(this.finalTarget, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+
+
+        //测试 copy 某个摄像机的framebuffer到surface
         // this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
 
         //直接测试：world -->scene
         // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
-        this.copyTextureToTexture(this.stages["World"].GBuffers[this.defaultCameraActor.id.toString()]["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
+        // this.copyTextureToTexture(this.stages["World"].GBuffers[this.defaultCameraActor.id.toString()]["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
 
         //中转测试：world-->  scene
         // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
@@ -1074,9 +1103,9 @@ export class Scene extends BaseScene {
     /** 20241229 ,未使用
      * 这个是准备做WE tory （类似shadertoy）使用的
      */
-    copyRawToSurface() {
-        this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
-    }
+    // copyRawToSurface() {
+    //     this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
+    // }
 
     ////////////////////////////////////////////////////////////////
     //update camera 
@@ -1485,6 +1514,10 @@ export class Scene extends BaseScene {
         this.defaultActor = actor;
         actor.setDefault(this);
     }
+    /**获取深度纹理(uniform 使用)，用于透明渲染 */
+    getDepthTextureOfTransparentOfUniform(cameraID: string): GPUTexture {
+        return this.cameraTransparentRender[cameraID].depthTextureOfUniform;
+    }
     /**增加摄像机 Actor
      * 适用于：非活动Actor场景
      */
@@ -1497,8 +1530,18 @@ export class Scene extends BaseScene {
         this.cameraActors.push(one);//增加cameraActor数组中
         this.cameraFrameBuffer[id] = await this.createCameraFrameBufferForPerCamera(id);
         this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//不透明的GBuffer，合并使用
-        this.GBuffersOfTransparentA[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
-        this.GBuffersOfTransparentB[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
+        // this.GBuffersOfTransparentA[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
+        // this.GBuffersOfTransparentB[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
+        // this.depthTextureOfUniform[id] = this.device.createTexture({//深度纹理
+        //     size: [this.canvas.width, this.canvas.height],
+        //     format: this.depthDefaultFormat,
+        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+        // });
+        this.cameraTransparentRender[id] = new TransparentRender({
+            parent: this, cameraID: id,
+            surfaceSize: { width: this.canvas.width, height: this.canvas.height },
+            device: this.device,
+        });//透明渲染
         for (let i in this.stages) {
             await this.stages[i]?.initCameraGBuffer(id);
         }

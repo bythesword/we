@@ -1,4 +1,4 @@
-import { RootOfGPU } from "../scene/root";
+import { RootOfGPU } from "../organization/root";
 
 //todo:20241126,还有多种组合模式，等待扩展
 export enum weSamplerKind {

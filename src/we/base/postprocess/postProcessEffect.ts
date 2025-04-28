@@ -1,6 +1,6 @@
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { GBuffers, userFN } from "../const/coreConst";
-import { RootOfGPU } from "../scene/root";
+import { RootOfGPU } from "../organization/root";
 import { commmandType } from "../scene/baseScene";
 import { Scene } from "../scene/scene";
 

@@ -1,6 +1,6 @@
 import { DrawCommand } from "../command/DrawCommand";
 import * as coreConst from "../const/coreConst";
-import { optionSingleRender, SingleRender } from "./singleRender";
+import { optionSingleRender, SingleRender } from "../organization/singleRender";
 // import shaderCodeDepth from "../shader/GBuffersVisualize/depth.wgsl?raw";
 // import shaderCodeEID from "../shader/GBuffersVisualize/entityID.wgsl?raw";
 // import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";

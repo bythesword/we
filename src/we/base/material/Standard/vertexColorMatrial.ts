@@ -13,6 +13,7 @@ export interface optionVertexColorMaterial extends optionBaseMaterial {
  * 展示用材质
  */
 export class VertexColorMaterial extends BaseMaterial {
+  
 
     declare input: optionVertexColorMaterial;
     _type: String;
@@ -30,14 +31,12 @@ export class VertexColorMaterial extends BaseMaterial {
     __init() {
         // throw new Error("Method not implemented.");
     }
-    getTransparent(): boolean {
-        return this.alpha !=1.0?true:false;
-     }
-    getCodeFS(_startBinding:number) {
+
+    getCodeFS(_startBinding: number) {
         if (this.input.code) {
             return this.input.code;
         }
- 
+
         let code = this._type == "color" ? FSOfColor : FSOfposition;
         return this.shaderCodeProcess(code);
     }
@@ -46,7 +45,7 @@ export class VertexColorMaterial extends BaseMaterial {
         this._destroy = true;
     }
 
-    getUniform(startBinding:number): uniformEntries[] | false {
+    getUniform(startBinding: number): uniformEntries[] | false {
         // let  sampler=this.scene.resources.
         let binding = startBinding;
         if (this.sampler == undefined) {
@@ -78,5 +77,19 @@ export class VertexColorMaterial extends BaseMaterial {
         else
             return false;
     }
+    getTransparent(): boolean {
+        if (this.alpha < 1.0) {
+            return true;
+        }
+        else if (this.input.transparent?.opacity != undefined && this.input.transparent.opacity < 1.0) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 
+    getBlend(): GPUBlendState | undefined {
+        return this._transparent?.blend;
+    }
 }

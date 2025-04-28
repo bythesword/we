@@ -2,7 +2,7 @@ import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
 import { BaseMaterial } from "../material/baseMaterial";
 import { BaseStage } from "../stage/baseStage";
 import * as coreConst from "../const/coreConst"
-import { RootOfGPU } from "../scene/root";
+import { RootOfGPU } from "../organization/root";
 
 import partAdd_st_entity_VS from "../shader/entities/part_add.st_entity.vs.wgsl?raw"
 import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.VertexShaderOutput.vs.wgsl?raw"
@@ -124,10 +124,16 @@ export enum initStateEntity {
  * 默认时：全部都是true
  */
 export interface optionShadowEntity {
-    /**是否接收阴影 */
-    accept?: boolean,
-    /**是否产生阴影     */
-    generate?: boolean,
+    /**是否接收阴影 
+     * 
+     * 默认true
+    */
+    accept: boolean,
+    /**是否产生阴影     
+     * 
+     * 默认true
+    */
+    generate: boolean,
 }
 
 
@@ -215,6 +221,8 @@ export interface commandsOfEntity {
 export interface commandsOfShadowOfEntity {
     [name: string]: commmandType[]
 }
+export type commandsOfTransparentOfEntity = commandsOfShadowOfEntity;
+export type commandsOfShadowOfEntityOfTransparent = commandsOfShadowOfEntity;
 export abstract class BaseEntity extends RootOfGPU {
 
     ////////////////////////////////////////////////////////////////////
@@ -316,7 +324,7 @@ export abstract class BaseEntity extends RootOfGPU {
 
     //////////////////////////////////////////////////////////////////
     //生成与实现
-    _shadow!: optionShadowEntity;
+    _shadow: optionShadowEntity;
 
 
     //////////////////////////////////////////////////////////////////
@@ -332,13 +340,24 @@ export abstract class BaseEntity extends RootOfGPU {
     // commandsOfTransparent: commandsOfEntity;//commmandType[];
 
     /**
-     * shadowmap 渲染
+     * shadowmap 渲染，是多个光源的渲染队列集合
+     * 
      * 根据this.transparent，判断是否为透明entity
+     * 
      * 不透明只需要一步shadowmap的渲染(lightsmanagement管理)，
+     * 
      * 透明在第二步进行shadowmap的渲染，在完成第一步的shadowmap渲染后(所有不透明)，lightsmanagement进行第二步的shadowmap渲染
      */
     commandsOfShadow: commandsOfShadowOfEntity;
-    // commandsOfShadowOfTransparent: commandsOfShadowOfEntity;
+    commandsOfShadowOfTransparent: commandsOfShadowOfEntityOfTransparent;
+    /**
+     * 透明材质的渲染队列，是多个摄像机的透明渲染队列集合
+     * 
+     * 透明绘制流程是在不透明完成之后，所以只有透明的渲染队列，不会有多个渲染队列(color，depth,...);
+     * 
+     * 但是会有多个摄像机的，所以是一个对象，每个摄像机一个渲染队列。
+     */
+    commandsOfTransparent: commandsOfShadowOfEntity;
 
 
 
@@ -392,9 +411,9 @@ export abstract class BaseEntity extends RootOfGPU {
         this._LOD = [];
         this._destroy = false;
         this.commmands = {};
-        // this.commandsOfTransparent = {};
+        this.commandsOfTransparent = {};
         this.commandsOfShadow = {};
-        // this.commandsOfShadowOfTransparent = {};
+        this.commandsOfShadowOfTransparent = {};
 
         this._vertexAndMaterialGroup = {};
         this.enable = true;
@@ -441,6 +460,7 @@ export abstract class BaseEntity extends RootOfGPU {
         // }
         // this.updateMatrix();
         this.commmands = {};
+        this.commandsOfShadowOfTransparent = {};
         // this.commmands["default"] = {
         //     forward: [],
         //     depth: [],
@@ -479,17 +499,15 @@ export abstract class BaseEntity extends RootOfGPU {
         return this._transparent;
     }
 
-    /** camera: string,camera or light 的id（string形式）
-     * 
-     * type:string ,"camera"|"light",default="camera"
-     */
+    /**前向渲染 */
     abstract createDCCC(values: valuesForCreateDCCC): initStateEntity
+    /**延迟渲染的深度渲染：单像素模延迟 */
     abstract createDCCCDeferRenderDepth(values: valuesForCreateDCCC): initStateEntity
+    /**渲染shadowmap */
     abstract createDCCCForShadowMap(values: valuesForCreateDCCC): initStateEntity
-    // abstract createDCCC(parent: BaseStage, camera: string, kind?: string): initStateEntity
-    // abstract createDCCCDeferRenderDepth(parent: BaseStage, camera: string, kind?: string): initStateEntity
-    // abstract createDCCCForShadowMap(parent: BaseStage, camera: string, kind?: string): initStateEntity
-
+    abstract createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): initStateEntity
+    /**透明渲染 */
+    abstract createDCCCForTransparent(values: valuesForCreateDCCC): initStateEntity
 
     /** 世界坐标的Box */
     generateBox(position: number[]): boundingBox {
@@ -698,7 +716,16 @@ export abstract class BaseEntity extends RootOfGPU {
     upgradeCameras(parent: BaseStage) {
         for (let i of this.scene.cameraActors) {
             const id = i.id.toString();
-            const already = this.checkIdOfCommands(id, this.commmands);//获取是否已经存在
+            let already: boolean
+            //判断透明还是不透明
+            if (this.transparent === true) {
+                // this.createDCCCForTransparent({ parent, id: "transparent", kind: renderKindForDCCC.transparent });
+                already = this.checkIdOfCommands(id, this.commandsOfTransparent);//获取是否已经存在
+            }
+            else {
+                already = this.checkIdOfCommands(id, this.commmands);//获取是否已经存在
+            }
+
             if (already) {
                 continue;
             }
@@ -708,8 +735,13 @@ export abstract class BaseEntity extends RootOfGPU {
                     id: id,
                     kind: renderKindForDCCC.camera
                 };
-                if (this.deferRenderDepth) this._init = this.createDCCCDeferRenderDepth(valueOfCamera);
-                this.createDCCC(valueOfCamera);
+                if (this.transparent === true) {
+                    this.createDCCCForTransparent(valueOfCamera);
+                }
+                else {
+                    if (this.deferRenderDepth) this._init = this.createDCCCDeferRenderDepth(valueOfCamera);
+                    this.createDCCC(valueOfCamera);
+                }
             }
         }
     }
@@ -719,7 +751,13 @@ export abstract class BaseEntity extends RootOfGPU {
     upgradeLights(parent: BaseStage) {
         for (let i of this.scene.lightsManagement.getShdowMapsStructArray()) {
             const id = i.light_id.toString();
-            const already = this.checkIdOfCommands(id, this.commandsOfShadow);//获取是否已经存在
+            let already: boolean;
+            if (this.transparent === true) {
+                already = this.checkIdOfCommands(id, this.commandsOfShadowOfTransparent);//获取是否已经存在 
+            }
+            else {
+                already = this.checkIdOfCommands(id, this.commandsOfShadow);//获取是否已经存在
+            }
             if (already) {
                 continue;
             }
@@ -730,7 +768,12 @@ export abstract class BaseEntity extends RootOfGPU {
                     kind: renderKindForDCCC.light,
                     matrixIndex: i.matrix_self_index
                 };
-                this.createDCCCForShadowMap(valueOfLight);
+                if (this.transparent === true) {
+                    this.createDCCCForShadowMapOfTransparent(valueOfLight);
+                }
+                else {
+                    this.createDCCCForShadowMap(valueOfLight);
+                }
             }
 
         }
@@ -768,7 +811,7 @@ export abstract class BaseEntity extends RootOfGPU {
      * @param lastTime  
      * @returns 
      */
-    update(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): commandsOfEntity {
+    update(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number) {
         // let cameraOrLight: string, forWhatRender: entityRenderFor;
         //初始化DCC
 
@@ -793,13 +836,11 @@ export abstract class BaseEntity extends RootOfGPU {
                 this.checkUpgradeCameras(parent);
                 //检查是否有新光源，有进行更新
                 this.checkUpgradeLights(parent);
+
+
                 if (this._dynamicMesh === true || this._dynamicPostion === true || this.input!.update !== undefined) {
                     this.updateUniformBuffer(parent, deltaTime, startTime, lastTime);
-                    this.commmands = this.updateDCC(parent, deltaTime, startTime, lastTime);
-                }
-                else//静态，直接返回commands
-                {
-                    return this.commmands;
+                    // this.commmands = this.updateDCC(parent, deltaTime, startTime, lastTime);
                 }
             }
             else if (this._init == initStateEntity.initializing) {
@@ -809,7 +850,7 @@ export abstract class BaseEntity extends RootOfGPU {
         // return [];
         // let commands = this.updateChilden(parent, deltaTime, startTime, lastTime);
 
-        return this.commmands;
+        // return this.commmands;
     }
     /**
      * 被update调用
@@ -830,12 +871,37 @@ export abstract class BaseEntity extends RootOfGPU {
     updateDCC(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): commandsOfEntity {
         return this.commmands;
     }
+    /**获取摄像机的渲染commands（所有摄像机的）
+     * 
+     * @returns commandsOfEntity, 返回this.commmands 包括多个camera的Commands 每个数组元素中包括3个类型的commands
+     */
+    getCommandsOfCameras(): commandsOfEntity {
+        return this.commmands;
+    }
+    /**获取摄像机的渲染的透明commands（所有摄像机的）
+   * 
+   * @returns commandsOfEntity, 返回this.commmands 包括多个camera的Commands 每个数组元素中包括3个类型的commands
+   */
+    getCommandsOfCamerasOfTransparent(): commandsOfTransparentOfEntity {
+        return this.commandsOfTransparent;
+    }
+
     /**获取shadowmap的 commands
      * 相当于render中的updateDCC()版本
      */
     getCommandsOfShadowMap(): commandsOfShadowOfEntity {
         return this.commandsOfShadow;
     }
+
+    /**获取透明层的shadowmap
+     * 
+     * @returns commandsOfShadowOfEntity
+     */
+    getCommandsOfShadowMapOfTransparent(): commandsOfShadowOfEntityOfTransparent {
+        return this.commandsOfShadowOfTransparent;
+    }
+
+
     updateChilden(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number, _updateForce: boolean = false): commmandType[] {
         return [];
     }
@@ -1007,6 +1073,18 @@ export abstract class BaseEntity extends RootOfGPU {
             return this.stage!.colorAttachmentTargets;
         }
     }
-
-
+    /**
+     * 是否产生阴影
+     * @returns boolean
+     */
+    getShadwoMapGenerate(): boolean {
+        return this._shadow.generate;
+    }
+    /**
+     * 是否接受阴影
+     * @returns boolean
+     */
+    getShadowmAccept() {
+        return this._shadow.accept;
+    }
 }
