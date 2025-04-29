@@ -12,7 +12,7 @@ export interface optionGBuffer {
     presentationFormat: GPUTextureFormat,
     depthDefaultFormat: GPUTextureFormat,
 }
-export class GBuffer {
+export class GBufferFactory {
     device: GPUDevice;
     surfaceSize: { width: number, height: number };
     // options: { premultipliedAlpha?: boolean, format?: GPUTextureFormat };

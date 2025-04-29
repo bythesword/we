@@ -405,13 +405,23 @@ export class Mesh extends BaseEntity {
                             size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
                             get: () => { return scope.getUniformOfMatrix() },
                         },
-                        {
-                            label: "透明的depth texture",
-                            binding: binding,
-                            resource: this.stage!.getDepthTextureOfTransparentOfUniform(camera).createView()
-                        }
+                        // {
+                        //     label: "透明的depth texture",
+                        //     binding: binding,
+                        //     resource: this.stage!.geTransparentOfUniform(camera).createView()//这里是深度纹理，而不是view
+                        // }
                     ]
                 });
+
+            //透明渲染的uniforms
+            //binding = 1,这个是固定的
+            //这里的transparentTexturesOfUniform是不包括color的
+            let transparentTexturesOfUniform = this.stage!.geTransparentOfUniform(camera, binding);
+            for (let i of transparentTexturesOfUniform) {
+                uniforms[0].entries.push(i);
+                binding++;
+            }
+
             //如果是延迟渲染(单像素) ，增加depth texture
             if (this.deferRenderDepth) {
                 uniforms[0].entries.push({

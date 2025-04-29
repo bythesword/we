@@ -8,11 +8,11 @@
  */
 import { BaseMaterial, optionBaseMaterial, optionTransparentOfMaterial } from "../baseMaterial";
 import { uniformEntries } from "../../command/commandDefine";
-import { weResourceTexture, weSamplerKind } from "../../resource/weResource";
 
 import textureFS from "../../shader/material/simple/texture.fs.wgsl?raw"
-import { textureAlphaZero } from "../../const/coreConst";
-import { optionTextureSource, Texture, textureType } from "../../texture/texture";
+import textureTransparentFS from "../../shader/material/simple/textureTransparent.fs.wgsl?raw"
+import { GBuffersRPDAssemble, textureAlphaZero } from "../../const/coreConst";
+import { optionTextureSource, Texture } from "../../texture/texture";
 
 export interface optionTexutresKindOfMaterial {
     texture?: optionTextureSource,
@@ -119,8 +119,9 @@ export class TextureMaterial extends BaseMaterial {
             // let kkk: keyof optionTexutresKindOfMaterial = key;
             let texture = this.input.textures[key as keyof optionTexutresKindOfMaterial]!;
             let textureInstace = new Texture(texture, this.device);
-            this.textures[key] = textureInstace;
             await textureInstace.init();
+            this.textures[key] = textureInstace;
+
             // this.countOfTexturesOfFineshed++;
             this._already = true;
         }
@@ -155,6 +156,27 @@ export class TextureMaterial extends BaseMaterial {
         let code = textureFS;
         let binding = startBinding;
 
+
+
+        if (this.getTransparent()) {
+            code = textureTransparentFS;
+            // code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
+            let bindingOfTransparent = 1;;
+            Object.entries(GBuffersRPDAssemble).forEach(([key, value]) => {
+                if (key != "color") {
+                    if (key == "depth") {
+                        code += `@group(1) @binding(${bindingOfTransparent}) var u_depth_opacity : texture_depth_2d ; `;
+                    }
+                    else if (key == "entityID") {
+                        code += `@group(1) @binding(${bindingOfTransparent}) var u_entityID_opacity : texture_2d<u32> ; `;
+                    }
+                    else {
+                        code += `@group(1) @binding(${bindingOfTransparent}) var u_${key}_opacity : texture_2d<f32> ; `;
+                    }
+                    bindingOfTransparent++;
+                }
+            });
+        }
         if (code.indexOf("$red")) code = code.replaceAll("$red", this.red.toString());
         if (code.indexOf("$blue")) code = code.replaceAll("$blue", this.blue.toString());
         if (code.indexOf("$green")) code = code.replaceAll("$green", this.green.toString());

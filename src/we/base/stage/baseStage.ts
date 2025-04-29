@@ -4,6 +4,7 @@ import * as coreConst from "../const/coreConst"
 import { Scene } from "../scene/scene";
 import { CameraActor } from "../actor/cameraActor";
 import { renderKindForDCCC } from "../const/coreConst";
+import { uniformEntries } from "../command/commandDefine";
 
 
 
@@ -636,7 +637,7 @@ export class BaseStage extends BaseScene {
         return this.scene!.getWGSLOfSystemShader(renderType);
     }
 
-    getDepthTextureOfTransparentOfUniform(cameraID: string): GPUTexture {
-        return this.scene.getDepthTextureOfTransparentOfUniform(cameraID);
+    geTransparentOfUniform(cameraID: string,binding:number): uniformEntries[] {
+        return this.scene.geTransparentOfUniform(cameraID,binding);
     }
 }

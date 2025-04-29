@@ -99,6 +99,9 @@ export class Texture {
         //初始化参数
         this.device = device;
         this.input = input;
+        if (input.format == undefined) {
+            this.input.format = 'rgba8unorm';
+        }
         this._already = false;
         this._upsideDownY = input.upsideDownY || true;
         this.name = input.name || "";
@@ -111,7 +114,7 @@ export class Texture {
             console.error("texture is undefined");
             return;
         }
-        this.init();
+        // this.init();
     }
     async init() {
         let kind = "texture";
@@ -208,7 +211,7 @@ export class Texture {
             // mipLevelCount: this.numMipLevels([width, height]),
             // sampleCount: 1,
             // dimension: '2d',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
         });
         this.device.queue.copyExternalImageToTexture(
             { source: source, flipY: this._upsideDownY }, //webGPU 的UV从左下角开始，所以需要翻转Y轴。

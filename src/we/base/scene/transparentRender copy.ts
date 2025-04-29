@@ -10,7 +10,6 @@ import { GBufferFactory } from "../Gbuffers/GBuffers";
 import { Scene } from "./scene";
 import { optionSingleRender, SingleRender } from "../organization/singleRender";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
-import { uniformEntries } from "../command/commandDefine";
 
 export interface optionTransparentRender extends optionSingleRender {
     /**scene */
@@ -34,12 +33,6 @@ export class TransparentRender extends SingleRender {
      * 1、与GBuffer内容相同
     */
     transparentTextureOfUniform!: GBufferFactory;
-
-    // /**透明纹理的bindGroup 内容
-    //  * 
-    //  * 为了在多次调用中使用
-    // */
-    // transparentTextures: uniformEntries[];
 
     /**初始化参数 */
     declare input: optionTransparentRender;
@@ -78,71 +71,23 @@ export class TransparentRender extends SingleRender {
         });
 
     }
-    getBindGroupOfTextures(startBinding: number): uniformEntries[] {
-        let binding = startBinding;
-        let transparentTextures: uniformEntries[] = [];
-        for (let i in this.transparentTextureOfUniform.GBuffers) {
-            //color 的数据在shader是不需要重新写的（blending情况下）
-            if (i != "color") {
-                // console.log("transparentTextureOfUniform.GBuffers", i);
-                transparentTextures.push({
-                    binding: binding++,
-                    resource: this.transparentTextureOfUniform.GBuffers[i].createView()
-                });
-            }
-        }
-        return transparentTextures;
-    }
-    /**pipeline 的depthStencil 内容，用于透明渲染 */
     getDepthStencil(): GPUDepthStencilState {
         return this.depthStencil;
     }
     destroy(): void {
         throw new Error("Method not implemented.");
     }
-    /**透明渲染 */
     render(): void {
         let iii = 0;
-        // let copyToColorTexture = new CopyCommandT2T(
-        //     {
-        //         A: this.GBuffers["color"],
-        //         B: this.transparentTextureOfUniform.GBuffers["color"],
-        //         size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-        //         device: this.device
-        //     }
-        // );
-        let copyToDepthTexture = new CopyCommandT2T(
+        let copyToColorTexture = new CopyCommandT2T(
             {
                 A: this.GBuffers["depth"],
-                B: this.transparentTextureOfUniform.GBuffers["depth"],
+                B: this.depthTextureOfUniform,
                 size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
                 device: this.device
             }
         );
-        let copyToIDTexture = new CopyCommandT2T(
-            {
-                A: this.GBuffers["entityID"],
-                B: this.transparentTextureOfUniform.GBuffers["entityID"],
-                size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-                device: this.device
-            }
-        );
-        let copyToUVTexture = new CopyCommandT2T(
-            {
-                A: this.GBuffers["uv"],
-                B: this.transparentTextureOfUniform.GBuffers["uv"],
-                size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-                device: this.device
-            }
-        );
-        let copyToNormalTexture = new CopyCommandT2T(
-            {
-                A: this.GBuffers["normal"],
-                B: this.transparentTextureOfUniform.GBuffers["normal"],
-                size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-                device: this.device
-            }
-        );
+        copyToColorTexture.update();//深度拷贝到uniform 的depth texture
         for (let j in this.parent.stagesOrders) {
             const perList = this.parent.stagesOrders[j];//number，stagesOfSystem的数组角标
             const name = this.parent.stagesOfSystem[perList];
@@ -162,10 +107,7 @@ export class TransparentRender extends SingleRender {
                     //     }
                     // }
                     // iii++;
-                    copyToDepthTexture.update();//深度拷贝到uniform 的depth texture
-                    copyToIDTexture.update();//深度拷贝到uniform 的depth texture
-                    copyToUVTexture.update();//深度拷贝到uniform 的depth texture
-                    copyToNormalTexture.update();//深度拷贝到uniform 的depth texture
+                    copyToColorTexture.update();//深度拷贝到uniform 的depth texture
                     this.parent.stages[name].camerasCommandsOfTransparent[this.cameraID][i].update();
                 }
             }

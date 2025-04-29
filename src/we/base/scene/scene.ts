@@ -27,6 +27,7 @@ import { renderKindForDCCC } from "../const/coreConst";
 import { LightsManagement } from "../light/lightsManagement";
 import { TransparentRender } from "./transparentRender";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
+import { uniformEntries } from "../command/commandDefine";
 
 
 declare global {
@@ -992,7 +993,7 @@ export class Scene extends BaseScene {
     }
 
     /** 复制最终的渲染（GBuffer的color，【不透明-->透明渲染完成后的】）的纹理到摄像机的framebuffer */
-    copyRenderextureToCameraFrameBuffer(){
+    copyRenderextureToCameraFrameBuffer() {
         for (let i in this.cameraActors) {
             const camera = this.cameraActors[i];
             const cameraID = camera.id.toString();
@@ -1515,8 +1516,8 @@ export class Scene extends BaseScene {
         actor.setDefault(this);
     }
     /**获取深度纹理(uniform 使用)，用于透明渲染 */
-    getDepthTextureOfTransparentOfUniform(cameraID: string): GPUTexture {
-        return this.cameraTransparentRender[cameraID].depthTextureOfUniform;
+    geTransparentOfUniform(cameraID: string, binding: number): uniformEntries[] {
+        return this.cameraTransparentRender[cameraID].getBindGroupOfTextures( binding);
     }
     /**增加摄像机 Actor
      * 适用于：非活动Actor场景

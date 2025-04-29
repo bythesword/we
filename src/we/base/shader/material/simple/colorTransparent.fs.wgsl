@@ -8,53 +8,56 @@
 
 @fragment
 fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+    //延迟渲染的深度渲染，在TS中替换字符串
     $deferRender_Depth
-    //let depth0 = textureLoad(u_DeferDepth, vec2i(floor(fsInput.position.xy)), 0);
-    //if abs(depth0 - fsInput.position.z) > weZero {
-    //discard;
-    //}
-    //let uv = fsInput.position.xy / vec2f(canvasSizeWidth, canvasSizeHeight);
-
-    var depth = textureLoad(u_depth_opacity, vec2i(i32(fsInput.position.x), i32(fsInput.position.y)), 0);
 
     var output : ST_GBuffer;
     $output     //输出GBuffer的各项值
 
+    //输出的color，在TS中替换字符串
     output.color = vec4f($red, $green, $blue, $alpha);
-    if U_MVP.reversedZ == 1 {
-        if ( fsInput.position.z- depth> weZero)
-        {
-            output.depth = depth;
-            if (depth < weZero) {
-                output.depth = weZero/100.0; 
-            }
-            else {
-                output.depth = depth+weZero/100.0;
-            }
-            //output.color = vec4f(1,1,0,0.5);             
-        } else {
-            discard;
-            //output.color = vec4f(1,0,0,0.5);
-        }
-    }
-    else
-     {
-        if (depth > fsInput.position.z)
-        {
-            discard;
-           //output.color = vec4f(1,0,0,1);
-        } else {
-            output.depth = depth;
-            output.color = vec4f(1,0.5,0,1);
 
-        }
-    }
+    //替换标识符，顶点颜色，在TS中替换字符串
     $vertexColor
+
     //if uv.y > 0.5 {
         //output.color = vec4f(fsInput.position.z, fsInput.position.z, fsInput.position.z, 1);
     //} else {
     //output.color = vec4f(depth0, depth0, depth0, 1);
     //}
+
+    //获取GBuffer的depth,uv,normal,id 值
+    var depth = textureLoad(u_depth_opacity, vec2i(i32(fsInput.position.x), i32(fsInput.position.y)), 0);
+    var id = textureLoad(u_entityID_opacity, vec2i(i32(fsInput.position.x), i32(fsInput.position.y)), 0).r;
+    var uvTexture = textureLoad(u_uv_opacity, vec2i(i32(fsInput.position.x), i32(fsInput.position.y)), 0);
+    var normalTexture = textureLoad(u_normal_opacity, vec2i(i32(fsInput.position.x), i32(fsInput.position.y)), 0);
+
+    //是否有reveredZ
+    if U_MVP.reversedZ == 1 {
+        if (fsInput.position.z> depth)
+        {
+            //输出depth,uv,normal,id，原来的值,透明的在pickup等操作上是穿透的
+            output.depth = depth;
+            output.uv = uvTexture;
+            output.normal = normalTexture;
+            output.id = id;
+        } else {
+            discard;
+        }
+    }
+    else
+    {
+        if (fsInput.position.z < depth)
+        {
+            //输出depth,uv,normal,id，原来的值,透明的在pickup等操作上是穿透的
+            output.depth = depth;
+            output.uv = uvTexture;
+            output.normal = normalTexture;
+            output.id = id;
+        } else {
+            discard;
+        }
+    }
     return output;
 }
 //end : color.fs.wgsl

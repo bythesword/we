@@ -98,11 +98,11 @@ interface viewPort {
 }
 /**固定的GBuffer名称 */
 export enum GBufferName {
-    color = "color",
-    depth = "depth",
-    entityID = "entityID",
-    normal = "normal",
-    uv = "uv",
+    color = "color",        //必须
+    depth = "depth",        //必须
+    entityID = "entityID",  //必须
+    normal = "normal",      //非必须，以后可更改
+    uv = "uv",              //非必须，以后可更改
 }
 /**GBuffer的 GPUTexture集合 */
 export interface GBuffers {
@@ -137,6 +137,8 @@ export type GBuffersRPD = {
 /** 实例化的 GBufferRenderPassDescriptor 的集合
  * 
  * (GBuffer 合并使用的Render Pass Descriptor)
+ * 
+ * 这里的顺序与GBufferName的顺序一致（强制）
  */
 export var GBuffersRPDAssemble: GBuffersRPD = {
     [GBufferName.color]: {

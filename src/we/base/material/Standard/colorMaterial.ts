@@ -9,7 +9,7 @@
 import { BaseMaterial, optionBaseMaterial, optionTransparentOfMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
 import colorTransparentOnlyFS from "../../shader/material/simple/colorTransparent.fs.wgsl?raw"
-import { color4F } from "../../const/coreConst";
+import { color4F, GBuffersRPDAssemble } from "../../const/coreConst";
 import { uniformEntries } from "../../command/commandDefine";
 
 export interface optionColorMaterial extends optionBaseMaterial {
@@ -60,7 +60,21 @@ export class ColorMaterial extends BaseMaterial {
         if (this.getTransparent()) {
             code = colorTransparentOnlyFS;
             // code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
-            code += `@group(1) @binding(${startBinding}) var u_depth_opacity : texture_depth_2d ; `;
+            let bindingOfTransparent = 1;;
+            Object.entries(GBuffersRPDAssemble).forEach(([key, value]) => {
+                if (key != "color") {
+                    if (key == "depth") {
+                        code += `@group(1) @binding(${bindingOfTransparent}) var u_depth_opacity : texture_depth_2d ; `;
+                    }
+                    else if (key == "entityID") {
+                        code += `@group(1) @binding(${bindingOfTransparent}) var u_entityID_opacity : texture_2d<u32> ; `;
+                    }
+                    else {
+                        code += `@group(1) @binding(${bindingOfTransparent}) var u_${key}_opacity : texture_2d<f32> ; `;
+                    }
+                    bindingOfTransparent++;
+                }
+            });
         }
 
         code = code.replaceAll("$red", this.red.toString());
@@ -77,7 +91,7 @@ export class ColorMaterial extends BaseMaterial {
     }
 
     getUniform(startBinding: number): uniformEntries[] | false {
-            return false;
+        return false;
     }
 
     getTransparent(): boolean {
