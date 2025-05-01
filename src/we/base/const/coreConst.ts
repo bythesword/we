@@ -1,11 +1,15 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //
+/** 通用的用户自定义的function */
 export type userFN = (scope: any) => any;
+/** 通用的用户自定义的function，返回Promise */
 export type userPromiseFN = (scope: any) => Promise<any>;
+/** 简单的自定义function，没有返回 */
 export type SimpleFunction = () => void;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //单体对象的用户自定义的interface
+
 /** 用户自定义功能接口的update interface */
 export interface optionUpdate {
     /**自定义更新functon() */
@@ -16,6 +20,7 @@ export interface optionUpdate {
 ////////////////////////////////////////////////////////////////////////////////////////
 //shadow map
 
+/** 渲染类型，用于shadow map 或者camera */
 export enum renderKindForDCCC {
     "camera" = "camrea",
     "light" = "light"
@@ -23,12 +28,15 @@ export enum renderKindForDCCC {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //stage 
+
 /** stage 索引类型 */
 export type stageIndex = string;
+
 /** stage name的对象接口*/
 export interface stageName {
     [name: number]: string
 };
+
 /**默认stage层级与名称 */
 export var stagesOfSystem: stageName = [
     "Actor",//角色
@@ -37,6 +45,7 @@ export var stagesOfSystem: stageName = [
     "Sky",//天空盒
     "UI",//UI
 ];
+
 //未使用
 export var stagesOfSystemDeferRender: boolean[] = [
     true,//角色
@@ -45,11 +54,17 @@ export var stagesOfSystemDeferRender: boolean[] = [
     false,//天空盒
     false,//UI
 ];
+
+/**默认stage */
 export var defaultStage = 2;//stagesOfSystem[0];
+
+/**默认stage的名称 */
 export var defaultStageName = stagesOfSystem[defaultStage]
+
+/**stage order的数组类型 */
 export type stagesOrderByRender = number[];
-// export var defaultStageList: stagesOrderByRender = [defaultStage];
-// export var defaultStageList: stagesOrderByRender = [2,3];
+
+/**默认stage的顺序*/
 export var defaultStageList: stagesOrderByRender = [0, 1, 2, 3];//20250404,[0, 1, 3, 2]后，world的底色出现，在其他stage没有commmand时，texture是空色的；在GBuffer合并时，会出现透明。排除没有commands的stage
 
 
@@ -62,23 +77,30 @@ export interface color4F {
     blue: number,
     alpha: number
 }
+
 /**RGBA四个数值的颜色interface，0--255 */
 export type color4U = color4F
+
 /**RGB数值的颜色interface，0--1 */
 export interface color3F {
     red: number,
     green: number,
     blue: number
 }
+
 /** RGB三个数值的颜色interface，0--255 */
 export type color3U = color3F;
 
+/**texture的alphaT为0的float的zero值 */
 export var textureAlphaZero=0.001
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //shadowMapSize
+/**shadow map的大小 */
 export var shadowMapSize = 2048;
-export var lightNumber = 8;//这个需要同步到“system.wgsl”中的数量
+
+/** 最大的light数量 */
+export var lightNumber = 8;//在scene.ts中的getWGSLOfSystemShader()进行了shader的替换。
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //GBuffer
@@ -167,6 +189,9 @@ export var GBuffersRPDAssemble: GBuffersRPD = {
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
     }
 }
+
+
+
 ////////////////////////////////////////////////////////////
 //GBuffer可视化
 
@@ -239,6 +264,7 @@ export interface shaderCodeOfGBuffersVisualizeLayout {
 import shaderCodeDepth from "../shader/GBuffersVisualize/depth.wgsl?raw";
 import shaderCodeEID from "../shader/GBuffersVisualize/entityID.wgsl?raw";
 import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";
+
 /**定义多窗口模式的GBuffer可视化，每个GBbuffer对应的shader */
 export var varOfshaderCodeOfGBuffersVisualizeLayout: shaderCodeOfGBuffersVisualizeLayout = {
     "default": {

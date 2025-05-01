@@ -20,12 +20,11 @@ export interface optionBaseStage extends sceneJson {
     visible?: boolean,
     /**scene */
     scene: Scene,
-
-    // depthTest?: boolean,
+ 
     /**是否透明 */
     // transparent?: boolean,
-
 }
+
 /**摄像机队列内容 */
 export interface cameraCommands {
     /**正常前向渲染 */
@@ -50,11 +49,7 @@ export class BaseStage extends BaseScene {
     /**当前可用的ID，顺序增加 */
     idOfRoot: number;
 
-    // start todo ,20241020,不同的stage可能存在不同light的可见情况，不同的环境光，比如：室外，室内，
-    // light ,camera 的数组为空，或为undefined，则使用全局（Scene）的。
-    /**cameras 默认摄像机 */
-    // defaultCamera: BaseCamera | undefined;
-    //end todo
+ 
 
     /**stage 是否使用，此项目前没有使用 */
     enable!: boolean;
@@ -62,9 +57,9 @@ export class BaseStage extends BaseScene {
     visible!: boolean;
     /**深度测试， 此项目前没有使用*/
     depthTest!: boolean;
-
-    // transparent!: boolean;//20250404，作废，统一使用一个stageGroup，通过不同的commands 区分
+ 
     scene!: Scene;
+
     /**是否使用cache，需要配合GBuffer，即使用上一帧的GBuffer内容， 此项目前没有使用*/
     _cache: boolean;
 
@@ -78,16 +73,11 @@ export class BaseStage extends BaseScene {
     }
     set ID(id: number) {
         this._id = id;
-    }
-    /**ID color texture */
-    // colorTextureForID!: GPUTexture;
+    } 
 
     /**仅仅输出深度的纹理，非前向渲染的depth buffer */
     depthTextureOnly!: { [name: string]: GPUTexture };
-
-    /**color attachment 的 view 数组 */
-    // colorTextureViews!: GPUTextureView[];
-
+ 
     /**延迟单像素渲染：第一遍的深度渲染通道描述 */
     RPD_ForDeferDepth!: {
         [name: string]: GPURenderPassDescriptor
@@ -104,13 +94,7 @@ export class BaseStage extends BaseScene {
         [name: string]: commmandType[]
     };
 
-    //作废，使用lightsManagement 管理
-    /**
-     * 多光源队列
-     */
-    // lightsCommands: {
-    //     [name: string]: commmandType[]
-    // }
+ 
 
 
     /**   @param input optionBaseStage     */
@@ -180,34 +164,14 @@ export class BaseStage extends BaseScene {
         /**设置stage id，不透明=数组下标*2，透明=数组下标*2+1 */
         for (let i in coreConst.stagesOfSystem) {
             if (name == coreConst.stagesOfSystem[i]) {
-
                 this.ID = parseInt(i) * 2 + 1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
-
-                //20250404,取消了透明stage
-                // this.ID = parseInt(i) * 2 + 1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
-                // if (input.transparent)
-                //     this.ID++;
                 break;
             }
-        }
-        //this.init();
+        } 
     }
-    async init() {
-        // const width = this.scene.canvas.width;
-        // const height = this.scene.canvas.height;
-
-        //stage初始化defer render（单像素模式）使用
-
-        // if (this.deferRenderDepth) {
-        //     //深度buffer
-        //     this.depthTextureOnly = this.device.createTexture({
-        //         label: "stage:depth attachemnet of one pixel defer",
-        //         size: [width, height],
-        //         format: this.depthDefaultFormat,            // format: 'depth24plus',
-        //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
-        //     });
-        // }
-    }
+    /**实现父类的抽象定义 */
+    async init() {    }
+    
     /** 
      * 初始化camera的GBuffer，
      * 初始化camera的renderPassDescriptor，
@@ -230,18 +194,15 @@ export class BaseStage extends BaseScene {
             });
             this.RPD_ForDeferDepth[camera] = this.createRPD_ForDeferDepth(camera);
         }
-
-
         //初始化GBuffers
         this.GBuffers[camera] = await this.initGBuffers(this.scene!.canvas!.width, this.scene!.canvas.height);
         //初始化renderPassDescriptor by camera
         this.renderPassDescriptor[camera] = await this.createRenderPassDescriptor(camera);
-
-
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //RPD
+
     /**延迟单像素depth通道描述 RPD*/
     createRPD_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         // this.depthStencilAttachment = this.depthTexture.createView();
@@ -257,18 +218,22 @@ export class BaseStage extends BaseScene {
         };
         return renderPassDescriptor;
     }
+
     /**获取前向渲染通道，不透明RPD */
     getRenderPassDescriptor(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.renderPassDescriptor[camera];
     }
+
     /**透明RPD*/
     getRenderPassDescriptorOfTransparent(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.scene.getRenderPassDescriptorOfTransparent(camera);
     }
+
     /**获取摄像机的透明绘制通道的pipeline的depthStancil */
     getDepthStencilOfTransparent(camera: string): GPUDepthStencilState {
         return this.scene.cameraTransparentRender[camera].getDepthStencil();
     }
+
     /**深度RPD，获取单像素延迟渲染通道 */
     getRenderPassDescriptor_ForDeferDepth(camera: string, _kind?: string): GPURenderPassDescriptor {
         return this.RPD_ForDeferDepth[camera];
@@ -281,6 +246,7 @@ export class BaseStage extends BaseScene {
     
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //uniform
+
     /** camera 获取bingGroup
      * 
      * @param pipeline 
@@ -297,6 +263,7 @@ export class BaseStage extends BaseScene {
             return scope.scene.createSystemUnifromGroupForPerShader(pipeline, /*scope.scene,*/ camera, kind);
         }
     }
+
     /** camera 获取bingGroup，仅包含VS部分*/
     createSystemUnifromGroupForPerShaderForOnlyVS(pipeline: GPURenderPipeline, scope: BaseStage, camera?: string, kind?: renderKindForDCCC): GPUBindGroup {
         if (camera == undefined) {//默认摄像机
@@ -306,6 +273,7 @@ export class BaseStage extends BaseScene {
             return scope.scene.createSystemUnifromGroupForPerShaderForOnlyVS(pipeline, /*scope.scene,*/ camera, kind);
         }
     }
+
     /**light的shadow map 获取 bindGroup
      * 
      * @param pipeline 
@@ -317,45 +285,11 @@ export class BaseStage extends BaseScene {
     createSystemUnifromGroupForPerShaderOfShadowMap(pipeline: GPURenderPipeline, scope: BaseStage, id?: string, _kind?: renderKindForDCCC): GPUBindGroup {
         let ID = id!.split("_");
         return scope.scene.createSystemUnifromGroupForPerShaderOfShadowMap(pipeline, /*scope.scene,*/ ID[0], parseInt(ID[1]));
-
     }
-    //todo:20241212 ,为透明提供system uniform
-    // createSystemUnifromGroupForPerShaderForDeferRenderDepth(pipeline: GPURenderPipeline): GPUBindGroup {
-    //     const bindLayout = pipeline.getBindGroupLayout(0);
-    //     let groupDesc: GPUBindGroupDescriptor = {
-    //         label: "global Group bind to 0 ,for depth deferRender ,add binding 2 depth texture",
-    //         layout: bindLayout,
-    //         entries:
-    //             [
-    //                 {
-    //                     binding: 0,
-    //                     resource: {
-    //                         buffer: this.scene.systemUniformBuffers["MVP"]!,
-    //                     },
-    //                 },
-    //                 {
-    //                     binding: 1,
-    //                     resource: {
-    //                         buffer: this.scene.systemUniformBuffers["lights"]!,
-    //                     }
-    //                 },
-    //                 {//todo:20241212 ,为透明提供system uniform
-    //                     binding: 2,
-    //                     resource: this.depthTextureOnly.createView(),
-    //                 }
-    //             ],
-    //     }
-    //     const bindGroup: GPUBindGroup = this.device.createBindGroup(groupDesc);
-    //     return bindGroup;
-    // }
 
-    updateToDepth(_deltaTime: number, _startTime: number, _lastTime: number) {
-
-    }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //render
     //todo 20241020，未进行距离、方向、可见性、视锥、BVH等的剔除
-
 
     /**stage的调用入口 */
     render() {
@@ -373,32 +307,7 @@ export class BaseStage extends BaseScene {
     //todo,stage 中的TAA，可以减少与非本stage的干扰
     copyForTAA() { }
 
-    //作废，20250123，
-    // renderForLightsShadowMap() {
-    //     // if (Object.keys(this.lightsCommands).length) {
-    //     //     for (let i of this.scene.lights) {
 
-    //     //     }
-    //     // }
-    //     for (let oneLightID_i in this.lightsCommands) {
-    //         const commands = this.lightsCommands[oneLightID_i];
-    //         // let IdAndIndex = oneLightID_i.split("_");
-    //         // let id = IdAndIndex[0];
-    //         // let index = IdAndIndex[1];
-    //         if (commands.length > 0) {
-    //             //如果有延迟渲染，这个是第二遍渲染，前向则是就一遍
-    //             for (let i in commands) {
-    //                 // if (i == "0") {
-    //                 //     this.scene.lightsManagement. [Ci].depthStencilAttachment!.depthLoadOp = "clear";
-    //                 // }
-    //                 // else if (i == "1") {
-    //                 //     this.RPD_ForDeferDepth[Ci].depthStencilAttachment!.depthLoadOp = "load";
-    //                 // }
-    //                 commands[i].update();
-    //             }
-    //         }
-    //     }
-    // }
     /**
      * render延迟单像素渲染的第一遍depth
      * @param deltaTime 
@@ -424,6 +333,7 @@ export class BaseStage extends BaseScene {
             }
         }
     }
+
     /**渲染每个摄像机的透明材质 */
     renderTransparent() {
         for (let Ci in this.camerasCommandsOfTransparent) {
@@ -452,6 +362,7 @@ export class BaseStage extends BaseScene {
             }
         }
     }
+
     /**
      * 前向渲染或是延迟单像素渲染的第二遍
      * @param deltaTime 
@@ -494,6 +405,7 @@ export class BaseStage extends BaseScene {
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //update
+
     /**更新entities容器RooT的每个entity */
     update(deltaTime: number, startTime: number, lastTime: number) {
         if (Object.keys(this.GBuffers).length == 0) {
@@ -569,15 +481,18 @@ export class BaseStage extends BaseScene {
         }
     }
 
+    /**todo */
     getRenderVisibleForCamera(_camera: CameraActor, _entity: BaseEntity): boolean {
         return true;
     }
+
+    /**todo */
     getRenderVisibleForLight(_camera: CameraActor, _entity: BaseEntity): boolean {
         return true;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //ADD 
+    //ADD entity
     /**
      * entity add
      * 
@@ -615,15 +530,18 @@ export class BaseStage extends BaseScene {
         this.root.push(one);
         return one.ID;
     }
+
     get cache() {
         return this._cache;
     }
+
     set cache(enable: boolean) {
         this._cache = enable;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // shader 合并
+
     // getWGSLOfSystemShaderFS(renderType: renderKindForDCCC): string {
     //     return this.scene!.getWGSLOfSystemShaderFS(renderType);
     // }
@@ -637,6 +555,7 @@ export class BaseStage extends BaseScene {
         return this.scene!.getWGSLOfSystemShader(renderType);
     }
 
+    /**透明透明渲染的四个texture(depth,id,uv,normal)的binding的参数*/
     geTransparentOfUniform(cameraID: string,binding:number): uniformEntries[] {
         return this.scene.geTransparentOfUniform(cameraID,binding);
     }

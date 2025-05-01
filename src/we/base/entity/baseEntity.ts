@@ -13,25 +13,19 @@ import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
 import { renderKindForDCCC } from "../const/coreConst";
 import { BaseGeometry } from "../geometry/baseGeometry";
 
+/** 不透明渲染的队列类型 */
 export interface renderCommands {
+    /**前向渲染 */
     forward: commmandType[],
+    /**单像素延迟渲染的深度渲染 */
     depth: commmandType[],
+    /**20250501未使用， 
+     * 延迟渲染的shader合并后的渲染队列，
+    */
     color: commmandType[],
 }
 
-// export interface renderCommandsOfShadowMap {
-//     [shadowmap:number]: commmandType[],
-// }
 
-
-// export interface boundingSphere {
-//     position: [number, number, number],
-//     radius: number,
-// }
-// export interface boundingBox {
-//     min: [number, number, number],
-//     max: [number, number, number],
-// }
 
 /**createDCCC的参数
  * 
@@ -140,28 +134,23 @@ export interface optionShadowEntity {
 /**三段式初始化的第一步： input参数 */
 export interface optionBaseEntity extends coreConst.optionUpdate {
     /**
- * 两种情况：
- * 
- * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
- * 
- * 2、代码实时构建，可以显示的带入scene，则不用等待
- * 
- * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
- * 
- * 20241129,类型从any 改为BaseStage
- */
+     * 两种情况：
+     * 
+     * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
+     * 
+     * 2、代码实时构建，可以显示的带入scene，则不用等待
+     * 
+     * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
+     * 
+     * 20241129,类型从any 改为BaseStage
+     */
     parent?: BaseStage,
     name?: string,
+
     //todo
     /** 顶点和材质组一对一 */
     vertexAndMaterialGroup?: entityContentGroup,
-    // /**默认=World */
-    // stage?: {
-    //     Transparent: number[] //coreConst.defaultStageTransparent,
-    //     Opaque: number[]
-    // },
-    // /**自定义更新functon() */
-    // update?: (scope: any) => {},
+
     /**阴影选项 */
     shadow?: optionShadowEntity,
     /**初始化的参数matrix  ，这个mesh的   */
@@ -238,11 +227,12 @@ export abstract class BaseEntity extends RootOfGPU {
     /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
     _entityIdSizeForWGSL = 4;//以u32（f32）计算
 
-    /**顶点信息 */
+    /**
+     * 目前没有使用，20250501
+     * 顶点信息 */
     _vertexAndMaterialGroup!: entityContentGroup;
-    // _vertexes!: geometryBufferOfEntity;
-    // _material!: BaseMaterial;
-    // _cullMode!: GPUCullMode;
+
+
     ///////////////////////////////////////////////////////////////////
     //层级、LOD、实例化等
 
@@ -251,10 +241,7 @@ export abstract class BaseEntity extends RootOfGPU {
      * 子节点
      */
     children!: BaseEntity[];
-    /**
-         * todo
-         * LOD array
-         */
+
     /**
      *  todo     
      * LOD
@@ -300,6 +287,7 @@ export abstract class BaseEntity extends RootOfGPU {
 
     //////////////////////////////////////////////////////////////////
     //是否透明属性
+
     /**透明属性
      * 默认=false，
      * 通过后续材质或函数设置
@@ -328,7 +316,8 @@ export abstract class BaseEntity extends RootOfGPU {
 
 
     //////////////////////////////////////////////////////////////////
-    // commands输出 
+    // commands输出 ，四大类command
+
     /**前向渲染，根据this.transparent，判断是否为透明entity
      * 
      * 不透明有：comamnds.depth,comamnds.color
@@ -336,8 +325,6 @@ export abstract class BaseEntity extends RootOfGPU {
      * 透明只有：comamnds.color
      */
     commmands: commandsOfEntity;//commmandType[];
-    /**透明渲染 */
-    // commandsOfTransparent: commandsOfEntity;//commmandType[];
 
     /**
      * shadowmap 渲染，是多个光源的渲染队列集合
@@ -349,7 +336,11 @@ export abstract class BaseEntity extends RootOfGPU {
      * 透明在第二步进行shadowmap的渲染，在完成第一步的shadowmap渲染后(所有不透明)，lightsmanagement进行第二步的shadowmap渲染
      */
     commandsOfShadow: commandsOfShadowOfEntity;
+
+    /**透明阴影渲染队列 */
     commandsOfShadowOfTransparent: commandsOfShadowOfEntityOfTransparent;
+
+
     /**
      * 透明材质的渲染队列，是多个摄像机的透明渲染队列集合
      * 
@@ -361,13 +352,10 @@ export abstract class BaseEntity extends RootOfGPU {
 
 
 
-    // /**局部的，按需更新 */
-    // matrixInstances!: Mat4[];
-    // /**层级的到root，可以动态更新 */
-    // matrixWorldInstances !: Mat4[]; 
 
     ////////////////////////////////////////////////////////////////////////////
     //渲染相关
+
     //反向Z
     reversedZ!: boolean;
     //延迟渲染，depth模式，先绘制depth，单像素
@@ -432,11 +420,6 @@ export abstract class BaseEntity extends RootOfGPU {
         this.stage_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4, 1);
 
 
-        // this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
-        // let perMatrix = mat4.identity();
-        // for (let i = 0; i < this.numInstances; i++) {
-        //     this.matrixWorldBuffer.set(perMatrix, i * 16);
-        // }
         this.visible = true;
         this.children = [];
         this.name = ''
@@ -455,21 +438,10 @@ export abstract class BaseEntity extends RootOfGPU {
                 this._shadow.generate = false;
             }
         }
-        // if (this._shadow.generate === true) {
-        //     this._shadowMaterail = new ShadowMaterial();
-        // }
-        // this.updateMatrix();
         this.commmands = {};
         this.commandsOfShadowOfTransparent = {};
-        // this.commmands["default"] = {
-        //     forward: [],
-        //     depth: [],
-        //     color: []
-        // };
-
     }
-    abstract getBlend(): GPUBlendState | undefined;
-    abstract getTransparent(): boolean;
+
     /**
      * 三段式初始化的第二步：init
      * @param values
@@ -488,8 +460,32 @@ export abstract class BaseEntity extends RootOfGPU {
         return this.ID + 1;
     }
 
-    abstract generateBoxAndSphere(): void
 
+    /**
+     * 循环注销children
+     * 注销this._LOD
+     * 注销DrawCommand
+     * 注销ComputeCommand
+     * 注销GPUBuffer
+     * 注销材质Buffer
+     * 清空内存数组this._vertexAndMaterialGroup
+     * 归零变量
+     */
+    abstract destroy(): any
+    /**
+     * 可见性(visible)、
+     * 可用性(enable)、
+     * 初始化状态(_init)
+     * 上级group的状态（可见性、使用性）
+     */
+    abstract checkStatus(): boolean
+    /** 获取当前状态（是否可以进行update）*/
+    getStateus(): boolean {
+        if (this.checkStatus() && this.visible && this.enable) {
+            return true;
+        }
+        return false;
+    }
     /** 设置是否透明 */
     set transparent(transparent: boolean) {
         this._transparent = transparent;
@@ -498,7 +494,12 @@ export abstract class BaseEntity extends RootOfGPU {
     get transparent() {
         return this._transparent;
     }
-
+    /** 生成Box和Sphere */
+    abstract generateBoxAndSphere(): void
+    /** 获取混合模式 */
+    abstract getBlend(): GPUBlendState | undefined;
+    /** 获取是否透明 */
+    abstract getTransparent(): boolean;
     /**前向渲染 */
     abstract createDCCC(values: valuesForCreateDCCC): initStateEntity
     /**延迟渲染的深度渲染：单像素模延迟 */
@@ -512,12 +513,6 @@ export abstract class BaseEntity extends RootOfGPU {
     /** 世界坐标的Box */
     generateBox(position: number[]): boundingBox {
         let box = generateBox3(position);
-        // box.min[0] += this.Positon[0];
-        // box.min[1] += this.Positon[1];
-        // box.min[2] += this.Positon[2];
-        // box.max[0] += this.Positon[0];
-        // box.max[1] += this.Positon[1];
-        // box.max[2] += this.Positon[2];
         const min = vec3.transformMat4(box.min, this.matrixWorld);
         const max = vec3.transformMat4(box.max, this.matrixWorld);
         box.max[0] = max[0];
@@ -536,20 +531,27 @@ export abstract class BaseEntity extends RootOfGPU {
 
         return generateSphereFromBox3(box);
     }
-    /** */
-    addContent(name: string, vm: entityContentOfVertexAndMaterial) {
-        this._vertexAndMaterialGroup[name] = vm;
-    }
+    // /** */
+    // addContent(name: string, vm: entityContentOfVertexAndMaterial) {
+    //     this._vertexAndMaterialGroup[name] = vm;
+    // }
 
     /**todo */
     addLOD(_lod: geometryBufferOfEntity, _level: number) {
         // this._LOD[level]
     }
-
+    /**
+     * 增加子节点
+     * @param obj 子节点
+     */
     add(obj: BaseEntity) {
         this.children.push(obj);
         obj.parent = this;
     }
+    /**
+     * 删除子节点
+     * @param obj 子节点
+     */
     remove(obj: BaseEntity) {
         let index = this.getObjectIndexByID(obj.ID);
         if (index !== false) {
@@ -560,6 +562,10 @@ export abstract class BaseEntity extends RootOfGPU {
             return false;
         }
     }
+    /**
+     * 返回第一个具有id的object
+     * @param id 子节点的id
+     */
     getObjectIndexByID(id: entityID): number | boolean {
         for (let i in this.children) {
             if (this.children[i].ID == id) {
@@ -592,15 +598,15 @@ export abstract class BaseEntity extends RootOfGPU {
         // }
         this.matrix = mat4.axisRotate(this.matrix, axis, angle, this.matrix);
     }
-    /**绕X轴(100)旋转 */
+    /**绕X轴(1,0,0)旋转 */
     rotateX(angle: number) {
         this.rotate([1, 0, 0], angle);
     }
-    /**绕y轴(010)旋转 */
+    /**绕y轴(0,1,0)旋转 */
     rotateY(angle: number) {
         this.rotate([0, 1, 0], angle);
     }
-    /**绕z轴(001)旋转 */
+    /**绕z轴(0,0,1)旋转 */
     rotateZ(angle: number) {
         this.rotate([0, 0, 1], angle);
     }
@@ -794,10 +800,7 @@ export abstract class BaseEntity extends RootOfGPU {
             this.upgradeLights(parant)
         }
     }
-    /**
-     * 1、完成初始化，进行DCC更新
-     * 2、未完成初始化，返回空数组
-     */
+
 
     /**每帧更新入口
      * 
@@ -805,7 +808,7 @@ export abstract class BaseEntity extends RootOfGPU {
      * 
      * 2、未完成初始化，返回空数组
      * 
-     * @param parent 
+     * @param parent BaseStage
      * @param deltaTime 
      * @param startTime 
      * @param lastTime  
@@ -905,36 +908,10 @@ export abstract class BaseEntity extends RootOfGPU {
     updateChilden(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number, _updateForce: boolean = false): commmandType[] {
         return [];
     }
-    /**
-     * 可见性(visible)、
-     * 可用性(enable)、
-     * 初始化状态(_init)
-     * 上级group的状态（可见性、使用性）
-     */
-    abstract checkStatus(): boolean
 
-    // /**确认parent 状态 */
-    // getStatusOfParents(): boolean {
-    //     if (this.parent) {
-    //         return this.parent.getStateus() && this.visible && this.enable;
-    //     }
-    //     else {
-    //         return this.visible && this.enable;
-    //     }
-    // }
-    /** */
-    getStateus(): boolean {
-        if (this.checkStatus() && this.visible && this.enable) {
-            return true;
-        }
-        return false;
-    }
-    // /** 作废
-    //  * 包围盒：
-    //  *      距离、视锥（所有点）（dot）、方向（cross，摄像机正方向）
-    //  * 
-    //  */
-    // abstract checkCameraVisualRange(rays: cameraRayValues): boolean
+
+
+
 
 
     /**
@@ -995,21 +972,13 @@ export abstract class BaseEntity extends RootOfGPU {
 
 
 
-    /**
-     * 循环注销children
-     * 注销this._LOD
-     * 注销DrawCommand
-     * 注销ComputeCommand
-     * 注销GPUBuffer
-     * 注销材质Buffer
-     * 清空内存数组this._vertexAndMaterialGroup
-     * 归零变量
-     */
-    abstract destroy(): any
 
     isDestroy() {
         return this._destroy;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //材质合并shader相关部分
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 增加结构体 “ST_entity” 和uniform binding
      * @param code :string 

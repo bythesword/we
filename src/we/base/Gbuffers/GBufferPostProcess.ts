@@ -12,9 +12,15 @@ import { CopyCommandT2T } from "../command/copyCommandT2T";
 
 
 export interface optionGBPP extends optionSingleRender {
+    /**GBuffer ，指定camera的*/
     GBuffers: GBuffers,
+
     parent: Scene,
+
+    /**cameraFrameBuffer,指定camera的 */
     copyToTarget: GPUTexture,
+    
+    /**指定的camera的ID（number)，这里是string后的形式 */
     camera: string,
 }
 
@@ -31,25 +37,24 @@ export class GBufferPostProcess extends SingleRender {
 
     presentationFormat: GPUTextureFormat;
     depthDefaultFormat: GPUTextureFormat;
-    // sampler: GPUSampler;
+    /** ID的RPD 和 对应的格式 */
     renderPassDescriptorOfID!: GPURenderPassDescriptor;
     colorAttachmentTargetsOfID!: GPUColorTargetState[];
 
+    /** other的RPD 和 对应的格式 */
     renderPassDescriptorOfOther!: GPURenderPassDescriptor;
     colorAttachmentTargetsOfOther!: GPUColorTargetState[];
 
+    /** color的RPD 和 对应的格式 */
     renderPassDescriptorOfColor!: GPURenderPassDescriptor;
     colorAttachmentTargetsOfColor!: GPUColorTargetState[];
 
-    renderPassDescriptorOfTransparent!: GPURenderPassDescriptor;
-    colorAttachmentTargetsOfTransparent!: GPUColorTargetState[];
 
 
     clearValue = [0, 0, 0, 0];
 
     /**GBuffer["color"] copy 对象，uniform使用*/
     colorTexture: GPUTexture;
-    // _temp_colorTexture_entityID: GPUTexture;
 
     _isReversedZ!: boolean;
     /**GBuffer 对应的camera */
@@ -62,25 +67,12 @@ export class GBufferPostProcess extends SingleRender {
     constructor(input: optionGBPP) {
         super(input);
         this.camera = input.camera;
-        // this.parent = input.parent;
-        // this.renderPassDescriptor = this.parent.renderPassDescriptor;
+
         this.GBuffers = input.GBuffers;
         this.presentationFormat = this.parent.presentationFormat;
         this.depthDefaultFormat = this.parent.depthDefaultFormat;
 
         this.colorTexture = input.copyToTarget;
-        // this.colorTexture = this.device.createTexture({
-        //     size: [this.surfaceSize.width, this.surfaceSize.height],
-        //     format: this.presentationFormat,
-        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-        //     ,
-        // });
-        // this._temp_colorTexture_entityID = this.device.createTexture({
-        //     size: [this.surfaceSize.width, this.surfaceSize.height],
-        //     format: this.presentationFormat,
-        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-        //     ,
-        // });
 
         this.multisampleTexture = this.device.createTexture({
             size: [this.surfaceSize.width, this.surfaceSize.height],
@@ -103,12 +95,6 @@ export class GBufferPostProcess extends SingleRender {
         this.colorAttachmentTargetsOfColor = RenderColor.colorAttachmentTargets;
 
 
-
-
-
-        // let RenderTransparent = this.createRenderPassDescriptorOfTransparent();
-        // this.renderPassDescriptorOfTransparent = RenderTransparent.renderPassDescriptor;
-        // this.colorAttachmentTargetsOfTransparent = RenderTransparent.colorAttachmentTargets;
         this.init();
     }
     render() {
@@ -324,66 +310,10 @@ export class GBufferPostProcess extends SingleRender {
         else {
             console.error("GBuffer post process init() error!");
         }
-        //20241212,todo:将透明层由合并改为比较depth的油画法
-        // //只有color，一个DC，stage在uniform中
-        // let uniformsTransparent: unifromGroup[] = this.getTexturesOfUniformFromStageForTransparent();
-        // let optionsTransparent: DrawOptionOfCommand = {
-        //     label: "GBuffers render Transparent",
-        //     vertex: {
-        //         code: shaderTransparent,
-        //         entryPoint: "vs",
-        //     },
-        //     fragment: {
-        //         code: shaderTransparent,
-        //         entryPoint: "fs",
-        //         targets: this.colorAttachmentTargetsOfTransparent,
-        //         constants: {
-        //             // far: far,
-        //             // count_of_stage: 4,
-        //             canvasSizeWidth: this.surfaceSize.width,
-        //             canvasSizeHeight: this.surfaceSize.height,
-        //             reversedZ: this._isReversedZ,
-        //         }
-        //     },
-        //     draw: {
-        //         mode: "draw",
-        //         values: values
-        //     },
-        //     scene: this.parent,
-        //     uniforms: uniformsTransparent,
-        //     primitive: {
-        //         topology: 'triangle-list',
-        //         cullMode: "back",
-        //     },
-        //     rawUniform: true,
-        //     renderPassDescriptor: this.renderPassDescriptorOfTransparent,
-        // };
-        // let DC_Transparent = new DrawCommand(optionsTransparent);
-        // this.commands.push(DC_Transparent);
 
-        // let copyGbufferColorToTarget = new CopyCommandT2T(
-        //     {
-        //         A: this.GBuffers["color"],
-        //         B: this.colorTexture,
-        //         size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-        //         device: this.device
-        //     }
-        // );
-        // this.commands.push(copyGbufferColorToTarget);
-        this.drawTransparent();
 
     }
-    //todo 20241212
-    drawTransparent() {
-        // //systerm uniform 需要增加 depth texture ,以进行比较
-        // for (let i in this.parent.stagesOrders) {
-        //     const perList = this.parent.stagesOrders[i];//number，stagesOfSystem的数组角标
-        //     const name = stagesOfSystem[perList];
-        //     if (this.parent.stages[name].transparent) {
-        //         this.parent.stages[name].transparent!.update(deltaTime, startTime, lastTime);
-        //     }
-        // }
-    }
+
     /**创建entityID的RPD  */
     createRenderPassDescriptorOfID(): renderPassDescriptorAndTaget {
         let colorAttachmentTargets: GPUColorTargetState[] = [
@@ -502,52 +432,7 @@ export class GBufferPostProcess extends SingleRender {
     }
 
 
-    // getTexturesOfUniformFromStageForTransparent(): unifromGroup[] {
-    //     let unifromGroup_0: unifromGroup = {
-    //         layout: 0,
-    //         entries: [
-    //             {
-    //                 label: "GBuffer post process GBuffer['depth']  for Render Transparent ",
-    //                 binding: 0,
-    //                 resource: this.GBuffers["depth"].createView()
-    //             },
-    //             {
-    //                 label: "GBuffer post proces texture'colorTexture'  for Render Transparent",
-    //                 binding: 1,
-    //                 resource: this.colorTexture.createView()
-    //             }]
-    //     };
-    //     let unifromGroup_1: unifromGroup = {
-    //         layout: 1,
-    //         entries: [
-    //         ]
-    //     };
-    //     let unifromGroup_2: unifromGroup = {
-    //         layout: 2,
-    //         entries: [
-    //         ]
-    //     };
 
-    //     for (let i of this.parent.stagesOrders) {
-    //         let name = this.parent.stagesOfSystem[i];
-    //         if (this.parent.stages[name].transparent && name != "UI" && name != "Sky") {
-    //             let stage = this.parent.stages[name].transparent
-    //             unifromGroup_1.entries.push({
-    //                 label: `GBuffer post process  for Render Transparent of depth ,stage:${stage}`,
-    //                 binding: i,
-    //                 resource: stage.GBuffers[this.camera]["depth"].createView()
-    //             });
-    //             unifromGroup_2.entries.push({
-    //                 label: `GBuffer post process  for Render Transparent of color ,stage:${stage}`,
-    //                 binding: i,
-    //                 resource: stage.GBuffers[this.camera]["color"].createView()
-    //             });
-    //         }
-    //     }
-
-
-    //     return [unifromGroup_0, unifromGroup_1, unifromGroup_2];
-    // }
     getTexturesOfUniformFromStageForColor(stageName: string): unifromGroup[] {
         let uniformOther: unifromGroup = {
             layout: 1,

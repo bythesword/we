@@ -110,10 +110,9 @@ export class ColorMaterial extends BaseMaterial {
         // throw new Error("Method not implemented.");
     }
     /** 获取混合状态
- * 
- * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
- */
-
+     * 
+     * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
+     */
     getBlend(): GPUBlendState | undefined {
         return this._transparent?.blend;
     }

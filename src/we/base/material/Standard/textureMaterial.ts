@@ -1,4 +1,13 @@
 /**
+ * @author TomSong 2025-04-28
+ * @description 基础纹理材质
+ * @version 0.0.1
+ * @requires BaseMaterial.ts
+ * @requires textureMaterial.fs.wgsl
+ * @requires textureMaterialTransparent.fs.wgsl
+ * @requires textureMaterial.vs.wgsl
+ * @requires textureMaterialTransparent.vs.wgsl
+ * 
  * 基础纹理材质
  * 1、支持基础颜色
  * 2、支持纹理
@@ -162,7 +171,7 @@ export class TextureMaterial extends BaseMaterial {
             code = textureTransparentFS;
             // code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
             let bindingOfTransparent = 1;;
-            Object.entries(GBuffersRPDAssemble).forEach(([key, value]) => {
+            Object.entries(GBuffersRPDAssemble).forEach(([key, _value]) => {
                 if (key != "color") {
                     if (key == "depth") {
                         code += `@group(1) @binding(${bindingOfTransparent}) var u_depth_opacity : texture_depth_2d ; `;
@@ -223,7 +232,6 @@ export class TextureMaterial extends BaseMaterial {
         this._destroy = true;
     }
     getUniform(startBinding: number): uniformEntries[] {
-        let scope = this;
         let binding = startBinding;
         let uniforms: uniformEntries[] = []
         for (let key in this.textures) {

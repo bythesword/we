@@ -7,6 +7,7 @@ import { CopyCommandT2T } from '../command/copyCommandT2T';
 import { boundingBox, generateBox3ByArrayBox3s, } from '../math/Box';
 import { boundingSphere, generateSphereFromBox3, } from '../math/sphere';
 import { renderKindForDCCC } from '../const/coreConst';
+import { optionAmbientLight } from "../light/ambientLight";
 
 export type commmandType = DrawCommand | ComputeCommand | CopyCommandT2T;
 export declare interface sceneJson {
@@ -63,33 +64,8 @@ export abstract class BaseScene {
     backgroudColor: number[];
 
 
-    //20250411 ，注释掉，目前这个部分设计改变了，没有使用。全部转移到lightsManagement中
-    // /////////////////////////////////////////////////////////////
-    // // about lights
-    // /** lights array ,only for scene,stage use lightsIndex[]*/
-    // // lights: BaseLight[];
-
-    // /**stage 和 scene都可以有
-    //  * scene的是全局的
-    //  * stage的是自己的
-    //  */
-    // ambientLight!: AmbientLight;
-    // /**当前scene|stage中起作用的光源索引 */
-    // lightsIndex: [];
-    // /***上一帧光源数量，动态增减光源，uniform的光源的GPUBuffer大小会变化，这个值如果与this.lights.length相同，不更新；不同，怎更新GPUBuffer */
-    // _lastNumberOfLights!: number;
-
-    // /**最大光源数量 
-    //  * 默认在coreConst.ts 中:lightNumber=8
-    //  * 这个实际上是没有限制的，考虑两个因素
-    //  *  1、渲染：
-    //  *          A、前向渲染，不可能太多
-    //  *          B、延迟渲染，基本不影响
-    //  *  2、阴影
-    //  *          A、这个是主要的影响，由于使用shadow map，还是需要进行一遍灯光视角的渲染，全向光/点光源/spot角度过大的会产生cube shadow map
-    //  *          B、如果光源不产生阴影，就无所谓数量了
-    // */
-    // _maxlightNumber!: number;//移动到scene中
+ 
+ 
 
     // /////////////////////////////////////////////////////////////
     // //about Z and reversed Z
@@ -136,18 +112,7 @@ export abstract class BaseScene {
      * 
     */
     colorAttachmentTargets!: GPUColorTargetState[];
-    // /** 透明通道的输出纹理格式 
-    //  * 至少包括：
-    //  *          format: GPUTextureFormat;
-    //  *          blend?: GPUBlendState;
-    // */
-    // colorAttachmentTargetsTransparent!: GPUColorTargetState[];
-
-    //  {
-    //     depthWriteEnabled: true,
-    //     depthCompare: 'less',
-    //     format: 'depth24plus',
-    // };
+ 
     /**cameras 的RPD */
     renderPassDescriptor: {
         [name: string]: GPURenderPassDescriptor
@@ -165,75 +130,24 @@ export abstract class BaseScene {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //空值初始化
 
-        this.input = input;
-        // this.lightsIndexID = 0;
-        // this.commands = [];
-        // this.commandsDepth = [];
-        // this.commandsColor = [];
+        this.input = input; 
         this.renderPassDescriptor = {};
         this.GBuffers = {};
         this.Box3s = [];
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //默认值初始化
-        // this.depthDefaultFormat = 'depth32float';
-        // if (input.depthDefaultFormat) {
-        //     this.depthDefaultFormat = input.depthDefaultFormat;
-        // }
-
-        // this.depthStencilOfZ = {
-        //     depthWriteEnabled: true,
-        //     depthCompare: 'less',
-        //     format: this.depthDefaultFormat,
-        // };
-        /**反向Z的深度模板设置 */
-        // this.depthStencilOfReveredZ = {
-        //     depthWriteEnabled: true,
-        //     depthCompare: 'greater',
-        //     format: this.depthDefaultFormat,
-        // }
+ 
 
         this.backgroudColor = [0, 0, 0, 0];
-        // if (input.color) {
-        //     this.backgroudColor = [input.color.red, input.color.green, input.color.blue, input.color.alpha];
-        // }
-        // this.deferRenderDepth = false;//为了测试方便,后期更改为:true,20241128
-        // this.deferRenderColor = false;//为了测试方便,后期更改为:true,20241128
+ 
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //input赋值
-        // if (input.deferRender && input.deferRender.enable == true) {
-        //     this.deferRender = true;
-        //     if (input.deferRender.type == "depth")
-        //         this.deferRenderDepth = true;
-        //     else if (input.deferRender.type == "color")
-        //         this.deferRenderColor = true;
-        // }
-
-        // this._maxlightNumber = coreConst.lightNumber;
-        // this._lastNumberOfLights = 0;
-
-        // this._isReversedZ = false;//20241125,release 后更改为 true
-        // if (input.reversedZ) {
-        //     this._isReversedZ = input.reversedZ;
-        // }
-        // this.depthStencil = {
-        //     depthWriteEnabled: true,
-        //     depthCompare: this._isReversedZ ? "greater" : 'less',
-        //     format: this.depthDefaultFormat//'depth32float',
-        // };
-        //如果有深度模板输入
-        // if ("depthStencil" in input) {
-        //     this.depthStencil = input.depthStencil as GPUDepthStencilState;
-        //     if (input.reversedZ) {
-        //         this.depthStencil.depthCompare = "greater";
-        //     }
-        // }
+   
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //设置
 
-        // this.lights = [];
-        // this.lightsIndex = [];
-
+      
 
     }
 
@@ -344,13 +258,7 @@ export abstract class BaseScene {
     /** 获取前向渲染的渲染通道描述: GPURenderPassDescriptor         */
     abstract getRenderPassDescriptor(camera: string, kind?: string): GPURenderPassDescriptor
 
-    // 作废 20250103
-    // /**
-    // * 每个shader/DraeCommand/ComputeCommand为自己的uniform调用更新uniform group 0 
-    // * 
-    // * 这个需要确保每帧只更新一次
-    // */
-    // abstract updateSystemUniformBuffer(): any
+ 
 
     /**
      * 每个shader绑定system的group0；

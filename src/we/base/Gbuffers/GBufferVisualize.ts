@@ -1,25 +1,33 @@
+/**
+ * @author TomSong 2025-03-01
+ * @description 用于可视化GBuffer，
+ * @version 0.0.1
+ * @requires coreConst.ts
+ * @requires DrawCommand.ts
+ * @requires SingleRender.ts
+ * @requires copyCommandT2T.ts
+ * 
+ * 
+ * GBuffer可视化至于GBuffers、layout、compyToTarget等的关系如下：
+    1、GBuffer的可视化是通过scene中的setGBuffersVisualize(value)进行设置的，形式如下：
+    2、 scene.setGBuffersVisualize({
+        enable: true,
+        layout: {
+        name: "default",
+        single: false,
+        }
+    });
+    3、 value：GBuffersVisualizeViewport的interface声明与export在scene.ts 中
+    4、如何scene.run()通过调用的scene.showGBuffersVisualize()调用本类的
+ * 
+ */
+
 import { DrawCommand } from "../command/DrawCommand";
 import * as coreConst from "../const/coreConst";
 import { optionSingleRender, SingleRender } from "../organization/singleRender";
-// import shaderCodeDepth from "../shader/GBuffersVisualize/depth.wgsl?raw";
-// import shaderCodeEID from "../shader/GBuffersVisualize/entityID.wgsl?raw";
-// import shaderCodeVec4f from "../shader/GBuffersVisualize/vec4f.wgsl?raw";
+
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { unifromGroup, drawMode, DrawOptionOfCommand } from "../command/commandDefine";
-// import { GBuffersVisualizeViewport } from "./scene";
-
-//GBuffer可视化至于GBuffers、layout、compyToTarget像刚刚
-
-//1、GBuffer的可视化是通过scene中的setGBuffersVisualize(value)进行设置的，形式如下：
-//2、 scene.setGBuffersVisualize({
-//     enable: true,
-//     layout: {
-//       name: "default",
-//       single: false,
-//     }
-//   });
-//3、 value：GBuffersVisualizeViewport的interface声明与export在scene.ts 中
-//4、如何scene.run()通过调用的scene.showGBuffersVisualize()调用本类的
 
 
 /**scene 中配置是否使用GBuffer可视化的interface，

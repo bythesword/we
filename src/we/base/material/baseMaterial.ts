@@ -46,10 +46,7 @@ export interface optionBaseMaterial {
      * 3、与texture混合使用，texture会被忽略。
     */
     vertexColor?: boolean,
-    // /**此材质时启用深度测试。默认为 true */
-    // depthTest?: boolean,
-    // /**此材质是否对深度缓冲区有任何影响。默认为true */
-    // depthWrite?: boolean,
+ 
     /**指定的fragment code */
     code?: string,
 
@@ -142,12 +139,15 @@ export abstract class BaseMaterial extends RootOfGPU {
         await this.setRootENV(values.scene);//为获取在scene中注册的resource
         await this.__init();
     }
+    /**第二阶段初始化，由init()调用，需要每个材质自己实现 */
     abstract __init(): any;
+
     /**由entity调用，获取FS code
      *   @param startBinding  入参 ：startBinding： 从这个位置开始，为这个材质的所有texture分配binding。
      *  返回值：FS code 
      */
     abstract getCodeFS(startBinding: number): string;
+    
     abstract destroy(): any
     /**获取uniform
      * 
@@ -164,11 +164,13 @@ export abstract class BaseMaterial extends RootOfGPU {
      * @returns boolean  true：是透明材质，false：不是透明材质
      */
     abstract getTransparent(): boolean;
+    
     /**
      * 获取混合状态
      * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
      */
     abstract getBlend(): GPUBlendState | undefined;
+    
     /**
      * 材质是否已经准备好，
      * 判断两个值，

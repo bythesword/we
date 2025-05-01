@@ -1,6 +1,9 @@
 /**
- * 20250423
- * 未使用
+ * GBufferFactory.ts
+ * @author TomSong 2025-04-28
+ * @description 生成GBuffer，后续将替换掉BaseScene.ts中的GBuffer
+ * @version 0.0.1
+ * @requires coreConst.ts
  */
 import { GBuffers, GBuffersRPDAssemble } from "../const/coreConst";
 
@@ -46,17 +49,9 @@ export class GBufferFactory {
                 format: format,
                 usage: value.usage,
             });
-
             localGBuffers[key] = gbuffer;
-            // if (key === "color") {
-            //     this.colorTexture = gbuffer;
-            // }
-            // else if (key === "depth") {
-            //     this.depthTexture = gbuffer;
-            // }
         });
 
-        // this.GBuffers = localGBuffers;
         return localGBuffers;
     }
 }

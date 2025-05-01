@@ -76,8 +76,7 @@ export interface sceneInputJson extends sceneJson {
     canvas: string,
     /**最大光源数量，默认= coreConst.lightNumber ，32个*/
     lightNumber?: number,
-    /**Debug  */
-    // Debug?: WE_Debug,
+
     /**自定义stage */
     stageSetting: stageStatus,
     /**出现的camera显示，没有的不显示，按照数组的先后顺序进行render，0=最底层，数组最后的在最上层 
@@ -249,11 +248,8 @@ export class Scene extends BaseScene {
     //camera
     /**最终copy到surface的最后一个GPUTexture (FrameBuffer)*/
     cameraFrameBuffer: { [name: string]: GPUTexture };
-    // depthTextureOfUniform: { [name: string]: GPUTexture };
-    /**每个摄像机的透明GBuffer ，render透明队列使用 */
-    // GBuffersOfTransparentA: coreConst.MultiGBuffers;
-    // GBuffersOfTransparentB: coreConst.MultiGBuffers;
 
+    /**摄像机透明渲染管理器的集合*/
     cameraTransparentRender: { [name: string]: TransparentRender };
     ////////////////////////////////////////////////////////////////////////////////
     /**GBuffer&GPU 的拾取管理器 */
@@ -300,35 +296,7 @@ export class Scene extends BaseScene {
      *          B、如果光源不产生阴影，就无所谓数量了
     */
     _maxlightNumber!: number;
-    /////////////////////////////////////////////////////////////
-    //about Z and reversed Z
-    /**深度输出的纹理格式 */
-    // depthDefaultFormat!: GPUTextureFormat;
-    /**正常Z的清除值 */
-    // depthClearValueOfZ = 1.0;
-    // /**反向Z的清除值 */
-    // depthClearValueOfReveredZ = 0.0;
-    // /**正常Z的深度模板设置 */
-    // depthStencilOfZ: GPUDepthStencilState = {
-    //     depthWriteEnabled: true,
-    //     depthCompare: 'less',
-    //     format: 'depth32float',
-    // };
-    // /**反向Z的深度模板设置 */
-    // depthStencilOfReveredZ: GPUDepthStencilState = {
-    //     depthWriteEnabled: true,
-    //     depthCompare: 'greater',
-    //     format: 'depth32float',
-    // }
-    /**是否使用反向Z的标志位 */
-    // _isReversedZ!: boolean;
 
-    // /**是否开启延迟渲染 */
-    // deferRender!: boolean;
-    // /**单像素延迟渲染 */
-    // deferRenderDepth: boolean;
-    // /**todo：fs 合批延迟渲染 */
-    // deferRenderColor: boolean;
 
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -346,10 +314,7 @@ export class Scene extends BaseScene {
         this.cameraActors = [];
         this.actors = {};
         this.cameraFrameBuffer = {}
-        // this.GBuffersOfTransparentA = {};
-        // this.GBuffersOfTransparentB = {};
         this.cameraTransparentRender = {};
-        // this.depthTextureOfUniform = {};
         this.multiCameraViewport = [];
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //默认值初始化
@@ -575,41 +540,7 @@ export class Scene extends BaseScene {
         };
         this.pickUp = new Pickup(option);
     }
-    /**20241229,未使用 */
-    // async initForRAW() {
-    //     this.rawColorTexture = this.device.createTexture({
-    //         size: [this.canvas.width, this.canvas.height],
-    //         format: this.presentationFormat,
-    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    //     });
-    //     this.rawDepthTexture = this.device.createTexture({
-    //         size: [this.canvas.width, this.canvas.height],
-    //         format: this.depthDefaultFormat,
-    //         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    //     });
-    //     this.rawColorAttachmentTargets = [
-    //         // color
-    //         { format: this.presentationFormat },
-    //     ];
-    //     this.renderPassDescriptor = {
-    //         label: "stage:forward render pass descriptor",
-    //         colorAttachments: [
-    //             {
-    //                 view: this.rawColorTexture.createView(),
-    //                 clearValue: this.backgroudColor,
-    //                 loadOp: 'clear',
-    //                 storeOp: "store"
-    //             }
-    //         ],
-    //         depthStencilAttachment: {
-    //             view: this.rawDepthTexture.createView(),
-    //             depthClearValue: this._isReversedZ ? this.depthClearValueOfReveredZ : this.depthClearValueOfZ,
-    //             // depthLoadOp: 'load',
-    //             depthLoadOp: 'clear',
-    //             depthStoreOp: 'store',
-    //         },
-    //     };
-    // }
+
 
     //GBuffer
     /**scene 初始化GBuffer:合并后的stages的GBuffer 的render attachment*/
@@ -1071,6 +1002,8 @@ export class Scene extends BaseScene {
         else {
             this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id.toString()], this.finalTarget, { width: this.canvas.width, height: this.canvas.height });//ok
         }
+        ///////////////////////////////////////////////////////////////////////////////////////////////////
+        ////测试使用
         //测试多camera
         // for (let i in this.cameraFrameBuffer) {
         //     if (i == this.defaultCameraActor.id.toString()) {
@@ -1089,7 +1022,8 @@ export class Scene extends BaseScene {
     async copyFinalTextureToSurface() {
         this.copyTextureToTexture(this.finalTarget, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
 
-
+        ///////////////////////////////////////////////////////////////////////////////////////////////////
+        ////测试使用
         //测试 copy 某个摄像机的framebuffer到surface
         // this.copyTextureToTexture(this.cameraFrameBuffer[this.defaultCameraActor.id.toString()], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok,20241229,增加多摄像机之前
 
@@ -1101,12 +1035,7 @@ export class Scene extends BaseScene {
         // this.copyTextureToTexture(this.stages["World"]!!.GBuffers["color"], this.GBuffers["color"], { width: this.canvas.width, height: this.canvas.height })
         // this.copyTextureToTexture(this.GBuffers["color"], (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height })
     }
-    /** 20241229 ,未使用
-     * 这个是准备做WE tory （类似shadertoy）使用的
-     */
-    // copyRawToSurface() {
-    //     this.copyTextureToTexture(this.rawColorTexture, (this.context as GPUCanvasContext).getCurrentTexture(), { width: this.canvas.width, height: this.canvas.height });//ok
-    // }
+
 
     ////////////////////////////////////////////////////////////////
     //update camera 
@@ -1304,6 +1233,10 @@ export class Scene extends BaseScene {
 
         //  this.copyTextureToTexture(this.stages["World"]!!.depthTextureOnly, this.GBuffers["depth"], { width: this.canvas.width, height: this.canvas.height });//ok
     }
+
+
+
+
     ////////////////////////////////////////////////////////////////
     //output :BuffersVisualize
     /**显示GBuffer可视化 
@@ -1517,7 +1450,7 @@ export class Scene extends BaseScene {
     }
     /**获取深度纹理(uniform 使用)，用于透明渲染 */
     geTransparentOfUniform(cameraID: string, binding: number): uniformEntries[] {
-        return this.cameraTransparentRender[cameraID].getBindGroupOfTextures( binding);
+        return this.cameraTransparentRender[cameraID].getBindGroupOfTextures(binding);
     }
     /**增加摄像机 Actor
      * 适用于：非活动Actor场景
@@ -1531,14 +1464,7 @@ export class Scene extends BaseScene {
         this.cameraActors.push(one);//增加cameraActor数组中
         this.cameraFrameBuffer[id] = await this.createCameraFrameBufferForPerCamera(id);
         this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//不透明的GBuffer，合并使用
-        // this.GBuffersOfTransparentA[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
-        // this.GBuffersOfTransparentB[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//透明的GBuffer，在不透明合并后，进行透明渲染的目标GBuffer
-        // this.depthTextureOfUniform[id] = this.device.createTexture({//深度纹理
-        //     size: [this.canvas.width, this.canvas.height],
-        //     format: this.depthDefaultFormat,
-        //     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-        // });
-        this.cameraTransparentRender[id] = new TransparentRender({
+         this.cameraTransparentRender[id] = new TransparentRender({
             parent: this, cameraID: id,
             surfaceSize: { width: this.canvas.width, height: this.canvas.height },
             device: this.device,

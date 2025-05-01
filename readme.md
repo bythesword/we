@@ -54,7 +54,7 @@
 | ![1742405930357](images/readme/1742405930357.png) |                                                   | ![1744770008344](images/readme/1744770008344.png) |
 | 透明渲染                                          | 基础纹理材质                                      | 纹理材质：贴花,alphatest                          |
 | ![1745857053582](images/readme/1745857053582.png) |                                                   | ![1745923119394](images/readme/1745923119394.png) |
-| Bulin-Phong 高光贴图                              | Bulin-Phong 法线贴图                              | Bulin-Phong 透明                                  |
+| Blinn-Phong 高光贴图                              | Blinn-Phong 法线贴图                              | Blinn-Phong 透明                                  |
 | ![1744796262724](images/readme/1744796262724.png) |                                                   |                                                   |
 | 视频材质                                          | mipmap                                            | PBR                                               |
 |                                                   |                                                   |                                                   |
