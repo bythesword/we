@@ -531,6 +531,16 @@ export class BaseStage extends BaseScene {
         return one.ID;
     }
 
+    remove(one: BaseEntity) {
+        let index = this.root.indexOf(one);
+        if (index != -1) {
+            this.root.splice(index, 1);
+        }
+        else{
+            console.warn("remove error,can not find entity in stage",one);
+        }
+    }
+
     get cache() {
         return this._cache;
     }

@@ -111,7 +111,8 @@ export class Mesh extends BaseEntity {
                 j.destroy();
             }
         }
-
+        this._material.destroy();
+        this._geometry.destroy();
     }
     checkStatus(): boolean {
         return this._material.getReady() && this._geometry.getReady();

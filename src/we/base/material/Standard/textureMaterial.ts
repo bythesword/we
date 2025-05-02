@@ -95,14 +95,14 @@ export class TextureMaterial extends BaseMaterial {
                     }
                 }
             };
-            
-            if (input.transparent!= undefined) {
+
+            if (input.transparent != undefined) {
                 this._transparent = input.transparent;
             }
             else {
-                this._transparent = transparent; 
+                this._transparent = transparent;
             }
-            
+
             if (input.transparent.blend != undefined) {
                 this._transparent.blend = input.transparent.blend;
             }
@@ -123,6 +123,15 @@ export class TextureMaterial extends BaseMaterial {
 
         }
     }
+    destroy() { 
+        for (let key in this.textures) {
+            this.textures[key].destroy();
+        }
+        this.textures = {};
+        this._already = false;
+        this._destroy = true;
+    }
+
     async __init() {
         for (let key in this.input.textures) {
             // let kkk: keyof optionTexutresKindOfMaterial = key;
@@ -228,9 +237,7 @@ export class TextureMaterial extends BaseMaterial {
         return this.shaderCodeProcess(code);
     }
 
-    destroy() {
-        this._destroy = true;
-    }
+   
     getUniform(startBinding: number): uniformEntries[] {
         let binding = startBinding;
         let uniforms: uniformEntries[] = []

@@ -1,17 +1,16 @@
-import { PerspectiveCamera, optionPerspProjection } from "../../../../src/we/base/camera/perspectiveCamera"
+
 import { ArcballCameraControl } from "../../../../src/we/base/control/arcballCameraControl"
 import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
 import { sceneInputJson } from "../../../../src/we/base/scene/scene"
-import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
-
-import { PointLight } from "../../../../src/we/base/light/pointLight"
-import { initScene } from "../../../../src/we/base/scene/initScene"
 import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
-import { GUI } from "muigui";
+import GUI from "muigui";
+import { optionOrthProjection, OrthographicCamera } from "../../../../src/we/base/camera/orthographicCamera"
+import { initScene } from "../../../../src/we/base/scene/initScene"
+import { TextureMaterial } from "../../../../src/we/base/material/Standard/textureMaterial"
 //////////////////////////////////////////////////////////////////////////////////////////////
 //from webgpufundemental
 const hsl = (h: number, s: number, l: number) => `hsl(${h * 360 | 0}, ${s * 100}%, ${l * 100 | 0}%)`;
@@ -81,6 +80,8 @@ declare global {
   interface Window {
     scene: any
     DC: any
+    srcPlane: any
+    dstPlane: any
   }
 }
 let input: sceneInputJson = {
@@ -88,9 +89,9 @@ let input: sceneInputJson = {
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
     red: 0,
-    green: 0.1,
-    blue: 0.2,
-    alpha: 0.1
+    green: 0.,
+    blue: 0.,
+    alpha: 0.
   },
   ambientLight: {
     color: {
@@ -108,17 +109,17 @@ let scene = await initScene(input)
 window.scene = scene;
 
 
-//摄像机初始化参数
-const cameraOption: optionPerspProjection = {
-  fov: (2 * Math.PI) / 5,
-  aspect: scene.aspect,
-  near: 0.0001,
-  far: 100,
-  position: [9, 3, 9],
+const cameraOption: optionOrthProjection = {
+  left: -1,
+  right: 1,
+  top: 1,
+  bottom: -1,
+  near: 0.01,
+  far: 1,
+  position: [0, 0, 1],
   lookAt: [0, 0, 0]
 }
-//实例化摄像机
-let camera = new PerspectiveCamera(cameraOption);
+let camera = new OrthographicCamera(cameraOption);
 
 
 //摄像机控制器
@@ -133,7 +134,7 @@ let control = new ArcballCameraControl(controlOption);
 //摄像机角色参数
 const ccOption: optionCameraActor = {
   camera: camera,
-  control: control,
+  // control: control,
   name: "camera_1"
 }
 //实例化摄像机角色
@@ -145,67 +146,222 @@ scene.addCameraActor(actor, true)
 ////enities 初始化
 
 let planeGeometry = new PlaneGeometry({
-  width: 10,
-  height: 10
+  width: 2,
+  height: 2,
+  // widthSegments: 1,
+  // heightSegments: 1,
 });
-let groundMaterial = new ColorMaterial({
-  color: { red: 1, green: 1, blue: 1, alpha: 1 },
+let testColor = new ColorMaterial({
+  color: { red: 1, green: 0, blue: 0, alpha: 1 },
 });
-
-let bottomPlane = new Mesh({
-  name: "bottomPlane",
-  geometry: planeGeometry,
-  material: groundMaterial,
-  position: [0, -1, 0],
-  rotate: {
-    axis: [1, 0, 0],
-    angleInRadians: -Math.PI / 2,
+let dstMaterial = new TextureMaterial({
+  transparent: {
+    alphaTest: 0.
   },
-  wireFrame: false,
-  cullmode: "none"
-});
-await scene.add(bottomPlane);
-
-
-
-//box
-// let Geometry = new SphereGeometry({
-//   radius: 1,
-//   widthSegments: 128,
-//   heightSegments: 128
-// });
-//极简测试材质，red
-let colorMaterial_1 = new ColorMaterial(
-  {
-    color: { red: 1, green: 0.3, blue: 0.5, alpha: 1 },
-  });
-//box实体
-let boxEntity = new Mesh(
-  {
-    name: "透明plane",
-    geometry: planeGeometry,
-    material: colorMaterial_1,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
-    wireFrame: false,
-    // position:vec3.create(1,0,0),
-    // scale:[2,2,1],
-    rotate: {
-      axis: [0, 1, 0],
-      angleInRadians: 0.5 * Math.PI
+  textures: {
+    texture: {
+      name: "DST",
+      texture: dstCanvas
     },
   }
-);
-//增加实体到scene
-await scene.add(boxEntity)
+});
+let dstPlane = new Mesh({
+  name: "bottomPlane",
+  geometry: planeGeometry,
+  material: dstMaterial,
+  position: [0, 0, 0],
+  wireFrame: false,
+  // cullmode: "none"
+});
+await scene.add(dstPlane);
 
-let light1 = new PointLight(
-  {
-    position: [0.0, 0.0, 8.0],
-    intensity: 2.0,
 
+
+
+let srcMaterial = new TextureMaterial({
+  transparent: {
+    alphaTest: 0.
+  },
+  textures: {
+    texture: {
+      name: "DST",
+      texture: srcCanvas
+    },
   }
-);
+});
+let srcPlane = new Mesh({
+  name: "bottomPlane",
+  geometry: planeGeometry,
+  material: srcMaterial,
+  position: [0, 0, 0],
+  wireFrame: false,
+  // cullmode: "none"
+});
 
-scene.addLight(light1);
+await scene.add(srcPlane);
 
 
+window.srcPlane = srcPlane;
+window.dstPlane = dstPlane;
+////////////////////////////////////////////////////////////////
+//GUI
+const operations = [
+  'add',
+  'subtract',
+  'reverse-subtract',
+  'min',
+  'max',
+];
+
+const factors = [
+  'zero',
+  'one',
+  'src',
+  'one-minus-src',
+  'src-alpha',
+  'one-minus-src-alpha',
+  'dst',
+  'one-minus-dst',
+  'dst-alpha',
+  'one-minus-dst-alpha',
+  'src-alpha-saturated',
+  'constant',
+  'one-minus-constant',
+];
+
+const presets = {
+  'default (copy)': {
+    color: {
+      operation: 'add',
+      srcFactor: 'one',
+      dstFactor: 'zero',
+    },
+  },
+  'premultiplied blend (source-over)': {
+    color: {
+      operation: 'add',
+      srcFactor: 'one',
+      dstFactor: 'one-minus-src-alpha',
+    },
+  },
+  'un-premultiplied blend': {
+    color: {
+      operation: 'add',
+      srcFactor: 'src-alpha',
+      dstFactor: 'one-minus-src-alpha',
+    },
+  },
+  'destination-over': {
+    color: {
+      operation: 'add',
+      srcFactor: 'one-minus-dst-alpha',
+      dstFactor: 'one',
+    },
+  },
+  'source-in': {
+    color: {
+      operation: 'add',
+      srcFactor: 'dst-alpha',
+      dstFactor: 'zero',
+    },
+  },
+  'destination-in': {
+    color: {
+      operation: 'add',
+      srcFactor: 'zero',
+      dstFactor: 'src-alpha',
+    },
+  },
+  'source-out': {
+    color: {
+      operation: 'add',
+      srcFactor: 'one-minus-dst-alpha',
+      dstFactor: 'zero',
+    },
+  },
+  'destination-out': {
+    color: {
+      operation: 'add',
+      srcFactor: 'zero',
+      dstFactor: 'one-minus-src-alpha',
+    },
+  },
+  'source-atop': {
+    color: {
+      operation: 'add',
+      srcFactor: 'dst-alpha',
+      dstFactor: 'one-minus-src-alpha',
+    },
+  },
+  'destination-atop': {
+    color: {
+      operation: 'add',
+      srcFactor: 'one-minus-dst-alpha',
+      dstFactor: 'src-alpha',
+    },
+  },
+  'additive (lighten)': {
+    color: {
+      operation: 'add',
+      srcFactor: 'one',
+      dstFactor: 'one',
+    },
+  },
+};
+
+const color = {
+  operation: 'add',
+  srcFactor: 'one',
+  dstFactor: 'one-minus-src',
+};
+
+const alpha = {
+  operation: 'add',
+  srcFactor: 'one',
+  dstFactor: 'one-minus-src',
+};
+
+const constant = {
+  color: [1, 0.5, 0.25],
+  alpha: 1,
+};
+
+const clear = {
+  color: [0, 0, 0],
+  alpha: 0,
+  premultiply: true,
+};
+
+const settings = {
+  alphaMode: 'premultiplied',
+  textureSet: 0,
+  preset: 'default (copy)',
+};
+const gui = new GUI().onChange(render);
+gui.add(settings, 'alphaMode', ['opaque', 'premultiplied']).name('canvas alphaMode');
+gui.add(settings, 'textureSet', ['premultiplied alpha', 'un-premultiplied alpha']);
+gui.add(settings, 'preset', Object.keys(presets)).name('blending preset').onChange((presetName: string ) => {
+  const preset = presets[presetName as keyof typeof presets];
+  Object.assign(color, preset.color);
+  Object.assign(alpha, preset.alpha || preset.color);
+  gui.updateDisplay();
+});
+const colorFolder = gui.addFolder('color');
+colorFolder.add(color, 'operation', operations);
+colorFolder.add(color, 'srcFactor', factors);
+colorFolder.add(color, 'dstFactor', factors);
+const alphaFolder = gui.addFolder('alpha');
+alphaFolder.add(alpha, 'operation', operations);
+alphaFolder.add(alpha, 'srcFactor', factors);
+alphaFolder.add(alpha, 'dstFactor', factors);
+const constantFolder = gui.addFolder('constant');
+constantFolder.addColor(constant, 'color');
+constantFolder.add(constant, 'alpha', 0, 1);
+const clearFolder = gui.addFolder('clear color');
+clearFolder.add(clear, 'premultiply');
+clearFolder.add(clear, 'alpha', 0, 1);
+clearFolder.addColor(clear, 'color');
+
+function render() {
+  console.log("onchange");
+}

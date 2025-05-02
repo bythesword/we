@@ -118,7 +118,12 @@ export class Texture {
             magFilter: sampler,
             minFilter: sampler,
         });
+    }
 
+    destroy() {
+        if (this.texture) {
+            this.texture.destroy();
+            this.texture = undefined as any; } 
     }
     /**
      * 

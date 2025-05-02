@@ -50,8 +50,8 @@
 | ![1737512422932](images/readme/1737512422932.png) | ![1737558726854](images/readme/1737558726854.png) | ![1737781844403](images/readme/1737781844403.png) |
 | 软阴影+动态光源                                   | 阴影：点光源                                      | 阴影：spot                                        |
 | ![1737812416885](images/readme/1737812416885.png) | ![1742301511749](images/readme/1742301511749.png) | ![1738597919885](images/readme/1738597919885.png) |
-| 动态点光源阴影                                    | 混合                                              | 透明材质                                          |
-| ![1742405930357](images/readme/1742405930357.png) |                                                   | ![1744770008344](images/readme/1744770008344.png) |
+| 动态点光源阴影                                    | 混合(克隆webgpufundamentals)                      | 透明材质                                          |
+| ![1742405930357](images/readme/1742405930357.png) | ![1746170811309](images/readme/1746170811309.png) | ![1744770008344](images/readme/1744770008344.png) |
 | 透明渲染                                          | 基础纹理材质                                      | 纹理材质：贴花,alphatest                          |
 | ![1745857053582](images/readme/1745857053582.png) |                                                   | ![1745923119394](images/readme/1745923119394.png) |
 | Blinn-Phong 高光贴图                              | Blinn-Phong 法线贴图                              | Blinn-Phong 透明                                  |

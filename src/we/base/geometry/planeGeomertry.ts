@@ -37,13 +37,13 @@ export class PlaneGeometry extends BaseGeometry {
         }
         super(input);
         this.parameters = {
-            width: input.width ?? defaultValues.width,
-            widthSegments: input.widthSegments ?? defaultValues.widthSegments,
-            height: input.height ?? defaultValues.height,
-            heightSegments: input.heightSegments ?? defaultValues.heightSegments,
+            width: input.width || defaultValues.width,
+            widthSegments: input.widthSegments || defaultValues.widthSegments,
+            height: input.height || defaultValues.height,
+            heightSegments: input.heightSegments || defaultValues.heightSegments,
         };
-        this.parameters.widthSegments = Math.max(3, Math.floor(this.parameters.widthSegments as number));
-        this.parameters.heightSegments = Math.max(2, Math.floor(this.parameters.heightSegments as number));
+        this.parameters.widthSegments =  Math.floor(this.parameters.widthSegments as number);
+        this.parameters.heightSegments =  Math.floor(this.parameters.heightSegments as number);
         this.init(this.parameters)
     }
 

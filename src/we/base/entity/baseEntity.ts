@@ -460,6 +460,9 @@ export abstract class BaseEntity extends RootOfGPU {
         return this.ID + 1;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // abstract 部分
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * 循环注销children
@@ -479,21 +482,6 @@ export abstract class BaseEntity extends RootOfGPU {
      * 上级group的状态（可见性、使用性）
      */
     abstract checkStatus(): boolean
-    /** 获取当前状态（是否可以进行update）*/
-    getStateus(): boolean {
-        if (this.checkStatus() && this.visible && this.enable) {
-            return true;
-        }
-        return false;
-    }
-    /** 设置是否透明 */
-    set transparent(transparent: boolean) {
-        this._transparent = transparent;
-    }
-    /** 获取是否透明 */
-    get transparent() {
-        return this._transparent;
-    }
     /** 生成Box和Sphere */
     abstract generateBoxAndSphere(): void
     /** 获取混合模式 */
@@ -509,6 +497,29 @@ export abstract class BaseEntity extends RootOfGPU {
     abstract createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): initStateEntity
     /**透明渲染 */
     abstract createDCCCForTransparent(values: valuesForCreateDCCC): initStateEntity
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 基础部分
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    getID() {
+        return { stageID: this.stageID, ID: this.ID };
+    }
+    getStageID() {
+        return this.stageID;
+    }
+    isDestroy() {
+        return this._destroy;
+    }
+
+    /** 设置是否透明 */
+    set transparent(transparent: boolean) {
+        this._transparent = transparent;
+    }
+    /** 获取是否透明 */
+    get transparent() {
+        return this._transparent;
+    }
 
     /** 世界坐标的Box */
     generateBox(position: number[]): boundingBox {
@@ -530,6 +541,27 @@ export abstract class BaseEntity extends RootOfGPU {
         }
 
         return generateSphereFromBox3(box);
+    }
+    /**
+     * 是否单独更新每个instance
+     * 
+     * 即：使用用户更新的update()的结果，或连续的结果（前一帧的的矩阵内容）
+     * 
+     * 
+     * @param state :boolean
+     * 
+     */
+    setUpdateForPerInstance(state: boolean) {
+        this.flagUpdateForPerInstance = state;
+    }
+
+    /**
+     * 返回this.flagUpdateForPerInstance的标志位，默认状态=false
+     * @returns boolean
+     * 
+     */
+    getUpdateForPerInstance() {
+        return this.flagUpdateForPerInstance;
     }
     // /** */
     // addContent(name: string, vm: entityContentOfVertexAndMaterial) {
@@ -644,6 +676,44 @@ export abstract class BaseEntity extends RootOfGPU {
         this._position = pos;
     }
 
+
+    /**
+     * 输出实例渲染的个数的buffer
+     * 
+     * 单个示例可以在input.update（）进行更新
+     */
+    getUniformOfMatrix() {
+        // return this.matrixWorldBuffer;
+        return new Float32Array(this.structUnifomrBuffer);
+    }
+
+    /**检查camear的id在commands中是否已经存在 */
+    checkIdOfCommands(id: string, commands: commandsOfEntity | commandsOfShadowOfEntity): boolean {
+        for (let i in commands) {
+            if (i == id) return true;
+        }
+        return false;
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 阴影相关部分
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * 是否产生阴影
+     * @returns boolean
+     */
+    getShadwoMapGenerate(): boolean {
+        return this._shadow.generate;
+    }
+    /**
+     * 是否接受阴影
+     * @returns boolean
+     */
+    getShadowmAccept() {
+        return this._shadow.accept;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// update 部分
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * 更新矩阵的顺序是先进行线性变换，在进行位置变换
      * 
@@ -685,17 +755,20 @@ export abstract class BaseEntity extends RootOfGPU {
             return m4;
         }
     }
-    /**
-     * 输出实例渲染的个数的buffer
-     * 
-     * 单个示例可以在input.update（）进行更新
-     */
-    getUniformOfMatrix() {
-        // return this.matrixWorldBuffer;
-        return new Float32Array(this.structUnifomrBuffer);
+    /** 获取当前状态（是否可以进行update）*/
+    getStateus(): boolean {
+        if (this.checkStatus() && this.visible && this.enable) {
+            return true;
+        }
+        return false;
     }
-
-
+    /** 清除DCC 渲染队列*/
+    clearDCCC() {
+        this.commmands = {};
+        this.commandsOfShadow = {};
+        this.commandsOfShadowOfTransparent = {};
+        this.commandsOfTransparent = {};
+    }
     //初始化当前entity的DCC
     initDCC(parent: BaseStage) {
         let already = this.checkStatus();
@@ -707,13 +780,6 @@ export abstract class BaseEntity extends RootOfGPU {
 
             this._init = initStateEntity.finished;//this.createDCCC(valueOfCamera);
         }
-    }
-    /**检查camear的id在commands中是否已经存在 */
-    checkIdOfCommands(id: string, commands: commandsOfEntity | commandsOfShadowOfEntity): boolean {
-        for (let i in commands) {
-            if (i == id) return true;
-        }
-        return false;
     }
     /**更新(创建)关于cameras的DCCC commands
      * 
@@ -815,16 +881,21 @@ export abstract class BaseEntity extends RootOfGPU {
      * @returns 
      */
     update(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number) {
-        // let cameraOrLight: string, forWhatRender: entityRenderFor;
-        //初始化DCC
-
-        if (this._readyForGPU && this._id != 0)
-
+        //两阶段初始化状态是否完成
+        if (this._readyForGPU && this._id != 0) {
+            //如果是延迟初始化，需要在增加到stage之后，才进行初始化
             if (this._init === initStateEntity.unstart) {
                 this.updateMatrix();//在这里必须更新一次，entityID，stageID，都是延迟到增加至stage之后才更新的。
                 this.initDCC(parent);
             }
+            //初始化是完成状态，同时checkStatus=false,需要重新初始化
+            //比如：material 是在运行中是可以更改的，需要重新初始化。
+            else if (this.checkStatus() === false && this._init === initStateEntity.finished) {
+                this.clearDCCC();
+                this._init = initStateEntity.unstart;//重新初始化，下一帧进行重新初始化工作 
+            }
             //初始化是完成状态，同时checkStatus=true
+            //material 是在运行中是可以更改的，所以需要检查状态。
             else if (this._init === initStateEntity.finished && this.checkStatus()) {
                 if (this.input && this.input.update) {
                     this.matrix = mat4.identity();
@@ -849,12 +920,34 @@ export abstract class BaseEntity extends RootOfGPU {
             else if (this._init == initStateEntity.initializing) {
                 this.checkStatus();
             }
-
-        // return [];
-        // let commands = this.updateChilden(parent, deltaTime, startTime, lastTime);
-
-        // return this.commmands;
+        }
     }
+    /**
+     * 被update调用，更新vs、fs的uniform
+     * 
+     * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
+     */
+    updateUniformBuffer(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): any {
+        for (let i = 0; i < this.numInstances; i++) {
+            let perMatrix = mat4.identity();
+            //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
+            if (this.flagUpdateForPerInstance) {
+                perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
+            }
+            let perWorld = mat4.copy(this.matrixWorld);
+            perMatrix = mat4.multiply(perWorld, perMatrix);
+            if (this.input?.instancesPosition) {
+                mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
+            }
+            this.matrixWorldBuffer.set(perMatrix, i * 16);
+        }
+        this.entity_id[0] = this.ID;
+        this.stage_id[0] = this.getStageID();
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // 输出commands部分
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * 被update调用
      * 更新this._vertexAndMaterialGroup对应的DrawCommand组
@@ -874,6 +967,7 @@ export abstract class BaseEntity extends RootOfGPU {
     updateDCC(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): commandsOfEntity {
         return this.commmands;
     }
+
     /**获取摄像机的渲染commands（所有摄像机的）
      * 
      * @returns commandsOfEntity, 返回this.commmands 包括多个camera的Commands 每个数组元素中包括3个类型的commands
@@ -912,70 +1006,6 @@ export abstract class BaseEntity extends RootOfGPU {
 
 
 
-
-
-    /**
-     * 是否单独更新每个instance
-     * 
-     * 即：使用用户更新的update()的结果，或连续的结果（前一帧的的矩阵内容）
-     * 
-     * 
-     * @param state :boolean
-     * 
-     */
-    setUpdateForPerInstance(state: boolean) {
-        this.flagUpdateForPerInstance = state;
-    }
-
-    /**
-     * 返回this.flagUpdateForPerInstance的标志位，默认状态=false
-     * @returns boolean
-     * 
-     */
-    getUpdateForPerInstance() {
-        return this.flagUpdateForPerInstance;
-    }
-    /**
-     * 被update调用，更新vs、fs的uniform
-     * 
-     * this.flagUpdateForPerInstance 影响是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
-     */
-    updateUniformBuffer(_parent: BaseStage, _deltaTime: number, _startTime: number, _lastTime: number): any {
-
-        for (let i = 0; i < this.numInstances; i++) {
-            let perMatrix = mat4.identity();
-            //是否单独更新每个instance，使用用户更新的update（）的结果，或连续的结果
-            if (this.flagUpdateForPerInstance) {
-                perMatrix = this.matrixWorldBuffer.subarray(i * 16, (i + 1) * 16);
-            }
-            let perWorld = mat4.copy(this.matrixWorld);
-            perMatrix = mat4.multiply(perWorld, perMatrix);
-            if (this.input?.instancesPosition) {
-                mat4.setTranslation(perMatrix, this.input.instancesPosition[i], perMatrix);
-            }
-            this.matrixWorldBuffer.set(perMatrix, i * 16);
-        }
-
-        this.entity_id[0] = this.ID;
-        this.stage_id[0] = this.getStageID();
-
-    }
-
-
-    getID() {
-        return { stageID: this.stageID, ID: this.ID };
-    }
-    getStageID() {
-        return this.stageID;
-    }
-
-
-
-
-
-    isDestroy() {
-        return this._destroy;
-    }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //材质合并shader相关部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1042,18 +1072,6 @@ export abstract class BaseEntity extends RootOfGPU {
             return this.stage!.colorAttachmentTargets;
         }
     }
-    /**
-     * 是否产生阴影
-     * @returns boolean
-     */
-    getShadwoMapGenerate(): boolean {
-        return this._shadow.generate;
-    }
-    /**
-     * 是否接受阴影
-     * @returns boolean
-     */
-    getShadowmAccept() {
-        return this._shadow.accept;
-    }
+
+
 }

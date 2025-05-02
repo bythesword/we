@@ -1428,7 +1428,7 @@ export class Scene extends BaseScene {
      * @param stage     默认=World
      * @param transparent  默认=false
      */
-    async addToStage(entity: BaseEntity, stage: string = this.defaultStageName, transparent: boolean = false): Promise<number> {
+    async addToStage(entity: BaseEntity, stage: string = this.defaultStageName ): Promise<number> {
 
         if (this.stages[stage]) {
             let id = await this.stages[stage]!.add(entity);
@@ -1438,7 +1438,12 @@ export class Scene extends BaseScene {
             console.log(stage, "stage，不存在");
             return 0;
         }
-
+    }
+    remove = this.removeFromStage;
+    removeFromStage(entity: BaseEntity, stage: string = this.defaultStageName) {
+        if (this.stages[stage]) {
+            this.stages[stage]!.remove(entity); 
+        }        
     }
 
     setDefaultCamera(camera: BaseCamera) {
