@@ -1,9 +1,9 @@
 
- 
+
 import * as coreConst from "../const/coreConst"
 import { DrawCommand } from '../command/DrawCommand';
 import { ComputeCommand } from '../command/ComputeCommand';
-import { CopyCommandT2T } from '../command/copyCommandT2T'; 
+import { CopyCommandT2T } from '../command/copyCommandT2T';
 import { boundingBox, generateBox3ByArrayBox3s, } from '../math/Box';
 import { boundingSphere, generateSphereFromBox3, } from '../math/sphere';
 import { renderKindForDCCC } from '../const/coreConst';
@@ -63,9 +63,9 @@ export abstract class BaseScene {
     presentationFormat!: GPUTextureFormat;
     backgroudColor: number[];
 
+    /**是否使用premultiplied alpha */
+    premultiplied: boolean;
 
- 
- 
 
     // /////////////////////////////////////////////////////////////
     // //about Z and reversed Z
@@ -87,7 +87,7 @@ export abstract class BaseScene {
     };
     /**反向Z的深度模板设置 */
     depthStencilOfReveredZ: GPUDepthStencilState = {
-        depthWriteEnabled: true, 
+        depthWriteEnabled: true,
         depthCompare: 'greater',
         format: 'depth32float',
     }
@@ -112,7 +112,7 @@ export abstract class BaseScene {
      * 
     */
     colorAttachmentTargets!: GPUColorTargetState[];
- 
+
     /**cameras 的RPD */
     renderPassDescriptor: {
         [name: string]: GPURenderPassDescriptor
@@ -130,37 +130,47 @@ export abstract class BaseScene {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //空值初始化
 
-        this.input = input; 
+        this.input = input;
         this.renderPassDescriptor = {};
         this.GBuffers = {};
         this.Box3s = [];
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //默认值初始化
- 
+
 
         this.backgroudColor = [0, 0, 0, 0];
- 
+        this.premultiplied = true;
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //input赋值
-   
+
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //设置
 
-      
+
 
     }
 
     //异步执行，需要单独调用
     abstract init(): any
 
-    getBackgroudColor(premultipliedAlpha: boolean = true):number[]{
+    setPremultiplied(premultiplied: boolean) {
+        this.premultiplied = premultiplied;
+    }
+    getPremultiplied(): boolean {
+        return this.premultiplied;
+    }
+    setBackgroudColor(color: coreConst.color4F) {
+        this.backgroudColor = [color.red, color.green, color.blue, color.alpha];
+    }
+    getBackgroudColor(): number[] {
+        let premultipliedAlpha: boolean = this.premultiplied;
         if (premultipliedAlpha) {
-            return [this.backgroudColor[0] * this.backgroudColor[3], this.backgroudColor[1] * this.backgroudColor[3], this.backgroudColor[2] * this.backgroudColor[3], this.backgroudColor[3]]; 
+            return [this.backgroudColor[0] * this.backgroudColor[3], this.backgroudColor[1] * this.backgroudColor[3], this.backgroudColor[2] * this.backgroudColor[3], this.backgroudColor[3]];
         }
         else {
             return [this.backgroudColor[0], this.backgroudColor[1], this.backgroudColor[2], this.backgroudColor[3]];
-        } 
+        }
     }
     /** 前向渲染renderPassDescriptor(GPURenderPassDescriptor) */
     async createRenderPassDescriptor(camera: string) {
@@ -258,7 +268,7 @@ export abstract class BaseScene {
     /** 获取前向渲染的渲染通道描述: GPURenderPassDescriptor         */
     abstract getRenderPassDescriptor(camera: string, kind?: string): GPURenderPassDescriptor
 
- 
+
 
     /**
      * 每个shader绑定system的group0；

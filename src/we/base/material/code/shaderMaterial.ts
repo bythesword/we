@@ -1,6 +1,7 @@
 import { BaseMaterial, optionBaseMaterial, textureType } from "../baseMaterial";
 import codeOnlyFS from "../../shader/material/code/code.fs.wgsl?raw"
 import { uniformEntries } from "../../command/commandDefine";
+import { lifeState } from "../../const/coreConst";
 
 
 export interface optionShaderMaterial extends optionBaseMaterial {
@@ -17,6 +18,14 @@ export interface optionShaderMaterial extends optionBaseMaterial {
 
 
 export class ShaderMaterial extends BaseMaterial {
+    getTransparent(): boolean {
+        // throw new Error("Method not implemented.");
+        return false;
+    }
+    getBlend(): GPUBlendState | undefined {
+        // throw new Error("Method not implemented.");
+        return undefined;
+    }
     declare input: optionShaderMaterial;
     shaderCodeFS: string;
     constructor(input?: optionShaderMaterial) {
@@ -32,7 +41,7 @@ export class ShaderMaterial extends BaseMaterial {
     async __init() {
         //获取device后，进行texture，simple，uniform，storage的初始化
         await this.generateForTSUS();
-        this._already = true;
+        this._already = lifeState.finished;
     }
     /**texture，simple，uniform，storage */
     async generateForTSUS(): Promise<any> {

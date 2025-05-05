@@ -20,13 +20,13 @@ import { uniformEntries } from "../../command/commandDefine";
 
 import textureFS from "../../shader/material/simple/texture.fs.wgsl?raw"
 import textureTransparentFS from "../../shader/material/simple/textureTransparent.fs.wgsl?raw"
-import { GBuffersRPDAssemble, textureAlphaZero } from "../../const/coreConst";
+import { GBuffersRPDAssemble, lifeState, textureAlphaZero } from "../../const/coreConst";
 import { optionTextureSource, Texture } from "../../texture/texture";
 
 export interface optionTexutresKindOfMaterial {
-    texture?: optionTextureSource,
-    normal?: optionTextureSource,
-    specular?: optionTextureSource,
+    texture?: optionTextureSource | Texture,
+    normal?: optionTextureSource | Texture,
+    specular?: optionTextureSource | Texture,
 }
 /**
  * 纹理材质的初始化参数
@@ -68,7 +68,7 @@ export class TextureMaterial extends BaseMaterial {
         this.countOfTexturesOfFineshed = 0;
         if (input.textures)
             this.countOfTextures = Object.keys(input.textures!).length;
-        this._already = false;
+        this._already = lifeState.unstart;
 
         // if (input.samplerFilter == undefined) {
         //     input.samplerFilter = 'linear';
@@ -123,12 +123,12 @@ export class TextureMaterial extends BaseMaterial {
 
         }
     }
-    destroy() { 
+    destroy() {
         for (let key in this.textures) {
             this.textures[key].destroy();
         }
         this.textures = {};
-        this._already = false;
+        this._already = lifeState.destroyed;
         this._destroy = true;
     }
 
@@ -136,12 +136,16 @@ export class TextureMaterial extends BaseMaterial {
         for (let key in this.input.textures) {
             // let kkk: keyof optionTexutresKindOfMaterial = key;
             let texture = this.input.textures[key as keyof optionTexutresKindOfMaterial]!;
-            let textureInstace = new Texture(texture, this.device);
-            await textureInstace.init();
-            this.textures[key] = textureInstace;
-
+            if (texture instanceof Texture) {
+                this.textures[key] = texture;
+            }
+            else {
+                let textureInstace = new Texture(texture, this.device);
+                await textureInstace.init();
+                this.textures[key] = textureInstace;
+            }
             // this.countOfTexturesOfFineshed++;
-            this._already = true;
+            this._already = lifeState.finished;
         }
         //ok
         // if (this.input.textures) {
@@ -237,7 +241,7 @@ export class TextureMaterial extends BaseMaterial {
         return this.shaderCodeProcess(code);
     }
 
-   
+
     getUniform(startBinding: number): uniformEntries[] {
         let binding = startBinding;
         let uniforms: uniformEntries[] = []

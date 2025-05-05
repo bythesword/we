@@ -20,7 +20,7 @@ export interface optionBaseStage extends sceneJson {
     visible?: boolean,
     /**scene */
     scene: Scene,
- 
+
     /**是否透明 */
     // transparent?: boolean,
 }
@@ -49,7 +49,7 @@ export class BaseStage extends BaseScene {
     /**当前可用的ID，顺序增加 */
     idOfRoot: number;
 
- 
+
 
     /**stage 是否使用，此项目前没有使用 */
     enable!: boolean;
@@ -57,7 +57,7 @@ export class BaseStage extends BaseScene {
     visible!: boolean;
     /**深度测试， 此项目前没有使用*/
     depthTest!: boolean;
- 
+
     scene!: Scene;
 
     /**是否使用cache，需要配合GBuffer，即使用上一帧的GBuffer内容， 此项目前没有使用*/
@@ -73,11 +73,11 @@ export class BaseStage extends BaseScene {
     }
     set ID(id: number) {
         this._id = id;
-    } 
+    }
 
     /**仅仅输出深度的纹理，非前向渲染的depth buffer */
     depthTextureOnly!: { [name: string]: GPUTexture };
- 
+
     /**延迟单像素渲染：第一遍的深度渲染通道描述 */
     RPD_ForDeferDepth!: {
         [name: string]: GPURenderPassDescriptor
@@ -94,7 +94,7 @@ export class BaseStage extends BaseScene {
         [name: string]: commmandType[]
     };
 
- 
+
 
 
     /**   @param input optionBaseStage     */
@@ -167,11 +167,11 @@ export class BaseStage extends BaseScene {
                 this.ID = parseInt(i) * 2 + 1;//+ 1 代表actor 从0 到1，避免了在shader中，没有stage=0，actor也是0;
                 break;
             }
-        } 
+        }
     }
     /**实现父类的抽象定义 */
-    async init() {    }
-    
+    async init() { }
+
     /** 
      * 初始化camera的GBuffer，
      * 初始化camera的renderPassDescriptor，
@@ -243,7 +243,14 @@ export class BaseStage extends BaseScene {
     getRenderPassDescriptorOfLight(values: valuesForCreateDCCC): GPURenderPassDescriptor | false {
         return this.scene.lightsManagement.gettShadowMapRPD(values);
     }
-    
+
+    getCountsOfCommandsOfCamra(cameraID: string): number {
+        let counts = 0;
+        if (this.camerasCommands[cameraID] !== undefined && this.camerasCommands[cameraID].commands != undefined) {
+            counts = this.camerasCommands[cameraID].commands.length;
+        }
+        return counts;
+    }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //uniform
 
@@ -536,8 +543,8 @@ export class BaseStage extends BaseScene {
         if (index != -1) {
             this.root.splice(index, 1);
         }
-        else{
-            console.warn("remove error,can not find entity in stage",one);
+        else {
+            console.warn("remove error,can not find entity in stage", one);
         }
     }
 
@@ -566,7 +573,10 @@ export class BaseStage extends BaseScene {
     }
 
     /**透明透明渲染的四个texture(depth,id,uv,normal)的binding的参数*/
-    geTransparentOfUniform(cameraID: string,binding:number): uniformEntries[] {
-        return this.scene.geTransparentOfUniform(cameraID,binding);
+    geTransparentOfUniform(cameraID: string, binding: number): uniformEntries[] {
+        return this.scene.geTransparentOfUniform(cameraID, binding);
     }
+
+
+
 }

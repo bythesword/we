@@ -8,10 +8,13 @@ import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.
 
 import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
 import { optionTextureSource } from "../texture/texture";
- 
+import { lifeState } from "../const/coreConst";
+
+/**材质的初始化状态 */
+// export type  lifeState =lifeState;
 
 // type names="texture"|"normal"|"specspecular"|"AO"|"light"|"alpha";
- /**透明材质的初始化参数 */
+/**透明材质的初始化参数 */
 export interface optionTransparentOfMaterial {
     /** 不透明度，float32，默认=1.0 
      * 
@@ -27,8 +30,16 @@ export interface optionTransparentOfMaterial {
      * The blending behavior for this color target. 
     */
     blend?: GPUBlendState,
+    /** color 4f 
+     * https://www.w3.org/TR/webgpu/#dom-gpurenderpassencoder-setblendconstant
+     * 
+     * Sets the constant blend color and alpha values used with "constant" and "one-minus-constant" GPUBlendFactors.
+     * If this value is not specified, the value of the color attachment's clear color is used.
+     * If the color attachment has no clear color, the value is [0, 0, 0, 0].
+    */
+    blendConstants?: number[],
 }
- 
+
 /**基础材质的初始化参数
      * 
      * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
@@ -46,7 +57,7 @@ export interface optionBaseMaterial {
      * 3、与texture混合使用，texture会被忽略。
     */
     vertexColor?: boolean,
- 
+
     /**指定的fragment code */
     code?: string,
 
@@ -76,7 +87,7 @@ export abstract class BaseMaterial extends RootOfGPU {
      * constructor中设置为false。 
      * 如果更改为为true，在材质不工作
     */
-    _already: boolean;
+    _already: lifeState;
     /**
      * blending混合的状态interface
      * 
@@ -125,7 +136,7 @@ export abstract class BaseMaterial extends RootOfGPU {
         }
         else
             this.input = {};
-        this._already = false;
+        this._already = lifeState.unstart;
     }
     get needUpdate() { return this._reBuild; }
     set needUpdate(value: boolean) { this._reBuild = value; }
@@ -147,7 +158,7 @@ export abstract class BaseMaterial extends RootOfGPU {
      *  返回值：FS code 
      */
     abstract getCodeFS(startBinding: number): string;
-    
+
     abstract destroy(): any
     /**获取uniform
      * 
@@ -164,13 +175,46 @@ export abstract class BaseMaterial extends RootOfGPU {
      * @returns boolean  true：是透明材质，false：不是透明材质
      */
     abstract getTransparent(): boolean;
-    
+
     /**
      * 获取混合状态
      * @returns  GPUBlendState | undefined  混合状态，undefined表示不混合
      */
     abstract getBlend(): GPUBlendState | undefined;
-    
+
+
+    /**设置状态 */
+    set LifeState(state: lifeState) { this._already = state; }
+    /**获取状态 */
+    get LifeState(): lifeState { return this._already; }
+
+    /**设置透明状态 
+     * @param transparent  optionTransparentOfMaterial 透明状态
+     * 1、如果是undefined，说明不透明
+     * 2、如果是object，说明透明
+     * 3、如果是object，并且object中没有alphaTest，那么alphaTest会被设置为0
+    */
+    setTransParent(transparent: optionTransparentOfMaterial) {
+        this._transparent = transparent;
+        this._already = lifeState.updated;
+    }
+    /**
+     * 设置混合状态
+     * @param blend GPUBlendState 混合状态
+     */
+    setBlend(blend: GPUBlendState) {
+        this._transparent = {
+            blend: blend
+        }
+        this._already = lifeState.updated;
+    }
+
+    setblendConstants(blendConstants: number[]) {
+        if (this._transparent) {
+            this._transparent.blendConstants = blendConstants;
+            this._already = lifeState.updated;
+        }
+    }
     /**
      * 材质是否已经准备好，
      * 判断两个值，
@@ -179,12 +223,12 @@ export abstract class BaseMaterial extends RootOfGPU {
      * 
      * @returns true：可以使用，false：需要等待。     
      */
-    getReady() {
-        if (this._readyForGPU && this._already) {
-            return true;
+    getReady(): lifeState {
+        if (this._readyForGPU) {
+            return this._already;
         }
         else {
-            return false;
+            return lifeState.unstart;
         }
     }
     isDestroy() {

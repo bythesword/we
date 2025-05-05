@@ -2,6 +2,7 @@ import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import cubeSky from "../../shader/sky/cubeSky.fs.wgsl?raw"
 import { uniformEntries } from "../../command/commandDefine";
 import { weSamplerKind } from "../../resource/weResource";
+import { lifeState } from "../../const/coreConst";
 
 export interface optionCubeSkyMaterial extends optionBaseMaterial {
     cubeTexture: {
@@ -16,6 +17,10 @@ interface textures {
 
 
 export class CubeSkyMaterial extends BaseMaterial {
+    getBlend(): GPUBlendState | undefined {
+        // throw new Error("Method not implemented.");
+        return undefined;
+    }
     getTransparent(): boolean {
         // throw new Error("Method not implemented.");
         return false;
@@ -40,7 +45,7 @@ export class CubeSkyMaterial extends BaseMaterial {
         super(input);
         // this.countOfTextures = 0;
         this.countOfTexturesOfFineshed = 0;
-        this._already = false;
+        this._already = lifeState.constructing;
         this.textures = {};
 
 
@@ -94,7 +99,7 @@ export class CubeSkyMaterial extends BaseMaterial {
                     [imageBitmap.width, imageBitmap.height]
                 );
             }
-            scope._already = true;
+            scope._already = lifeState.finished;
         }).catch(err => {
             console.log('error', err)
         });
@@ -129,7 +134,7 @@ export class CubeSkyMaterial extends BaseMaterial {
                 );
                 scope.countOfTexturesOfFineshed++;
                 if (scope.countOfTextures == scope.countOfTexturesOfFineshed) {
-                    scope._already = true;
+                    scope._already = lifeState.finished;
                 }
             }
         )
@@ -151,7 +156,7 @@ export class CubeSkyMaterial extends BaseMaterial {
             [imageBitmap!.width, imageBitmap!.height]
         );
         if (scope.countOfTextures == scope.countOfTexturesOfFineshed) {
-            scope._already = true;
+            scope._already = lifeState.finished;
         }
     };
 

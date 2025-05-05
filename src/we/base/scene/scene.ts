@@ -78,12 +78,14 @@ export interface sceneInputJson extends sceneJson {
     lightNumber?: number,
 
     /**自定义stage */
-    stageSetting: stageStatus,
+    stageSetting?: stageStatus,
     /**出现的camera显示，没有的不显示，按照数组的先后顺序进行render，0=最底层，数组最后的在最上层 
      * 
      * multiCameraViewport 与GBuffer可视化不可同时使用，multiCameraViewport优先级高
     */
     multiCameraViewport?: cameraViewport[],
+    /**是否预乘底色，默认=true */
+    premultipliedAlpha?: boolean,
 }
 
 /** system uniform 的结构 ，都是GPUBuffer，为更新uniform使用，*/
@@ -340,10 +342,7 @@ export class Scene extends BaseScene {
 
         ///end move from baseScene.ts 
 
-        this.stagesOfSystem = coreConst.stagesOfSystem;
-        this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage];
-        this.stagesOrders = coreConst.defaultStageList;
-        this.stageStatus = "all";
+
 
         this._realTimeRender = true;
         this._reSize = false;
@@ -369,6 +368,11 @@ export class Scene extends BaseScene {
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //input赋值
+
+        if (input.premultipliedAlpha) {
+            this.premultiplied = input.premultipliedAlpha;
+        }
+
         //是否由指定深度纹理格式
         if (input.depthDefaultFormat) {
             this.depthDefaultFormat = input.depthDefaultFormat;
@@ -400,6 +404,12 @@ export class Scene extends BaseScene {
             this.multiCamera = true;
         }
         //是否由自定义stage
+        this.stagesOfSystem = coreConst.stagesOfSystem;
+        this.defaultStageName = coreConst.stagesOfSystem[coreConst.defaultStage];
+        this.stagesOrders = coreConst.defaultStageList;
+        this.stageStatus = "all";
+
+
         if (input.stageSetting) {
             this.stageStatus = input.stageSetting;
             if (this.stageStatus == "world") {
@@ -474,7 +484,7 @@ export class Scene extends BaseScene {
         context.configure({
             device,
             format: presentationFormat,
-            alphaMode: 'premultiplied',//预乘透明度
+            alphaMode: this.premultiplied ? "premultiplied" : "opaque", //'premultiplied',//预乘透明度
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
         });
 
@@ -958,8 +968,14 @@ export class Scene extends BaseScene {
         for (let i in this.cameraActors) {
             const camera = this.cameraActors[i];
             const cameraID = camera.id.toString();
+            let counts = 0;
+            for (let i in this.stages) {
+                let perStage = this.stages[i];
+                counts += perStage.getCountsOfCommandsOfCamra(cameraID);
+            }
+
             if (this.cameraTransparentRender[cameraID] != undefined) {
-                this.cameraTransparentRender[cameraID].render();
+                this.cameraTransparentRender[cameraID].renderTransparent(counts);
             }
         }
     }
@@ -1428,7 +1444,7 @@ export class Scene extends BaseScene {
      * @param stage     默认=World
      * @param transparent  默认=false
      */
-    async addToStage(entity: BaseEntity, stage: string = this.defaultStageName ): Promise<number> {
+    async addToStage(entity: BaseEntity, stage: string = this.defaultStageName): Promise<number> {
 
         if (this.stages[stage]) {
             let id = await this.stages[stage]!.add(entity);
@@ -1442,8 +1458,8 @@ export class Scene extends BaseScene {
     remove = this.removeFromStage;
     removeFromStage(entity: BaseEntity, stage: string = this.defaultStageName) {
         if (this.stages[stage]) {
-            this.stages[stage]!.remove(entity); 
-        }        
+            this.stages[stage]!.remove(entity);
+        }
     }
 
     setDefaultCamera(camera: BaseCamera) {
@@ -1469,7 +1485,7 @@ export class Scene extends BaseScene {
         this.cameraActors.push(one);//增加cameraActor数组中
         this.cameraFrameBuffer[id] = await this.createCameraFrameBufferForPerCamera(id);
         this.GBuffers[id] = await this.initGBuffers(this.canvas.width, this.canvas.height);//不透明的GBuffer，合并使用
-         this.cameraTransparentRender[id] = new TransparentRender({
+        this.cameraTransparentRender[id] = new TransparentRender({
             parent: this, cameraID: id,
             surfaceSize: { width: this.canvas.width, height: this.canvas.height },
             device: this.device,

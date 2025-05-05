@@ -1,8 +1,9 @@
 import { uniformEntries } from "../../command/commandDefine";
 import { weSamplerKind } from "../../resource/weResource";
-import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
+import { BaseMaterial,   optionBaseMaterial } from "../baseMaterial";
 import FSOfColor from "../../shader/material/simple/oneColorCube/oneColorCube.color.fs.wgsl?raw"
 import FSOfposition from "../../shader/material/simple/oneColorCube/oneColorCube.position.fs.wgsl?raw"
+import { lifeState } from "../../const/coreConst";
 
 
 export interface optionVertexColorMaterial extends optionBaseMaterial {
@@ -26,7 +27,7 @@ export class VertexColorMaterial extends BaseMaterial {
             this._type = input.type;
         }
 
-        this._already = true;
+        this._already =  lifeState.finished;
     }
     __init() {
         // throw new Error("Method not implemented.");

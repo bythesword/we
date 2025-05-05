@@ -1,10 +1,10 @@
-import { uniformEntries, unifromGroup , drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes} from "../../command/commandDefine";
+import { uniformEntries, unifromGroup, drawModeIndexed, DrawOptionOfCommand, indexBuffer, vsAttributes } from "../../command/commandDefine";
 import { DrawCommand } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseStage } from "../../stage/baseStage";
-import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
+import { BaseEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import simpleModelVS from "../../shader/model/simpleModel.vs.wgsl?raw"
-import { renderKindForDCCC } from "../../const/coreConst";
+import { lifeState, renderKindForDCCC } from "../../const/coreConst";
 
 interface modelData {
     positions: [number, number, number][],
@@ -20,13 +20,20 @@ export interface optionSimpleModel extends optionBaseEntity {
 
 export class SimpleModel extends BaseEntity {
 
+    createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): lifeState {
+        throw new Error("Method not implemented.");
+    }
+    createDCCCForTransparent(values: valuesForCreateDCCC): lifeState {
+        throw new Error("Method not implemented.");
+    }
+
     //todo, 增加shadowmap的支持。
     /**
      * 创建shadowmap的DCCC
      * @param valuesOfDCCC 输入参数
      * @returns  初始化状态
-     */ 
-    createDCCCForShadowMap(values: valuesForCreateDCCC): initStateEntity {
+     */
+    createDCCCForShadowMap(values: valuesForCreateDCCC): lifeState {
         throw new Error("Method not implemented.");
     }
 
@@ -39,7 +46,7 @@ export class SimpleModel extends BaseEntity {
         super(input);
         this._material = input.material;
         this.modelData = input.data;
-        this._init = initStateEntity.unstart;//
+        this._init = lifeState.unstart;//
     }
     async readyForGPU() {
         await this._material.init({
@@ -53,7 +60,7 @@ export class SimpleModel extends BaseEntity {
     }
 
 
-    createDCCC(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+    createDCCC(valuesOfDCCC: valuesForCreateDCCC): lifeState {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
         const kind: string = valuesOfDCCC.kind
@@ -155,10 +162,10 @@ export class SimpleModel extends BaseEntity {
 
         let DC = new DrawCommand(options);
         this.commmands[camera].forward.push(DC);////////////////////////////////////////////////////特别注意
-        return initStateEntity.finished;
+        return lifeState.finished;
     }
 
-    createDCCCDeferRenderDepth(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+    createDCCCDeferRenderDepth(valuesOfDCCC: valuesForCreateDCCC): lifeState {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
         const kind: string = valuesOfDCCC.kind
@@ -235,10 +242,14 @@ export class SimpleModel extends BaseEntity {
         let DC = new DrawCommand(options);
         this.commmands[camera].depth.push(DC);////////////////////////////////////////////////////特别注意
 
-        return initStateEntity.initializing;
+        return lifeState.initializing;
     }
     checkStatus(): boolean {
-        return this._material.getReady();
+        if (this._material.getReady() == lifeState.finished) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     destroy() {
@@ -323,7 +334,7 @@ export class SimpleModel extends BaseEntity {
     }
 
 
-    
+
     generateBoxAndSphere() {
         this.boundingBox = this.generateBox(this.modelData.positions.flat());
         this.boundingSphere = this.generateSphere(this.boundingBox);

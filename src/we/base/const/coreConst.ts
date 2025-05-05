@@ -284,6 +284,24 @@ export var varOfshaderCodeSingleOfGBuffersVisualizeLayout: { [name: string]: str
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-//material
+//通用
 
- 
+ /**始化状态 */
+export enum lifeState {
+    /**未开始 */
+    unstart,    
+    /**正在构造中 */        
+    constructing,   
+    /**正在初始化中 */        
+    initializing,    
+    /** 初始化完成     */
+    finished,        
+    /** 正在更新中 */
+    updating,        
+    /** 更新完成 */
+    updated,         
+    /** 销毁 */
+    destroyed,       
+    /** 错误 */
+    error,           
+}

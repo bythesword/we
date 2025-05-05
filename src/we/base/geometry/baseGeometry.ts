@@ -1,11 +1,11 @@
 // import { BaseMaterial } from "../material/baseMaterial";
-
-import { indexBuffer, vsAttributes } from "../command/DrawCommand";
+ 
 import { color3U } from "../const/coreConst";
 import framelineVS from "../shader/geometry/baseGeometryFrameline.vs.wgsl?raw"
 import framelineFS from "../shader/geometry/baseGeometryFrameline.fs.wgsl?raw"
 import triangleVS from "../shader/geometry/baseGeometry.vs.wgsl?raw"
 import * as coreConst from "../const/coreConst";
+import { indexBuffer, vsAttributes } from "../command/commandDefine";
 
 type geometryMaterialStep = number[];
 export interface xyz {

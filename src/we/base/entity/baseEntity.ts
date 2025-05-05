@@ -10,8 +10,8 @@ import partReplace_VertexShaderOutput_VS from "../shader/entities/part_replace.V
 import { commmandType } from "../scene/baseScene";
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
-import { renderKindForDCCC } from "../const/coreConst";
-import { BaseGeometry } from "../geometry/baseGeometry";
+import { lifeState, renderKindForDCCC } from "../const/coreConst";
+
 
 /** 不透明渲染的队列类型 */
 export interface renderCommands {
@@ -106,12 +106,7 @@ export interface LOD {
 /**
  * enum，实体的状态
  */
-export enum initStateEntity {
-    constructing,
-    unstart,
-    initializing,
-    finished
-}
+// export type  lifeState = coreConst.lifeState;
 /**
  * 阴影选项
  * 是否接受与是否产生阴影
@@ -274,7 +269,7 @@ export abstract class BaseEntity extends RootOfGPU {
 
     ///////////////////////////////////////////////////////////////////
     //状态属性
-    _init: initStateEntity;
+    _init: lifeState;
     _destroy: boolean;
     /**是否每帧更新 */
     updateMatrixPerFrame: boolean;
@@ -284,6 +279,9 @@ export abstract class BaseEntity extends RootOfGPU {
      * 默认=false
     */
     flagUpdateForPerInstance!: boolean;
+
+    /**是否需要更新 */
+    needUpdate: boolean;
 
     //////////////////////////////////////////////////////////////////
     //是否透明属性
@@ -373,10 +371,10 @@ export abstract class BaseEntity extends RootOfGPU {
 
     constructor(input: optionBaseEntity) {
         super();
-        this._init = initStateEntity.constructing;
+        this._init = lifeState.constructing;
         this.flagUpdateForPerInstance = false;
         this._output = true;
-
+        this.needUpdate = false;
         this.input = input;
         this._dynamicPostion = false;
         this._dynamicMesh = false;
@@ -482,6 +480,7 @@ export abstract class BaseEntity extends RootOfGPU {
      * 上级group的状态（可见性、使用性）
      */
     abstract checkStatus(): boolean
+
     /** 生成Box和Sphere */
     abstract generateBoxAndSphere(): void
     /** 获取混合模式 */
@@ -489,14 +488,14 @@ export abstract class BaseEntity extends RootOfGPU {
     /** 获取是否透明 */
     abstract getTransparent(): boolean;
     /**前向渲染 */
-    abstract createDCCC(values: valuesForCreateDCCC): initStateEntity
+    abstract createDCCC(values: valuesForCreateDCCC): lifeState
     /**延迟渲染的深度渲染：单像素模延迟 */
-    abstract createDCCCDeferRenderDepth(values: valuesForCreateDCCC): initStateEntity
+    abstract createDCCCDeferRenderDepth(values: valuesForCreateDCCC): lifeState
     /**渲染shadowmap */
-    abstract createDCCCForShadowMap(values: valuesForCreateDCCC): initStateEntity
-    abstract createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): initStateEntity
+    abstract createDCCCForShadowMap(values: valuesForCreateDCCC): lifeState
+    abstract createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): lifeState
     /**透明渲染 */
-    abstract createDCCCForTransparent(values: valuesForCreateDCCC): initStateEntity
+    abstract createDCCCForTransparent(values: valuesForCreateDCCC): lifeState
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 基础部分
@@ -694,6 +693,9 @@ export abstract class BaseEntity extends RootOfGPU {
         }
         return false;
     }
+
+
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 阴影相关部分
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -773,12 +775,12 @@ export abstract class BaseEntity extends RootOfGPU {
     initDCC(parent: BaseStage) {
         let already = this.checkStatus();
         if (already) {
-            this._init = initStateEntity.initializing;
+            this._init = lifeState.initializing;
             this.generateBoxAndSphere();
             this.upgradeLights(parent);
             this.upgradeCameras(parent);
 
-            this._init = initStateEntity.finished;//this.createDCCC(valueOfCamera);
+            this._init = lifeState.finished;//this.createDCCC(valueOfCamera);
         }
     }
     /**更新(创建)关于cameras的DCCC commands
@@ -884,19 +886,20 @@ export abstract class BaseEntity extends RootOfGPU {
         //两阶段初始化状态是否完成
         if (this._readyForGPU && this._id != 0) {
             //如果是延迟初始化，需要在增加到stage之后，才进行初始化
-            if (this._init === initStateEntity.unstart) {
+            if (this._init === lifeState.unstart) {
+                this.clearDCCC();
                 this.updateMatrix();//在这里必须更新一次，entityID，stageID，都是延迟到增加至stage之后才更新的。
                 this.initDCC(parent);
-            }
-            //初始化是完成状态，同时checkStatus=false,需要重新初始化
+                this.needUpdate = false;
+            } 
             //比如：material 是在运行中是可以更改的，需要重新初始化。
-            else if (this.checkStatus() === false && this._init === initStateEntity.finished) {
-                this.clearDCCC();
-                this._init = initStateEntity.unstart;//重新初始化，下一帧进行重新初始化工作 
+            //由人工按需触发
+            else if (this.needUpdate === true) {
+                this._init = lifeState.unstart;//重新初始化，下一帧进行重新初始化工作 
             }
             //初始化是完成状态，同时checkStatus=true
             //material 是在运行中是可以更改的，所以需要检查状态。
-            else if (this._init === initStateEntity.finished && this.checkStatus()) {
+            else if (this._init === lifeState.finished && this.checkStatus()) {
                 if (this.input && this.input.update) {
                     this.matrix = mat4.identity();
                     this.updateMatrix();
@@ -917,7 +920,7 @@ export abstract class BaseEntity extends RootOfGPU {
                     // this.commmands = this.updateDCC(parent, deltaTime, startTime, lastTime);
                 }
             }
-            else if (this._init == initStateEntity.initializing) {
+            else if (this._init == lifeState.initializing) {
                 this.checkStatus();
             }
         }

@@ -101,16 +101,17 @@ export class TransparentRender extends SingleRender {
         throw new Error("Method not implemented.");
     }
     /**透明渲染 */
-    render(): void {
-        let iii = 0;
-        // let copyToColorTexture = new CopyCommandT2T(
-        //     {
-        //         A: this.GBuffers["color"],
-        //         B: this.transparentTextureOfUniform.GBuffers["color"],
-        //         size: { width: this.surfaceSize.width, height: this.surfaceSize.height },
-        //         device: this.device
-        //     }
-        // );
+    renderTransparent(counts: number): void {
+        let changeStatusRPD = false;
+        if (counts == 0) {
+            for (let i in this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[]) {
+                let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[i];
+                perOne.loadOp = "clear";
+                perOne.clearValue= this.parent.getBackgroudColor();
+            }
+            this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "clear";
+            changeStatusRPD = true;
+        }
         let copyToDepthTexture = new CopyCommandT2T(
             {
                 A: this.GBuffers["depth"],
@@ -167,6 +168,14 @@ export class TransparentRender extends SingleRender {
                     copyToUVTexture.update();//深度拷贝到uniform 的depth texture
                     copyToNormalTexture.update();//深度拷贝到uniform 的depth texture
                     this.parent.stages[name].camerasCommandsOfTransparent[this.cameraID][i].update();
+                    if (changeStatusRPD) {
+                        changeStatusRPD = false;
+                        for (let i in this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[]) {
+                            let perOne = (<GPURenderPassColorAttachment[]>this.renderPassDescriptor.colorAttachments)[i];
+                            perOne.loadOp = "load";
+                        }
+                        this.renderPassDescriptor.depthStencilAttachment!.depthLoadOp = "load";
+                    }
                 }
             }
         }
@@ -180,7 +189,8 @@ export class TransparentRender extends SingleRender {
                 if (key == "color") {
                     one = {
                         view: this.GBuffers[key].createView(),
-                        clearValue: [0, 0, 0, 0],
+                        clearValue: this.parent.getBackgroudColor(),
+                        // clearValue: [0, 0, 0, 0],
                         loadOp: 'load',
                         storeOp: "store"
                     };

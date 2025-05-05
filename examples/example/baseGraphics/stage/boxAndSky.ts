@@ -27,7 +27,8 @@ let input: sceneInputJson = {
     green: 0.5,
     blue: 0.5,
     alpha: 1
-  }
+  },
+  stageSetting: "all"
 }
 let scene = new Scene(input);
 await scene.init();

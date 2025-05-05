@@ -12,6 +12,8 @@ import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMateri
 import { weResourceTexture, weSamplerKind } from "../../resource/weResource";
 import { textureType } from "../../texture/texture";
 import { uniformEntries } from "../../command/commandDefine";
+import { lifeState } from "../../const/coreConst";
+ 
 
 
 /*
@@ -45,7 +47,7 @@ export class PhongMaterial extends PhongColorMaterial {
         super(input);
         this.countOfTextures = 0;
         this.countOfTexturesOfFineshed = 0;
-        this._already = false;
+        this._already =  lifeState.unstart;
         this.textures = {};
         if (this.input.texture)
             this.countOfTextures = Object.keys(this.input.texture!).length;
@@ -77,7 +79,7 @@ export class PhongMaterial extends PhongColorMaterial {
                     this.textures.texture = texture.texture;
                     this.countOfTexturesOfFineshed++;
                     if (this.countOfTextures == this.countOfTexturesOfFineshed) {
-                        this._already = true;
+                        this._already =  lifeState.finished;
                     }
                 }
                 //GPUCopyExternalImageSource
@@ -94,7 +96,7 @@ export class PhongMaterial extends PhongColorMaterial {
                     this.textures.specularTexture = texture.specularTexture;
                     this.countOfTexturesOfFineshed++;
                     if (this.countOfTextures == this.countOfTexturesOfFineshed) {
-                        this._already = true;
+                        this._already =  lifeState.finished;
                     }
                 }
                 else if (typeof texture.specularTexture == "object" && "width" in texture.specularTexture) {
@@ -110,7 +112,7 @@ export class PhongMaterial extends PhongColorMaterial {
                     this.textures.normalTexture = texture.normalTexture;
                     this.countOfTexturesOfFineshed++;
                     if (this.countOfTextures == this.countOfTexturesOfFineshed) {
-                        this._already = true;
+                        this._already =  lifeState.finished;
                     }
                 }
                 else if (typeof texture.normalTexture == "object" && "width" in texture.normalTexture) {
@@ -119,7 +121,7 @@ export class PhongMaterial extends PhongColorMaterial {
             }
         }
         else {
-            this._already = true;
+            this._already =  lifeState.finished;
         }
 
 
@@ -167,7 +169,7 @@ export class PhongMaterial extends PhongColorMaterial {
                 );
                 scope.countOfTexturesOfFineshed++;
                 if (scope.countOfTextures == scope.countOfTexturesOfFineshed) {
-                    scope._already = true;
+                    scope._already =  lifeState.finished;
                 }
             }
         )
@@ -189,7 +191,7 @@ export class PhongMaterial extends PhongColorMaterial {
             [imageBitmap!.width, imageBitmap!.height]
         );
         if (scope.countOfTextures == scope.countOfTexturesOfFineshed) {
-            scope._already = true;
+            scope._already =  lifeState.finished;
         }
     };
     /**

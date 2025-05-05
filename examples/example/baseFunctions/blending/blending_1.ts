@@ -11,6 +11,7 @@ import GUI from "muigui";
 import { optionOrthProjection, OrthographicCamera } from "../../../../src/we/base/camera/orthographicCamera"
 import { initScene } from "../../../../src/we/base/scene/initScene"
 import { TextureMaterial } from "../../../../src/we/base/material/Standard/textureMaterial"
+import { Texture } from "../../../../src/we/base/texture/texture"
 //////////////////////////////////////////////////////////////////////////////////////////////
 //from webgpufundemental
 const hsl = (h: number, s: number, l: number) => `hsl(${h * 360 | 0}, ${s * 100}%, ${l * 100 | 0}%)`;
@@ -91,7 +92,7 @@ let input: sceneInputJson = {
     red: 0,
     green: 0.,
     blue: 0.,
-    alpha: 0.
+    alpha: 0.5
   },
   ambientLight: {
     color: {
@@ -154,26 +155,59 @@ let planeGeometry = new PlaneGeometry({
 let testColor = new ColorMaterial({
   color: { red: 1, green: 0, blue: 0, alpha: 1 },
 });
+
+//非预乘DST
+let dstTextureUnPremultiplied = new Texture({
+  texture: dstCanvas,
+  name: "dstTextureUnPremultiplied",
+  premultipliedAlpha: false,
+}, scene.device);
+await dstTextureUnPremultiplied.init();
+
+//预乘DST
+let dstTexturePremultiplied = new Texture({
+  texture: dstCanvas,
+  name: "dstTextureUnPremultiplied",
+  premultipliedAlpha: true,
+}, scene.device);
+await dstTexturePremultiplied.init();
+
+
+
 let dstMaterial = new TextureMaterial({
   transparent: {
     alphaTest: 0.
   },
   textures: {
-    texture: {
-      name: "DST",
-      texture: dstCanvas
-    },
+    texture: dstTexturePremultiplied  //Texture 类
   }
 });
 let dstPlane = new Mesh({
-  name: "bottomPlane",
+  name: "dst",
   geometry: planeGeometry,
   material: dstMaterial,
-  position: [0, 0, 0],
+  position: [0, 0, 0.1],
   wireFrame: false,
   // cullmode: "none"
 });
-await scene.add(dstPlane);
+
+
+
+//非预乘 SRC
+let srcTextureUnPremultiplied = new Texture({
+  texture: srcCanvas,
+  name: "srcTextureUnPremultiplied",
+  premultipliedAlpha: false,
+}, scene.device);
+await srcTextureUnPremultiplied.init();
+
+//预乘 SRC
+let srcTexturePremultiplied = new Texture({
+  texture: srcCanvas,
+  name: "srcTexturePremultiplied",
+  premultipliedAlpha: true,
+}, scene.device);
+await srcTexturePremultiplied.init();
 
 
 
@@ -183,21 +217,19 @@ let srcMaterial = new TextureMaterial({
     alphaTest: 0.
   },
   textures: {
-    texture: {
-      name: "DST",
-      texture: srcCanvas
-    },
+    texture: srcTexturePremultiplied
   }
 });
 let srcPlane = new Mesh({
-  name: "bottomPlane",
+  name: "src",
   geometry: planeGeometry,
   material: srcMaterial,
-  position: [0, 0, 0],
+  position: [0, 0, 0.5],
   wireFrame: false,
   // cullmode: "none"
 });
 
+await scene.add(dstPlane);
 await scene.add(srcPlane);
 
 
@@ -309,12 +341,14 @@ const presets = {
   },
 };
 
+//color blending
 const color = {
   operation: 'add',
   srcFactor: 'one',
   dstFactor: 'one-minus-src',
 };
 
+//alpha blending
 const alpha = {
   operation: 'add',
   srcFactor: 'one',
@@ -326,42 +360,130 @@ const constant = {
   alpha: 1,
 };
 
+//底色值，默认黑色
 const clear = {
   color: [0, 0, 0],
   alpha: 0,
   premultiply: true,
 };
 
+//第一个folder
 const settings = {
   alphaMode: 'premultiplied',
   textureSet: 0,
   preset: 'default (copy)',
 };
-const gui = new GUI().onChange(render);
+
+const gui = new GUI().onChange(update);
+
+//第一个folder
 gui.add(settings, 'alphaMode', ['opaque', 'premultiplied']).name('canvas alphaMode');
+
 gui.add(settings, 'textureSet', ['premultiplied alpha', 'un-premultiplied alpha']);
-gui.add(settings, 'preset', Object.keys(presets)).name('blending preset').onChange((presetName: string ) => {
+
+gui.add(settings, 'preset', Object.keys(presets)).name('blending preset').onChange((presetName: string) => {
   const preset = presets[presetName as keyof typeof presets];
   Object.assign(color, preset.color);
   Object.assign(alpha, preset.alpha || preset.color);
   gui.updateDisplay();
 });
+
+//第二个folder，color blending
 const colorFolder = gui.addFolder('color');
 colorFolder.add(color, 'operation', operations);
 colorFolder.add(color, 'srcFactor', factors);
 colorFolder.add(color, 'dstFactor', factors);
+
+//第三个folder,alpha blending
 const alphaFolder = gui.addFolder('alpha');
 alphaFolder.add(alpha, 'operation', operations);
 alphaFolder.add(alpha, 'srcFactor', factors);
 alphaFolder.add(alpha, 'dstFactor', factors);
+
+//第四个folder,constant blending
 const constantFolder = gui.addFolder('constant');
 constantFolder.addColor(constant, 'color');
 constantFolder.add(constant, 'alpha', 0, 1);
+
+//第五个folder
 const clearFolder = gui.addFolder('clear color');
 clearFolder.add(clear, 'premultiply');
 clearFolder.add(clear, 'alpha', 0, 1);
 clearFolder.addColor(clear, 'color');
 
-function render() {
-  console.log("onchange");
+/**
+ * src 是三个圆形
+ * dst 是一个条状图
+ */
+function update() {
+  gui.updateDisplay();
+  // console.log("onchange");
+  // console.log(settings);
+  // console.log("",color,alpha,constant,clear);
+
+
+  //背景色，
+  if (settings.alphaMode == "premultiplied") {
+    scene.setBackgroudColor({
+      red: clear.color[0],
+      green: clear.color[1],
+      blue: clear.color[2],
+      alpha: clear.alpha
+    });
+    //alpha预乘
+    if (clear.premultiply) {
+      scene.setPremultiplied(true);
+    } else {
+      scene.setPremultiplied(false);
+    }
+  }
+  else {
+    scene.setBackgroudColor({
+      red: clear.color[0],
+      green: clear.color[1],
+      blue: clear.color[2],
+      alpha: 1
+    });
+  }
+
+  /**只更新 src的（https://webgpufundamentals.org/webgpu/lessons/webgpu-transparency.html中也只更新src的）
+   * 
+   */
+
+  //纹理预乘
+  if (settings.textureSet == 0) {//纹理预乘
+    srcMaterial.textures.texture = srcTexturePremultiplied;
+    dstMaterial.textures.texture = dstTexturePremultiplied;
+  }
+  else {//纹理不预乘
+    srcMaterial.textures.texture = srcTextureUnPremultiplied;
+    dstMaterial.textures.texture = dstTextureUnPremultiplied;
+  }
+
+  //settings.preset（这个是组合，就是后面的color与alpha） || Blending的color 与alpha处理
+  console.log("color", color,"alpha", alpha);
+  let blendingValues: GPUBlendState = {
+    color  ,
+    alpha,
+    // color: {
+    //   operation: color.operation as GPUBlendOperation,
+    //   srcFactor: color.srcFactor as GPUBlendFactor,
+    //   dstFactor: color.dstFactor as GPUBlendFactor,
+    // },
+    // alpha: {
+    //   operation: alpha.operation as GPUBlendOperation,
+    //   srcFactor: alpha.srcFactor as GPUBlendFactor,
+    //   dstFactor: alpha.dstFactor as GPUBlendFactor,
+    // }
+  }
+  srcMaterial.setBlend(blendingValues);
+
+
+  //blending ,constant ,todo
+  let blendConstants = [...constant.color, constant.alpha];
+  srcMaterial.setblendConstants(blendConstants);//20250503，目前没有在DCCC中实现流程，只是设置参数，不会产生实际功能调用
+
+  srcPlane.needUpdate = true;
+  dstPlane.needUpdate = true;
+
 }

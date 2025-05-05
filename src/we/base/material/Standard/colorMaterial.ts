@@ -6,10 +6,10 @@
  *      B、opacity值,整体透明度
  */
 
-import { BaseMaterial, optionBaseMaterial, optionTransparentOfMaterial } from "../baseMaterial";
+import { BaseMaterial,   optionBaseMaterial, optionTransparentOfMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/color.fs.wgsl?raw"
 import colorTransparentOnlyFS from "../../shader/material/simple/colorTransparent.fs.wgsl?raw"
-import { color4F, GBuffersRPDAssemble } from "../../const/coreConst";
+import { color4F, GBuffersRPDAssemble, lifeState } from "../../const/coreConst";
 import { uniformEntries } from "../../command/commandDefine";
 
 export interface optionColorMaterial extends optionBaseMaterial {
@@ -25,14 +25,14 @@ export class ColorMaterial extends BaseMaterial {
             let transparent: optionTransparentOfMaterial = {
                 blend: {
                     color: {
+                        operation: "add",//操作
                         srcFactor: "src-alpha",//源
                         dstFactor: "one-minus-src-alpha",//目标
-                        operation: "add"//操作
                     },
                     alpha: {
+                        operation: "add",//操作  
                         srcFactor: "one",//源
                         dstFactor: "one-minus-src-alpha",//目标
-                        operation: "add"//操作  
                     }
                 }
             };
@@ -52,7 +52,7 @@ export class ColorMaterial extends BaseMaterial {
             }
         }
 
-        this._already = true;
+        this._already =  lifeState.finished;
     }
 
     getCodeFS(startBinding: number) {

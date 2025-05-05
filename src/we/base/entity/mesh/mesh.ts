@@ -1,5 +1,5 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, initStateEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
+import { BaseEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand } from "../../command/DrawCommand";
@@ -9,7 +9,7 @@ import { uniformEntries, unifromGroup, drawMode, drawModeIndexed, drawModeType, 
 import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuffer.head.fs.wgsl?raw"
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 import { BaseStage } from "../../stage/baseStage";
-import { renderKindForDCCC } from "../../const/coreConst";
+import { lifeState, renderKindForDCCC } from "../../const/coreConst";
 
 
 
@@ -67,7 +67,7 @@ export class Mesh extends BaseEntity {
         this._geometry = input.geometry;
         this._material = input.material;
 
-        // this._init = initStateEntity.unstart;
+        // this._init = lifeState.unstart;
 
         this._wireframeColor = { red: 0, green: 0, blue: 0, alpha: 1 };
         if ((this.input as optionMeshEntity).wireFrame === false) {//默认有线框
@@ -81,7 +81,7 @@ export class Mesh extends BaseEntity {
             this._wireframeColor = (this.input as optionMeshEntity).wireFrameColor as coreConst.color4F;
         }
 
-        this._init = initStateEntity.unstart;
+        this._init = lifeState.unstart;
     }
     /**覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
@@ -115,7 +115,20 @@ export class Mesh extends BaseEntity {
         this._geometry.destroy();
     }
     checkStatus(): boolean {
-        return this._material.getReady() && this._geometry.getReady();
+        let readyForMaterial: boolean;
+        let readyForGeometry = this._geometry.getReady();
+        //完成状态，正常情况
+        if (this._material.getReady() == lifeState.finished) {
+            readyForMaterial = true;
+        }
+        //更新状态，需要重新初始化
+        else if (this._material.getReady() == lifeState.updated) {
+            readyForMaterial = true;
+        }
+        else {
+            readyForMaterial = false;
+        }
+        return readyForMaterial && readyForGeometry;
 
     }
 
@@ -135,7 +148,7 @@ export class Mesh extends BaseEntity {
     // initDCC(parent: BaseStage) {
     //     let already = this.checkStatus();
     //     if (already) {
-    //         this._init = initStateEntity.initializing;
+    //         this._init = lifeState.initializing;
     //         if (this.deferRenderDepth) this._init = this.createDCCCDeferRenderDepth(parent);
     //         this._init = this.createDCCC(parent);
     //         this.generateBox();
@@ -149,9 +162,9 @@ export class Mesh extends BaseEntity {
      * 
      * DCC push 到this.commmands.forward中 
      * @param parent 
-     * @returns 完成标志位：initStateEntity.finished
+     * @returns 完成标志位：lifeState.finished
      */
-    createDCCC(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+    createDCCC(valuesOfDCCC: valuesForCreateDCCC): lifeState {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
         const kind: string = valuesOfDCCC.kind
@@ -370,9 +383,9 @@ export class Mesh extends BaseEntity {
             let wireFrameDC = new DrawCommand(wireFrameOptions);
             this.commmands[camera].forward.push(wireFrameDC);
         }
-        return initStateEntity.finished;
+        return lifeState.finished;
     }
-    createDCCCForTransparent(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+    createDCCCForTransparent(valuesOfDCCC: valuesForCreateDCCC): lifeState {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
         const kind: string = valuesOfDCCC.kind
@@ -604,7 +617,7 @@ export class Mesh extends BaseEntity {
             let wireFrameDC = new DrawCommand(wireFrameOptions);
             this.commmands[camera].forward.push(wireFrameDC);
         }
-        return initStateEntity.finished;
+        return lifeState.finished;
     }
 
     // /**返回this.commmands
@@ -619,7 +632,7 @@ export class Mesh extends BaseEntity {
      * 
      * DCC push 到this.commmands.depth中 
      */
-    createDCCCDeferRenderDepth(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+    createDCCCDeferRenderDepth(valuesOfDCCC: valuesForCreateDCCC): lifeState {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
         const kind: string = valuesOfDCCC.kind
@@ -708,16 +721,16 @@ export class Mesh extends BaseEntity {
         }
         this.commmands[camera].depth.push(DC);
 
-        return initStateEntity.initializing;
+        return lifeState.initializing;
     }
 
     /**
      * 光源的shadowmap渲染
      * 输出到 this.commandsOfShadow[camera id]中
      * @param valuesOfDCCC  
-     * @returns initStateEntity 渲染状态
+     * @returns lifeState 渲染状态
      */
-    createDCCCForShadowMap(valuesOfDCCC: valuesForCreateDCCC): initStateEntity {
+    createDCCCForShadowMap(valuesOfDCCC: valuesForCreateDCCC): lifeState {
         const parent: BaseStage = valuesOfDCCC.parent;
 
         const kind: string = valuesOfDCCC.kind
@@ -819,9 +832,9 @@ export class Mesh extends BaseEntity {
             this.commandsOfShadow[id].push(DC);
         }
 
-        return initStateEntity.initializing;
+        return lifeState.initializing;
     }
-    createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): initStateEntity {
+    createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): lifeState {
         throw new Error("Method not implemented.");
     }
 

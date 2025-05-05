@@ -1,7 +1,8 @@
-import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
+import { BaseMaterial,   optionBaseMaterial } from "../baseMaterial";
 import colorOnlyFS from "../../shader/material/simple/phongcolor.fs.wgsl?raw"
 import { uniformBufferPart, uniformEntries } from "../../command/commandDefine";
 import { ColorMaterial, optionColorMaterial } from "./colorMaterial";
+import { lifeState } from "../../const/coreConst";
 
 
 /**
@@ -45,7 +46,7 @@ export class PhongColorMaterial extends ColorMaterial {
         if (this.input.roughness == undefined) {
             this.input.roughness = 1;
         }
-        this._already = true;
+        this._already =  lifeState.finished;
     }
 
     getCodeFS(_startBinding:number) {
