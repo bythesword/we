@@ -18,7 +18,7 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     $PBR_ao
     $PBR_normal
     $PBR_color
-    normal = normalize(normal);     //这里是切线空间的法线，vs插值输出的，需要归一化
+    //normal = normalize(normal); //这里是切线空间的法线，vs插值输出的，需要归一化
     $deferRender_Depth  //延迟渲染的深度比较占位符
     let wo = normalize(defaultCameraPosition - fsInput.worldPosition);
     var Lo = vec3(0.0);
@@ -45,7 +45,7 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             let halfVector = normalize(wi + wo);
             let f0 = mix(F0, albedo, metallic);
             let F = fresnelSchlick(max(dot(halfVector, wo), 0.0), f0);
-            let NDF = DistributionGGX(normal, roughness, halfVector);
+            let NDF = DistributionGGX(normal, halfVector, roughness);
             let G = GeometrySmith(normal, wo, wi, roughness);
             //计算Cook-Torrance BRDF:
             let numerator = NDF * G * F;
@@ -65,20 +65,37 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
         }
     }
     let ambient = getAmbientColor(albedo, ao);
-    var colorOfPBR = (ambient + Lo) ;
+    var colorOfPBR = (ambient + Lo);
         //HDR tonemapping
     colorOfPBR = colorOfPBR / (colorOfPBR + vec3f(1.0));
-    colorOfPBR = pow(colorOfPBR, vec3f(1.0 / 2.2))* materialColor.rgb;
+    colorOfPBR = pow(colorOfPBR, vec3f(1.0 / 2.2)) * materialColor.rgb;
     var output : ST_GBuffer;
     $output                         //占位符
-    output.color = vec4f(colorOfPBR,1);        //
+    //output.color = vec4f(normal*0.5+0.5, 1);    //
+    output.color = vec4f(colorOfPBR, 1);    //
     return output;
+}
+fn getNormalFromMap(normal : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f
+{
+    let tangentNormal = normal * 2.0 - 1.0;
+
+    let Q1 = dpdx(WorldPos);
+    let Q2 = dpdy(WorldPos);
+    let st1 = dpdx(TexCoords);
+    let st2 = dpdy(TexCoords);
+
+    let N = normalize(normal);
+    let T = normalize(Q1 * st2.y - Q2 * st1.y);
+    let B = normalize(cross(T, N));
+    let TBN = mat3x3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
 }
 fn fresnelSchlick(cosTheta : f32, F0 : vec3f) -> vec3f
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
-fn DistributionGGX(normal : vec3f, roughness : f32, halfVector : vec3f) -> f32
+fn DistributionGGX(normal : vec3f, halfVector : vec3f, roughness : f32) -> f32
 {
     let a = roughness * roughness;
     let a2 = a * a;

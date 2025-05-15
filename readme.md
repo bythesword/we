@@ -59,7 +59,7 @@
 | 视频材质                                          | mipmap                                            | PBR:Cook-Torrance BRDF                            |
 |                                                   |                                                   | ![1747296878767](images/readme/1747296878767.png) |
 | PBR:Cook-Torrance 纹理BRDF                        | PBR 多层                                          | PBR                                               |
-| ![1747308977017](images/readme/1747308977017.png) |                                                   |                                                   |
+| ![1747334270746](images/readme/1747334270746.png) |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |

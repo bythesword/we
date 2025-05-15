@@ -206,7 +206,7 @@ export class PBRMaterial extends BaseMaterial {
                 replaceAlbedo = `albedo = u_PBR.albedo;`;
             }
             else if (this.input.PBR.albedo.texture) {
-                replaceAlbedo = `albedo = textureSample(u_albedoTexture,u_Sampler,fsInput.uv.xy).rgb;`;
+                replaceAlbedo = `albedo =pow( textureSample(u_albedoTexture,u_Sampler,fsInput.uv.xy).rgb,vec3f(2.2));`;
             }
             else {
                 console.error("PBRMaterial: albedo value or texture is not defined");
@@ -277,14 +277,18 @@ export class PBRMaterial extends BaseMaterial {
             let replaceNormal = "";
             if (this.input.PBR.normal) {
                 if (this.input.PBR.normal.texture) {
-                    replaceNormal = `normal = textureSample(u_normalTexture, u_Sampler,fsInput.uv.xy).rgb;`;
+                    replaceNormal = `normal = textureSample(u_normalTexture, u_Sampler,fsInput.uv.xy).rgb;
+                                    normal= getNormalFromMap(normal,fsInput.worldPosition,fsInput.uv);
+                                    // normal = normal*2.0-1.0;
+                                    // normal = normalize(normal);
+                    `;
                 }
                 else {
                     console.error("PBRMaterial: normal is not defined");
                 }
             }
             else {
-                replaceNormal = `normal = fsInput.normal;`;
+                replaceNormal = `normal = normalize(fsInput.normal);`;
             }
             code = code.replace("$PBR_normal", replaceNormal);
 

@@ -11,6 +11,9 @@ import { PhongLightsMaterial } from "../../../../src/we/base/material/Standard/l
 import { PointLight, optionPointLight } from "../../../../src/we/base/light/pointLight"
 import { initScene } from "../../../../src/we/base/scene/initScene"
 import { optionPBRMaterial, PBRMaterial, valuesOfPBR } from "../../../../src/we/base/material/PBR/PBR"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
+import { vec3 } from "wgpu-matrix"
+import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
 
 declare global {
   interface Window {
@@ -22,8 +25,8 @@ let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
   color: {
-    red: 1,
-    green: 0.5,
+    red: 0,
+    green: 0,
     blue: 0.,
     alpha: 0
   },
@@ -33,7 +36,7 @@ let input: sceneInputJson = {
       green: 1,
       blue: 1
     },
-    intensity: 0.03
+    intensity: 0.01
   },
   reversedZ: true,
   stageSetting: "world"
@@ -88,12 +91,11 @@ let Geometry = new SphereGeometry({
 
 
 let inputPBR: valuesOfPBR = {
-  color: {
-    texture: {
-      name: "color",
-      texture: "/examples/resource/images/img/rustediron/rustediron2_basecolor.png"
-    }
-  },
+     color: {
+        // value: {  red: 0, green: 0.9, blue: 1, alpha: 1  }
+        value: {  red: 0.77, green: 0.78, blue: 0.78, alpha: 1  }
+
+      },
   metallic: {
     texture: {
       name: "metallic",
@@ -106,14 +108,19 @@ let inputPBR: valuesOfPBR = {
       texture: "/examples/resource/images/img/rustediron/rustediron2_roughness.png"
     }
   },
-  normal: {
-    texture: {
-      name: "roughness",
-      texture: "/examples/resource/images/img/rustediron/rustediron2_normal.png"
-    }
-  },
+  // normal: {
+  //   texture: {
+  //     name: "roughness",
+  //     texture: "/examples/resource/images/img/rustediron/rustediron2_normal.png"
+  //   }
+  // },
   albedo: {
-    value: [0.56, 0.57, 0.58],
+    // value: [1,1,1],
+    // value: [0.56, 0.57, 0.58],
+    texture: {
+      name: "albedo",
+      texture: "/examples/resource/images/img/rustediron/rustediron2_basecolor.png"
+    }
   }
 }
 let PBRM1 = new PBRMaterial(
@@ -142,11 +149,53 @@ await scene.add(boxEntity)
 
 let light1: PointLight = new PointLight(
   {
-    position: [3.0, 3.0, 5.0],
-    intensity: 22.0,
+    position: [2.0, 0.0, 0.0],
+    intensity: 3.0,
     color: { red: 1.0, green: 1.0, blue: 1.0 },
+    // update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
+    //   let dir = scope.getDirection();
+    //   const now = Date.now() / 1000;
+    //   scope.values.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
+    //   return true
+    // },
   }
 );
-
 scene.addLight(light1);
 
+
+let lightMaterial = new ColorMaterial(
+  {
+    color: { red: 1, green: 1, blue: 1, alpha: 1 },
+  });
+
+//light实体
+let light1Entity1 = new Mesh(
+  {
+    geometry: Geometry,
+    material: lightMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position: vec3.create(2, 0, 0),
+    scale: [0.1, 0.1, 0.1],
+    // dynamicPostion: true,
+    // rotate:{
+    //   axis:[1,0,0],
+    //   angleInRadians:0.15*Math.PI
+    // },
+    // update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
+    //   // let dir = scope.getDirection();
+    //   const now = Date.now() / 1000;
+    //   scope.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
+    //   scope.updateMatrix();
+    //   return true
+    // },
+  }
+);
+//增加实体到scene
+await scene.add(light1Entity1)
+
+let dirL = new DirectionalLight({
+  intensity: 2,
+  direction: vec3.create(0, 0, 1)
+})
+scene.addLight(dirL)
