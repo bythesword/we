@@ -102,7 +102,8 @@ export class Texture {
             await this.generateTextureByString(source);
         }
         //GPUTexture
-        else if (typeof source == "object" && "usage" in source) {
+        // else if (typeof source == "object" && "usage" in source) {
+        else if (source instanceof GPUTexture) {
             this.texture = source;
             this._already = true;
         }
@@ -123,7 +124,8 @@ export class Texture {
     destroy() {
         if (this.texture) {
             this.texture.destroy();
-            this.texture = undefined as any; } 
+            this.texture = undefined as any;
+        }
     }
     /**
      * 
@@ -190,7 +192,8 @@ export class Texture {
 
         this.texture = this.device.createTexture({
             size: [width, height, 1],
-            format: 'rgba8unorm',//bgra8unorm
+            format: this.input.format!,
+            // format: 'rgba8unorm',//bgra8unorm
             // mipLevelCount: this.numMipLevels([width, height]),
             // sampleCount: 1,
             // dimension: '2d',

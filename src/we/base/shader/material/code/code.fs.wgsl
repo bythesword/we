@@ -1,19 +1,12 @@
-
-
-////////////////////////////////////////////////////////////////////
 //start : code.fs.wgsl
 @fragment 
 fn fs(fsInput: VertexShaderOutput) -> ST_GBuffer {
     $deferRender_Depth
-
     var output: ST_GBuffer;
-
     $output
-
     output.color = colorOfFS(fsInput);
     return output;
 }
-
 struct LightData {
   position: vec4f,
   color: vec3f,
@@ -25,10 +18,8 @@ struct LightsBuffer {
 struct Config {
   numLights: u32,
 }
-
 @group(1) @binding(2) var<storage, read> lightsBuffer : LightsBuffer;
 @group(1) @binding(3) var<uniform> config : Config;
-
 fn colorOfFS(fsInput: VertexShaderOutput) -> vec4f {
     let position = fsInput.worldPosition.xyz;
     let normal = fsInput.normal;
@@ -47,11 +38,7 @@ fn colorOfFS(fsInput: VertexShaderOutput) -> vec4f {
             lambert * pow(1.0 - distance / lightsBuffer.lights[i].radius, 2.0) * lightsBuffer.lights[i].color * albedo
         );
     }
-
     result += vec3(0.2);
     return vec4(result, 1.0);
 }
-
 //end : code.fs.wgsl
-////////////////////////////////////////////////////////////////////
-

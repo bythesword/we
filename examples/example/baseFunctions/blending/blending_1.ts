@@ -186,7 +186,7 @@ let dstPlane = new Mesh({
   name: "dst",
   geometry: planeGeometry,
   material: dstMaterial,
-  position: [0, 0, 0.1],
+  position: [0, 0, 0.1],//Z值小 
   wireFrame: false,
   // cullmode: "none"
 });
@@ -224,7 +224,7 @@ let srcPlane = new Mesh({
   name: "src",
   geometry: planeGeometry,
   material: srcMaterial,
-  position: [0, 0, 0.5],
+  position: [0, 0, 0.5],//Z值大，不透明的部分在dst前面
   wireFrame: false,
   // cullmode: "none"
 });

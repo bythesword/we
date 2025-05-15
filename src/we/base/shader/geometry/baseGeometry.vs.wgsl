@@ -1,6 +1,4 @@
-
 //start : baseGeometry.vs.wgsl
-
 @vertex fn vs(
 @location(0) position : vec3f,
 @location(1) uv : vec2f,
@@ -10,12 +8,7 @@
 @builtin(instance_index) instanceIndex : u32
 ) -> VertexShaderOutput {
   var vsOutput : VertexShaderOutput;
-
-
   $vsOutput
-
-
   return vsOutput;
 }
-
 //end : baseGeometry.vs.wgsl

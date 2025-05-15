@@ -56,10 +56,10 @@
 | ![1745857053582](images/readme/1745857053582.png) | ![1746172722475](images/readme/1746172722475.png) | ![1745923119394](images/readme/1745923119394.png) |
 | Blinn-Phong 高光贴图                              | Blinn-Phong 法线贴图                              | Blinn-Phong 透明                                  |
 | ![1744796262724](images/readme/1744796262724.png) |                                                   |                                                   |
-| 视频材质                                          | mipmap                                            | PBR                                               |
-|                                                   |                                                   |                                                   |
-| PBR                                               | PBR                                               | PBR                                               |
-|                                                   |                                                   |                                                   |
+| 视频材质                                          | mipmap                                            | PBR:Cook-Torrance BRDF                            |
+|                                                   |                                                   | ![1747296878767](images/readme/1747296878767.png) |
+| PBR:Cook-Torrance 纹理BRDF                        | PBR 多层                                          | PBR                                               |
+| ![1747308977017](images/readme/1747308977017.png) |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |

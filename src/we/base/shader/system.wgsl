@@ -1,6 +1,4 @@
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//start system.wgsl
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//start system.wgsl //前向渲染的shader header部分
 struct ST_SystemMVP {
   model: mat4x4f,
   view: mat4x4f,
@@ -41,9 +39,6 @@ struct bulin_phong {
   metalness: f32,
   roughness: f32,
 }
-
-
-
 //U_shadowMapMatrix（ST_shadowMapMatrix）与  U_shadowMap_depth_texture是一一对应的，此两者与light的关系通过ST_Lights中ST_shadowMap
 struct ST_shadowMapMatrix {
   light_id: u32,
@@ -51,12 +46,6 @@ struct ST_shadowMapMatrix {
   matrix_self_index: u32,  //0-5,//按照cube方式排列 right=0,left=1,up=2,down=3,back=4,front=5
   MVP: mat4x4f,
 }
-
-//struct ST_shadows {
-//shadow: array<ST_shadow,$lightNumber>,//这里与ST_lights保持相同
-//}
-
-
 var<private> weZero = 0.00000001;
 //var<private> shadow_DepthTexture : texture_depth_2d_array<f32>;
 var<private > defaultCameraPosition : vec3f;
@@ -71,15 +60,12 @@ var<private> matrix_z : mat4x4f = mat4x4f(
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 );
-
-
 @group(0) @binding(0) var<uniform> U_MVP : ST_SystemMVP;
 @group(0) @binding(1) var<uniform> U_lights : ST_Lights;
 //下面三个是fs中使用的，如果同时有VS和FS，则正确；如果只有VS，则报错（需要使用，SystemOnlyVS.wgsl）
 @group(0) @binding(2) var<uniform> U_shadowMapMatrix : array<ST_shadowMapMatrix, $lightNumberShadowNumber >;    //这里shadowNumber是需要和 depth texture一起计算的
 @group(0) @binding(3) var U_shadowMap_depth_texture : texture_depth_2d_array;     //按照cube方式排列 right=0,left=1,up=2,down=3,back=4,front=5
 @group(0) @binding(4)  var shadowSampler: sampler_comparison;
-
 fn initSystemOfVS() {
     defaultCameraPosition = U_MVP.cameraPosition;
     modelMatrix = U_MVP.model;
@@ -122,17 +108,13 @@ fn initSystemOfFS() {
         0.0                         //depth_ref: f32,
     );
 }
-/////////////////////////////////////////////////////////
-//
+//常数
 const  PI= 3.141592653589793;
 const  NUM_SAMPLES: i32=100;
 const  NUM_RINGS: i32 = 10;
 const FILTER_RADIUS =10.0;
-/////////////////////////////////////////////////////////
-//shadow map 相关
-
+//shadow map  使用 相关
 override shadowDepthTextureSize : f32 = 2048.0;
-
 fn rand_0to1(x: f32) -> f32 {
     return fract(sin(x) * 10000.0) * 2.0 - 1.0;//0 - 1
 }
@@ -140,7 +122,6 @@ fn rand_1to1(x: f32) -> f32 {
     return fract(sin(x) * 10000.0);// -1 -1
 }
 fn rand_2to1(uv: vec2f) -> f32 { //2D->1D 
-  // 0 - 1
     let a = 12.9898;
     let  b = 78.233;
     let  c = 43758.5453;
@@ -148,19 +129,13 @@ fn rand_2to1(uv: vec2f) -> f32 { //2D->1D
     let  sn = dt % PI;
     return fract(sin(sn) * c);
 }
-
-// struct posisionSample {
-//     samples:array<vec2f, 50>;
-// }
 fn poissonDiskSamples(randomSeed: vec2f) -> array<vec2f,NUM_SAMPLES> {
     let ANGLE_STEP = PI * 2.0 * f32(NUM_RINGS) / f32(NUM_SAMPLES);
     let  INV_NUM_SAMPLES = 1.0 / f32(NUM_SAMPLES);
-
     var poissonDisk = array<vec2f, NUM_SAMPLES>();
     var angle = rand_2to1(randomSeed) * PI * 2.0;
     var radius = INV_NUM_SAMPLES;
     var radiusStep = radius;
-
     for (var i = 0; i < NUM_SAMPLES; i ++) {
         poissonDisk[i] = vec2(cos(angle), sin(angle)) * pow(radius, 0.75);
         radius += radiusStep;
@@ -168,15 +143,12 @@ fn poissonDiskSamples(randomSeed: vec2f) -> array<vec2f,NUM_SAMPLES> {
     }
     return poissonDisk;
 }
-
 fn uniformDiskSamples(randomSeed: vec2f) -> array<vec2f,NUM_SAMPLES> {
     var randNum = rand_2to1(randomSeed);
     var sampleX = rand_1to1(randNum) ;
     var sampleY = rand_1to1(sampleX) ;
-
     var angle = sampleX * PI * 2.0;
     var radius = sqrt(sampleY);
-
     var poissonDisk = array<vec2f, NUM_SAMPLES>();
     for (var i = 0; i < NUM_SAMPLES; i ++) {
         poissonDisk[i] = vec2(radius * cos(angle), radius * sin(angle));
@@ -189,10 +161,8 @@ fn uniformDiskSamples(randomSeed: vec2f) -> array<vec2f,NUM_SAMPLES> {
 }
 fn findBlocker(uv: vec2f, zReceiver: f32, depth_texture: texture_depth_2d_array, array_index: i32) -> f32 {
     let disk = poissonDiskSamples(uv);
-    //let disk = poissonDiskSamples(uv);
     var blockerNum = 0;
     var blockDepth = 0.;
-
     let  NEAR_PLANE = 0.01;
     let  LIGHT_WORLD_SIZE = 5.;
     let  FRUSTUM_SIZE = 400.;
@@ -202,7 +172,6 @@ fn findBlocker(uv: vec2f, zReceiver: f32, depth_texture: texture_depth_2d_array,
     for (var i = 0 ; i <= NUM_SAMPLES; i++) {
         let offset = disk[i] * searchRadius;
         let depth = textureLoad(depth_texture, vec2i(floor((uv + offset) * shadowDepthTextureSize)), array_index, 0);//uv转成vec2i,因为使用textureLoad，uv必须是vec2i
-
         if zReceiver > depth+0.001  {
             blockerNum += 1;
             blockDepth += depth;
@@ -214,34 +183,27 @@ fn findBlocker(uv: vec2f, zReceiver: f32, depth_texture: texture_depth_2d_array,
         return blockDepth / f32(blockerNum);
     }
 }
- 
-//自适应Shadow Bias算法 https://zhuanlan.zhihu.com/p/370951892
-fn getShadowBias(c: f32, filterRadiusUV: f32, normal: vec3f, lightDirection: vec3f) -> f32 {
+fn getShadowBias(c: f32, filterRadiusUV: f32, normal: vec3f, lightDirection: vec3f) -> f32 {    //自适应Shadow Bias算法 https://zhuanlan.zhihu.com/p/370951892
     let  FRUSTUM_SIZE = 100.;//在系数=400.0是，产生 petter shadow问题，所以这里改为100.0
     let fragSize = (1. + ceil(filterRadiusUV)) * (FRUSTUM_SIZE / shadowDepthTextureSize / 2.);
     return max(fragSize, fragSize * (1.0 - dot(normal, lightDirection))) * c;
 }
 fn shadowMapVisibilityPCSS(onelight: ST_Light, shadow_map_index:i32,position: vec3f, normal: vec3f, biasC: f32) -> f32 {
     var posFromLight =matrix_z* U_shadowMapMatrix[shadow_map_index].MVP * vec4(position, 1.0);    //光源视界的位置
-    if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){
-       //posFromLight =posFromLight/posFromLight.w;
+    if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){       //posFromLight =posFromLight/posFromLight.w;
     }
     else{
       posFromLight =posFromLight/posFromLight.w; 
     }
-    //Convert XY to (0, 1)
-    //Y is flipped because texture coords are Y-down.
+    //Convert XY to (0, 1)    //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5), posFromLight.z);  //这里的z是深度数据,xy是UV在光源depth texture中的位置
     let zReceiver = posFromLight.z;
     let avgBlockerDepth = findBlocker(vec2f(shadowPos.x, shadowPos.y), zReceiver, U_shadowMap_depth_texture, shadow_map_index);
-    let EPS = 1e-3;
-    
+    let EPS = 1e-3;    
     //半影
     let  LIGHT_SIZE_UV = 5. / 400.;
     var  penumbra: f32;//= (zReceiver - avgBlockerDepth) * LIGHT_SIZE_UV / avgBlockerDepth;
-  // 有PCF时的Shadow Bias
-    let  pcfBiasC = .08;
-
+    let  pcfBiasC = .08;    // 有PCF时的Shadow Bias
     let oneOverShadowDepthTextureSize = FILTER_RADIUS / shadowDepthTextureSize;
     let bias = getShadowBias(biasC, oneOverShadowDepthTextureSize, normal, onelight.direction);
     let disk = poissonDiskSamples(vec2f(shadowPos.x, shadowPos.y));//todo，改成从findBlocker中获取的结构体
@@ -261,7 +223,6 @@ fn shadowMapVisibilityPCSS(onelight: ST_Light, shadow_map_index:i32,position: ve
             shadow_map_index,            //array_index: A,
             shadowPos.z - bias                      //depth_ref: f32,//这个产生的petter shadoww问题比较大，
             // shadowPos.z -0.005                      //depth_ref: f32,//ok
-
         );
     }
     visibility /= f32(NUM_SAMPLES);
@@ -272,22 +233,17 @@ fn shadowMapVisibilityPCSS(onelight: ST_Light, shadow_map_index:i32,position: ve
         return visibility;
     }
 }
-     
-
 fn shadowMapVisibilityPCF(onelight: ST_Light,shadow_map_index:i32, position: vec3f, normal: vec3f, biasC: f32) -> f32 {
     let bias = 0.009;// max(0.005 * (1.0 - dot(normal, onelight.direction)), 0.005);
     var posFromLight =matrix_z* U_shadowMapMatrix[shadow_map_index].MVP * vec4(position, 1.0);    //光源视界的位置
-    if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){
-       //posFromLight =posFromLight/posFromLight.w;
+    if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){       //posFromLight =posFromLight/posFromLight.w;
     }
     else{
       posFromLight =posFromLight/posFromLight.w; 
     }
-    //Convert XY to (0, 1)
-    //Y is flipped because texture coords are Y-down.
+    //Convert XY to (0, 1)    //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5), posFromLight.z);  //这里的z是深度数据,xy是UV在光源depth texture中的位置
     let oneOverShadowDepthTextureSize = FILTER_RADIUS / shadowDepthTextureSize;
-
     let disk = poissonDiskSamples(vec2f(shadowPos.x, shadowPos.y));
     var visibility = 0.0;
     for (var i = 0 ; i <= NUM_SAMPLES; i++) {
@@ -305,7 +261,6 @@ fn shadowMapVisibilityPCF(onelight: ST_Light,shadow_map_index:i32, position: vec
 }
 fn shadowMapVisibilityPCF_3x3(onelight: ST_Light,shadow_map_index:i32, position: vec3f, normal: vec3f) -> f32 {
     let bias = max(0.05 * (1.0 - dot(normal, onelight.direction)), 0.005);
-    
     var posFromLight =matrix_z* U_shadowMapMatrix[shadow_map_index].MVP * vec4(position, 1.0);    //光源视界的位置
      if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){
        //posFromLight =posFromLight/posFromLight.w;
@@ -313,15 +268,13 @@ fn shadowMapVisibilityPCF_3x3(onelight: ST_Light,shadow_map_index:i32, position:
     else{
       posFromLight =posFromLight/posFromLight.w; 
     }
-    //Convert XY to (0, 1)
-    //Y is flipped because texture coords are Y-down.
+    //Convert XY to (0, 1)    //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5), posFromLight.z);  //这里的z是深度数据,xy是UV在光源depth texture中的位置
     let oneOverShadowDepthTextureSize = 1.0 / shadowDepthTextureSize;
     var visibility = 0.0;
     for (var y = -1; y <= 1; y++) {
         for (var x = -1; x <= 1; x++) {
             let offset = vec2f(vec2(x, y)) * oneOverShadowDepthTextureSize;
-
             visibility += textureSampleCompare(
                 U_shadowMap_depth_texture,                  //t: texture_depth_2d_array
                 shadowSampler,                              //s: sampler_comparison,在scene中是：compare: 'less'
@@ -337,23 +290,16 @@ fn shadowMapVisibilityPCF_3x3(onelight: ST_Light,shadow_map_index:i32, position:
 fn shadowMapVisibilityHard(onelight: ST_Light,shadow_map_index:i32, position: vec3f, normal: vec3f) -> f32 {
     var posFromLight =matrix_z* U_shadowMapMatrix[shadow_map_index].MVP * vec4(position, 1.0);    //光源视界的位置
     //var posFromLight =matrix_z* U_shadowMapMatrix[onelight.shadow_map_array_index].MVP * vec4(position, 1.0);    //光源视界的位置
-    if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){
-     // posFromLight =posFromLight/posFromLight.w;
+    if(posFromLight.w < 0.000001   && posFromLight.w > -0.000001){     // posFromLight =posFromLight/posFromLight.w;
     }
-    //else if(posFromLight.w < -0.000001){
-    //   posFromLight =posFromLight*posFromLight.w;
-   // }
     else{
       posFromLight =posFromLight/posFromLight.w; 
     }
-   
-    //Convert XY to (0, 1)
-    //Y is flipped because texture coords are Y-down.
+    //Convert XY to (0, 1)    //Y is flipped because texture coords are Y-down.
     let shadowPos = vec3(
         posFromLight.xy * vec2(0.5, -0.5) + vec2(0.5),
         posFromLight.z
     );
-
     var visibility = 0.0;
     visibility += textureSampleCompare(
         U_shadowMap_depth_texture,                  //t: texture_depth_2d_array
@@ -364,9 +310,5 @@ fn shadowMapVisibilityHard(onelight: ST_Light,shadow_map_index:i32, position: ve
     );
     return visibility;
 }
-//end shadow map 相关
-////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
- //end system.wgsl
- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//end shadow map  使用 相关
+//end system.wgsl
