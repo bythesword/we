@@ -108,12 +108,12 @@ let inputPBR: valuesOfPBR = {
       texture: "/examples/resource/images/img/rustediron/rustediron2_roughness.png"
     }
   },
-  // normal: {
-  //   texture: {
-  //     name: "roughness",
-  //     texture: "/examples/resource/images/img/rustediron/rustediron2_normal.png"
-  //   }
-  // },
+  normal: {
+    texture: {
+      name: "roughness",
+      texture: "/examples/resource/images/img/rustediron/rustediron2_normal.png"
+    }
+  },
   albedo: {
     // value: [1,1,1],
     // value: [0.56, 0.57, 0.58],

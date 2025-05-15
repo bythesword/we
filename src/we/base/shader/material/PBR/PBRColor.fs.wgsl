@@ -75,9 +75,9 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     output.color = vec4f(colorOfPBR, 1);    //
     return output;
 }
-fn getNormalFromMap(normal : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f
+fn getNormalFromMap(normal : vec3f, normalMapValue : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f
 {
-    let tangentNormal = normal * 2.0 - 1.0;
+    let tangentNormal = normalMapValue * 2.0 - 1.0;
 
     let Q1 = dpdx(WorldPos);
     let Q2 = dpdy(WorldPos);
