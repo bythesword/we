@@ -19,11 +19,11 @@
 * 支持多GBuffer的可视化可以通过console命令行进行调试；
 * 支持基于GPU的GBuffer的拾取；
 * 支持正常depth渲染模式和Reversed Z渲染（以提高Z轴精度）;
-* 材质部分提供了简单材质Buli-Phong为基础的基础材质，和以PBR（进行中）为核心的物理材质。在PBR材质上是主要参考filament的文档进行的，并借鉴了UE的材质（材质编辑器）；
+* 材质部分提供了简单材质Buli-Phong为基础的基础材质，和以PBR（进行中）为核心的物理材质。在PBR材质上是主要参考learnOpengl、filament的文档进行的，并借鉴了UE的材质编辑器方向；
 * 在物体对象（entities）上将支持多种扩展形式，包括基础的点、线、面，几何体（mesh）、有限元仿真数据、各种模型文件、大地形、体素对象等；
 * 物体的空间组织上采用BVH和BOX3结合的方式；
 * 光源支持环境光、点光源、定向光源、聚光灯、以及shape光源（短期todo）；
-* 光源长期todo的有光体积（前端计算量不太适用，即便在worker中）、光探针；
+* 光源长期todo的有体积光（前端计算量不太适用，即便在worker中）、光探针；
 * 在阴影部分以shadowmap为主；
 * 在活动对象上以Actor对象理念为核心；
 * 摄像机支持投射、正交、多视口功能；摄像机是Actor对象形式存在（CameraActor），摄像机的运动与控制也是Actor的理念；
@@ -54,35 +54,48 @@
 | ![1742405930357](images/readme/1742405930357.png) | ![1746455119270](images/readme/1746455119270.png) | ![1744770008344](images/readme/1744770008344.png) |
 | 透明渲染                                          | 纹理材质                                          | 纹理材质：贴花,alphatest                          |
 | ![1745857053582](images/readme/1745857053582.png) | ![1746172722475](images/readme/1746172722475.png) | ![1745923119394](images/readme/1745923119394.png) |
-| Blinn-Phong 高光贴图                              | Blinn-Phong 法线贴图                              | Blinn-Phong 透明                                  |
+| Blinn-Phong 高光贴图                              | 法线纹理                                          | 视差纹理                                          |
 | ![1744796262724](images/readme/1744796262724.png) |                                                   |                                                   |
 | 视频材质                                          | mipmap                                            | PBR:Cook-Torrance BRDF                            |
 |                                                   |                                                   | ![1747296878767](images/readme/1747296878767.png) |
-| PBR:Cook-Torrance 纹理BRDF                        | PBR 多层                                          | PBR                                               |
+| PBR:Cook-Torrance 纹理BRDF                        | IBL                                               | PBR+IBL                                           |
 | ![1747334270746](images/readme/1747334270746.png) |                                                   |                                                   |
+| SSGI                                              | SSR                                               | SSAO                                              |
+|                                                   |                                                   |                                                   |
+| BVH                                               | GLTF                                              | OBJ                                               |
+|                                                   |                                                   |                                                   |
+| FBX                                               | 点entity                                          | 线entity                                          |
+|                                                   |                                                   |                                                   |
+| sprite entity                                    | Skinned Mesh                                      | 文本渲染                                          |
+|                                                   |                                                   |                                                   |
+| MSAA                                              | FXAA                                              | TAA                                               |
+|                                                   |                                                   |                                                   |
+| 粒子系统                                          | 动画                                              | 仿真云图                                          |
+|                                                   |                                                   |                                                   |
+| 后处理：描边                                      | 后处理：Bloom                                     | HDR                                               |
+|                                                   |                                                   |                                                   |
+| 半透明阴影                                        | 体渲染                                            | 体渲染                                            |
+|                                                   |                                                   |                                                   |
+| shape light                                       | PBR多层材质                                       | 半透明PBR                                         |
 |                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
 |                                                   |                                                   |                                                   |
-| 文本渲染                                          | lightmap                                          | Skinned Mesh                                      |
-|                                                   |                                                   |                                                   |
-| IBL                                               | SSGI                                              | SSR                                               |
-|                                                   |                                                   |                                                   |
-| SSAO                                              | BVH                                               | 仿真云图                                          |
-|                                                   |                                                   |                                                   |
-| 模型OBJ                                           | 模型GLTF                                          | 体渲染                                            |
-|                                                   |                                                   |                                                   |
-| 粒子系统                                          | MSAA                                              | TAA                                               |
 |                                                   |                                                   |                                                   |
 
 ## Demo
 
 
-| 名称  | 说明 | 动图 |
-| ----- | ---- | ---- |
-| ocean |      |      |
-|       |      |      |
-|       |      |      |
+| 名称          | 说明                 | 动图 |
+| ------------- | -------------------- | ---- |
+| 仿真云图      | 有限元仿真后处理示例 | todo |
+| ocean         | 复制babylon的ocean   | todo |
+| PBR材质编辑器 |                      | todo |
+| 编辑器        | 项目编辑器           | todo |
+|               |                      |      |
+|               |                      |      |
+|               |                      |      |
+|               |                      |      |
 
 ## Todo
 

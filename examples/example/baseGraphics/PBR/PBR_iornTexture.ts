@@ -152,12 +152,12 @@ let light1: PointLight = new PointLight(
     position: [2.0, 0.0, 0.0],
     intensity: 3.0,
     color: { red: 1.0, green: 1.0, blue: 1.0 },
-    // update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
-    //   let dir = scope.getDirection();
-    //   const now = Date.now() / 1000;
-    //   scope.values.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
-    //   return true
-    // },
+    update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
+      let dir = scope.getDirection();
+      const now = Date.now() / 1000;
+      scope.values.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
+      return true
+    },
   }
 );
 scene.addLight(light1);
@@ -177,18 +177,18 @@ let light1Entity1 = new Mesh(
     wireFrame: false,
     position: vec3.create(2, 0, 0),
     scale: [0.1, 0.1, 0.1],
-    // dynamicPostion: true,
-    // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:0.15*Math.PI
-    // },
-    // update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
-    //   // let dir = scope.getDirection();
-    //   const now = Date.now() / 1000;
-    //   scope.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
-    //   scope.updateMatrix();
-    //   return true
-    // },
+    dynamicPostion: true,
+    rotate:{
+      axis:[1,0,0],
+      angleInRadians:0.15*Math.PI
+    },
+    update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
+      // let dir = scope.getDirection();
+      const now = Date.now() / 1000;
+      scope.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
+      scope.updateMatrix();
+      return true
+    },
   }
 );
 //增加实体到scene

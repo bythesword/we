@@ -278,7 +278,7 @@ export class PBRMaterial extends BaseMaterial {
             if (this.input.PBR.normal) {
                 if (this.input.PBR.normal.texture) {
                     replaceNormal = `normal = textureSample(u_normalTexture, u_Sampler,fsInput.uv.xy).rgb;
-                                    normal= getNormalFromMap(normalize(fsInput.normal),normal,fsInput.worldPosition,fsInput.uv);
+                                    normal= getNormalFromMap( fsInput.normal ,normal,fsInput.worldPosition,fsInput.uv);//切线空间法线,需要normal和normalmap的normal
                                     // normal = normal*2.0-1.0;
                                     // normal = normalize(normal);
                     `;

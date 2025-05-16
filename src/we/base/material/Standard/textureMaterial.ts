@@ -24,9 +24,9 @@ import { GBuffersRPDAssemble, lifeState, textureAlphaZero } from "../../const/co
 import { optionTextureSource, Texture } from "../../texture/texture";
 
 export interface optionTexutresKindOfMaterial {
-    texture?: optionTextureSource | Texture,
-    normal?: optionTextureSource | Texture,
-    specular?: optionTextureSource | Texture,
+    texture: optionTextureSource | Texture,
+    // normal?: optionTextureSource | Texture,
+    // specular?: optionTextureSource | Texture,
 }
 /**
  * 纹理材质的初始化参数
@@ -176,7 +176,7 @@ export class TextureMaterial extends BaseMaterial {
     getCodeFS(startBinding: number): string {
         let AlphaZero = textureAlphaZero;
         let code = textureFS;
-        let binding = startBinding;
+        let binding = startBinding;//如果是透明，这个数值在entity的createDCCCForTransparent（）中已经增加了scene的getRenderPassDescriptorOfTransparent（）的binding数量。
 
 
 
@@ -185,7 +185,7 @@ export class TextureMaterial extends BaseMaterial {
             // code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
             let bindingOfTransparent = 1;;
             Object.entries(GBuffersRPDAssemble).forEach(([key, _value]) => {
-                if (key != "color") {
+                if (key != "color") {// 这个与TransparentRender中的getBindGroupOfTextures()的保持一致，使用的是GBuffersRPDAssemble中的顺序。而且都不需要color的数据。
                     if (key == "depth") {
                         code += `@group(1) @binding(${bindingOfTransparent}) var u_depth_opacity : texture_depth_2d ; `;
                     }
