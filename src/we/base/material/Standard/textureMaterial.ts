@@ -22,6 +22,7 @@ import textureFS from "../../shader/material/simple/texture.fs.wgsl?raw"
 import textureTransparentFS from "../../shader/material/simple/textureTransparent.fs.wgsl?raw"
 import { GBuffersRPDAssemble, lifeState, textureAlphaZero } from "../../const/coreConst";
 import { optionTextureSource, Texture } from "../../texture/texture";
+import { weSamplerKind } from "../../resource/weResource";
 
 export interface optionTexutresKindOfMaterial {
     texture: optionTextureSource | Texture,
@@ -42,7 +43,8 @@ export interface optionTexutresKindOfMaterial {
  * 5、upsideDownY：是否上下翻转Y轴，默认为true
  */
 export interface optionTextureMaterial extends optionBaseMaterial {
-    textures: optionTexutresKindOfMaterial
+    textures: optionTexutresKindOfMaterial,
+    samplerFilter?: GPUMipmapFilterMode,//缺省的采样器过滤模式，默认为linear    
 }
 
 export class TextureMaterial extends BaseMaterial {
@@ -70,9 +72,7 @@ export class TextureMaterial extends BaseMaterial {
             this.countOfTextures = Object.keys(input.textures!).length;
         this._already = lifeState.unstart;
 
-        // if (input.samplerFilter == undefined) {
-        //     input.samplerFilter = 'linear';
-        // }
+
         //是否上下翻转Y轴
         // this._upsideDownY = true;
         // if (input.upsideDownY != undefined) {
@@ -133,6 +133,15 @@ export class TextureMaterial extends BaseMaterial {
     }
 
     async __init() {
+        if (this.input.samplerFilter == undefined) {
+            this.sampler = this.scene.resources.sampler[weSamplerKind.linear];//scene的资源管理器中已经创建了sampler
+        }
+        else {
+            this.sampler = this.device.createSampler({
+                magFilter: this.input.samplerFilter,
+                minFilter: this.input.samplerFilter,
+            });
+        }
         for (let key in this.input.textures) {
             // let kkk: keyof optionTexutresKindOfMaterial = key;
             let texture = this.input.textures[key as keyof optionTexutresKindOfMaterial]!;
@@ -246,11 +255,17 @@ export class TextureMaterial extends BaseMaterial {
         let binding = startBinding;
         let uniforms: uniformEntries[] = []
         for (let key in this.textures) {
-
+            let sampler;
+            if (this.textures[key].sampler != undefined) {//如果纹理中有sampler
+                sampler = this.textures[key].sampler;
+            }
+            else {//如果没有sampler，就使用默认的sampler
+                sampler = this.sampler;
+            }
             //先是sampler，与getCodeFS()中的对应
             uniforms.push({
                 binding: binding++,
-                resource: this.textures[key].sampler,
+                resource: sampler,
             });
             // 然后是texture，与getCodeFS()中的对应。这里只有一个texture，所以直接写死了。如果有多个texture，就需要循环写入
             uniforms.push({

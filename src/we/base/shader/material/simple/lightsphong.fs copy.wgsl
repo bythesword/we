@@ -19,25 +19,9 @@ fn checkPixelInPointLightRange(pixelWorldPosition : vec3f, onelight : ST_Light,)
     }
     return index;
 }
-fn getNormalFromMap(normal : vec3f, normalMapValue : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f
-{
-    let tangentNormal = normalMapValue * 2.0 - 1.0;
-
-    let Q1 = dpdx(WorldPos);
-    let Q2 = dpdy(WorldPos);
-    let st1 = dpdx(TexCoords);
-    let st2 = dpdy(TexCoords);
-
-    let N = normalize(normal);
-    let T = normalize(Q1 * st2.y - Q2 * st1.y);
-    let B = normalize(cross(T, N));
-    let TBN = mat3x3(T, B, N);
-
-    return normalize(TBN * tangentNormal);
-}
 @fragment
 fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
-    $deferRender_Depth                                  //占位符
+    $deferRender_Depth
     let shininess = u_bulinphong.shininess;
     let metalness = u_bulinphong.metalness;
     let roughness = u_bulinphong.roughness;
@@ -137,8 +121,8 @@ fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, lightDir : ve
     let diffColor = diff * light_atten_coff * lightColor * u_bulinphong.roughness;
     var spec = 0.0;
     let viewDir = normalize(viewerPosition - position);
-    let halfDir = normalize(lightDir - viewDir);//半程向量，
-    //let halfDir = normalize(lightDir + viewDir);//半程向量，这个再确认一下，相加会产生问题（box有小视角阴影有问题）
+    let halfDir = normalize(lightDir - viewDir);//半角向量，
+    //let halfDir = normalize(lightDir + viewDir);//半角向量，这个再确认一下，相加会产生问题（box有小视角阴影有问题）
     spec = pow (max(dot(viewDir, halfDir), 0.0), u_bulinphong.shininess);
     var specularColor = light_atten_coff * u_bulinphong.metalness * spec * lightColor;
     $spec           //占位符

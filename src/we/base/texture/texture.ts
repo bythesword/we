@@ -1,5 +1,4 @@
-import { weResourceTexture } from "../resource/weResource";
-import { RootOfGPU } from "../organization/root";
+
 
 /**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
 export type textureType = string | GPUTexture | GPUCopyExternalImageSource;
@@ -58,7 +57,7 @@ export class Texture {
 
     input: optionTextureSource;
     name!: string;
-    sampler!: GPUSampler;
+    sampler: GPUSampler | undefined;
 
     /**是否上下翻转Y轴 */
     _upsideDownY: boolean;
@@ -112,13 +111,13 @@ export class Texture {
             await this.generateTextureByImageSource(source);
         }
 
-
-        let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
-
-        this.sampler = this.device.createSampler({
-            magFilter: sampler,
-            minFilter: sampler,
-        });
+        if (this.input.samplerFilter != undefined) {
+            let sampler = this.input.samplerFilter ? this.input.samplerFilter : 'linear';
+            this.sampler = this.device.createSampler({
+                magFilter: sampler,
+                minFilter: sampler,
+            });
+        }
     }
 
     destroy() {

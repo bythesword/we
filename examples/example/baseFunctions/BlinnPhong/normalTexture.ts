@@ -6,7 +6,7 @@ import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/ca
 import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
- 
+
 import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMaterial"
 import { PointLight } from "../../../../src/we/base/light/pointLight"
 import { mat4, vec3 } from "wgpu-matrix"
@@ -83,8 +83,12 @@ let redMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
   metalness: 1,
   texture: {
-    texture: "/examples/resource/images/box/container2.png",
-    specularTexture: "/examples/resource/images/box/container2_specular.png",
+    texture: {
+      texture: "/examples/resource/images/wall/brickwall.jpg"
+    },
+    normalTexture: {
+      texture: "/examples/resource/images/wall/brickwall_normal.jpg"
+    },
   }
 });
 //box实体
@@ -96,19 +100,19 @@ let boxEntity = new Mesh(
     // dynamicPostion: true,
     update: (scope, deltaTime, startTime, lastTime) => {
       // console.log("12");
-      scope.matrix = mat4.identity(); 
-      const now = Date.now() / 1000;    
-      scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);      
+      scope.matrix = mat4.identity();
+      const now = Date.now() / 1000;
+      scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);
       return true;
     },
   }
 );
 //增加实体到scene
 await scene.add(boxEntity)
-let light1= new PointLight(
+let light1 = new PointLight(
   {
-    position: [0.0, 0.0, 8.0],
-    intensity: 12.0,
+    position: [0.0, 0.0, 5.0],
+    intensity: 1.0,
 
   }
 );

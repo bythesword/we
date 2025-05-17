@@ -99,19 +99,19 @@ let inputPBR: valuesOfPBR = {
   metallic: {
     texture: {
       name: "metallic",
-      texture: "/examples/resource/images/img/rustediron/rustediron2_metallic.png"
+      texture: "/examples/resource/images/rustediron/rustediron2_metallic.png"
     }
   },
   roughness: {
     texture: {
       name: "roughness",
-      texture: "/examples/resource/images/img/rustediron/rustediron2_roughness.png"
+      texture: "/examples/resource/images/rustediron/rustediron2_roughness.png"
     }
   },
   normal: {
     texture: {
       name: "roughness",
-      texture: "/examples/resource/images/img/rustediron/rustediron2_normal.png"
+      texture: "/examples/resource/images/rustediron/rustediron2_normal.png"
     }
   },
   albedo: {
@@ -119,7 +119,7 @@ let inputPBR: valuesOfPBR = {
     // value: [0.56, 0.57, 0.58],
     texture: {
       name: "albedo",
-      texture: "/examples/resource/images/img/rustediron/rustediron2_basecolor.png"
+      texture: "/examples/resource/images/rustediron/rustediron2_basecolor.png"
     }
   }
 }

@@ -10,10 +10,10 @@ import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
 import { weResourceTexture, weSamplerKind } from "../../resource/weResource";
-import { textureType } from "../../texture/texture";
+import { optionTextureSource, Texture, textureType } from "../../texture/texture";
 import { uniformEntries } from "../../command/commandDefine";
 import { lifeState } from "../../const/coreConst";
- 
+
 
 
 /*
@@ -21,9 +21,10 @@ import { lifeState } from "../../const/coreConst";
 */
 export interface optionPhongMaterial extends optionPhongColorMaterial {
     texture?: {
-        texture?: textureType,
-        normalTexture?: textureType,
-        specularTexture?: textureType,
+        texture?: optionTextureSource | Texture,
+        normalTexture?: optionTextureSource | Texture,
+        specularTexture?: optionTextureSource | Texture,
+        parallax?: optionTextureSource | Texture,//视差贴图
 
     },
     samplerFilter?: GPUMipmapFilterMode,
@@ -37,167 +38,51 @@ export class PhongMaterial extends PhongColorMaterial {
     textures!: weResourceTexture
     countOfTextures!: number;
     countOfTexturesOfFineshed!: number;
-    // {
-    //     texture: GPUTexture,
-    //     normalTexture: GPUTexture,
-    //     specularTexture: GPUTexture,
-    // }
     sampler!: GPUSampler
     constructor(input: optionPhongMaterial) {
         super(input);
         this.countOfTextures = 0;
         this.countOfTexturesOfFineshed = 0;
-        this._already =  lifeState.unstart;
+        this._already = lifeState.unstart;
         this.textures = {};
         if (this.input.texture)
             this.countOfTextures = Object.keys(this.input.texture!).length;
-        // if (this.countOfTextures > 0) {
-        //     this.sampler = this.device.createSampler({
-        //         magFilter: 'linear',
-        //         minFilter: 'linear',
-        //     });
-        // }
 
-        // if (input?.scene)
-        //     this.init();
     }
-    // async readyForGPU() {
-    //     await this.init();
-    // }
 
+
+    /** 初始化 ，第二阶段*/
     async __init() {
         if (this.input?.texture) {
-            let texture = this.input.texture;
-            if (texture.texture) {
-                let kind = "texture";
-                //url
-                if (typeof texture.texture == "string") {
-                    this.generateTextureByString(texture.texture, kind);
+            for (let key in this.input.texture) {
+                let texture: any = this.input.texture[key as keyof optionPhongMaterial['texture']];
+                if (texture instanceof Texture) {
+                    this.textures[key] = texture;
                 }
-                //GPUTexture
-                else if (typeof texture.texture == "object" && "usage" in texture.texture) {
-                    this.textures.texture = texture.texture;
-                    this.countOfTexturesOfFineshed++;
-                    if (this.countOfTextures == this.countOfTexturesOfFineshed) {
-                        this._already =  lifeState.finished;
-                    }
-                }
-                //GPUCopyExternalImageSource
-                else if (typeof texture.texture == "object" && "width" in texture.texture) {
-                    this.generateTextureByBitmap(texture.texture as ImageBitmap, kind);
-                }
-            }
-            if (texture.specularTexture) {
-                let kind = "specularTexture";
-                if (typeof texture.specularTexture == "string") {
-                    this.generateTextureByString(texture.specularTexture, kind);
-                }
-                else if (typeof texture.specularTexture == "object" && "usage" in texture.specularTexture) {
-                    this.textures.specularTexture = texture.specularTexture;
-                    this.countOfTexturesOfFineshed++;
-                    if (this.countOfTextures == this.countOfTexturesOfFineshed) {
-                        this._already =  lifeState.finished;
-                    }
-                }
-                else if (typeof texture.specularTexture == "object" && "width" in texture.specularTexture) {
-                    this.generateTextureByBitmap(texture.specularTexture as ImageBitmap, kind);
+                else {
+                    // if(key == "normalTexture"){
+                    //     if(texture.format == undefined){
+                    //         texture.format = 'rgba8unorm';
+                    //     }
+                    // }
+                    // else if(key == "specularTexture"){
+                    //     if(texture.format == undefined){
+                    //         texture.format = 'rgba8unorm';
+                    //     }
+                    // }
+                    let textureInstace = new Texture(texture, this.device);
+                    await textureInstace.init();
+                    this.textures[key] = textureInstace;
                 }
             }
-            if (texture.normalTexture) {
-                let kind = "normalTexture";
-                if (typeof texture.normalTexture == "string") {
-                    this.generateTextureByString(texture.normalTexture, kind);
-                }
-                else if (typeof texture.normalTexture == "object" && "usage" in texture.normalTexture) {
-                    this.textures.normalTexture = texture.normalTexture;
-                    this.countOfTexturesOfFineshed++;
-                    if (this.countOfTextures == this.countOfTexturesOfFineshed) {
-                        this._already =  lifeState.finished;
-                    }
-                }
-                else if (typeof texture.normalTexture == "object" && "width" in texture.normalTexture) {
-                    this.generateTextureByBitmap(texture.normalTexture as ImageBitmap, kind);
-                }
-            }
+            this._already = lifeState.finished;
         }
         else {
-            this._already =  lifeState.finished;
+            this._already = lifeState.finished;
         }
-
-
-
     }
-    generateTextureByString(res: string, id: string) {
 
-        // new Promise((resolve, reject) => {
-        //     console.log("1:")
-        //     resolve(fetch("50x50.jpg"));
-        //   }).then(
-        //     async (res) => {
-        //       console.log("2:")
-        //       return createImageBitmap(await res.blob());
-        //     },
-        //     () => {},
-        //   ).then(
-        //     (res)=>{
-        //       console.log(typeof res.width)
-        //     }    )
-        //     ;
-        let scope = this;
-        // const response =
-        new Promise((resolve) => {
-            resolve(fetch(res));
-        }).then(
-            async (res) => {
-                return createImageBitmap(await (res as Response).blob());
-            },
-            () => { console.log("未能获取：", res) }
-        ).then(
-            (imageBitmap) => {
-                this.textures[id] = this.device.createTexture({
-                    size: [imageBitmap!.width, imageBitmap!.height, 1],
-                    format: 'rgba8unorm',
-                    usage:
-                        GPUTextureUsage.TEXTURE_BINDING |
-                        GPUTextureUsage.COPY_DST |
-                        GPUTextureUsage.RENDER_ATTACHMENT,
-                });
-                this.device.queue.copyExternalImageToTexture(
-                    { source: imageBitmap as ImageBitmap },
-                    { texture: this.textures[id] },
-                    [imageBitmap!.width, imageBitmap!.height]
-                );
-                scope.countOfTexturesOfFineshed++;
-                if (scope.countOfTextures == scope.countOfTexturesOfFineshed) {
-                    scope._already =  lifeState.finished;
-                }
-            }
-        )
-            ;
-    };
-    generateTextureByBitmap(imageBitmap: ImageBitmap, id: string) {
-        let scope = this;
-        this.textures[id] = this.device.createTexture({
-            size: [imageBitmap!.width, imageBitmap!.height, 1],
-            format: 'rgba8unorm',
-            usage:
-                GPUTextureUsage.TEXTURE_BINDING |
-                GPUTextureUsage.COPY_DST |
-                GPUTextureUsage.RENDER_ATTACHMENT,
-        });
-        this.device.queue.copyExternalImageToTexture(
-            { source: imageBitmap as ImageBitmap },
-            { texture: this.textures[id] },
-            [imageBitmap!.width, imageBitmap!.height]
-        );
-        if (scope.countOfTextures == scope.countOfTexturesOfFineshed) {
-            scope._already =  lifeState.finished;
-        }
-    };
-    /**
-         * 
-         * @returns  FS code
-         */
+
     getCodeFS(startBinding: number) {
         let code = lightsFS;
         let binding = startBinding;
@@ -207,14 +92,7 @@ export class PhongMaterial extends PhongColorMaterial {
         code = code.replaceAll("$green", this.green.toString());
         code = code.replaceAll("$alpha", this.alpha.toString());
 
-        let spec = "     ";
-        //这里的u_metalness也需要被使用，否则报错，乘上之后就是金属度的增加
-        let specTexture = `let specc= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;
-            specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;
-        // let specTexture = "spec =textureSample(u_specularTexture, u_Sampler,  uv);\n";
 
-        let normal = "  ";
-        let normalTexture = "  normal =textureSample(u_normalTexture, u_Sampler,  uv).rgb;\n";
 
         let flag_spec = false;
         let flag_texture = false;
@@ -225,7 +103,6 @@ export class PhongMaterial extends PhongColorMaterial {
 
         //判断texture种类，增加对应贴图，增加一个采样（uniform中，binding 4）
         if (this.countOfTextures > 0) {
-
             code += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;//这个需要与getUniform(startBinding: number)中的sampler对应，都是在texture之前
             // let binding = 3;
             binding++;
@@ -243,25 +120,44 @@ export class PhongMaterial extends PhongColorMaterial {
                 binding++;
             }
         }
-        if (flag_texture) {
-            code = code.replaceAll("$materialColor", 'materialColor = textureSample(u_texture, u_Sampler, fsInput.uv);\n');
-        }
-        else {
-            code = code.replaceAll("$materialColor", '');
-        }
-        if (flag_spec) {
-            code = code.replaceAll("$spec", specTexture);
-        }
-        else {
-            code = code.replaceAll("$spec", spec);
-        }
-        if (flag_normal) {
-            code = code.replaceAll("$normal", normalTexture);
-        }
-        else {
-            code = code.replaceAll("$normal", normal);
-        }
+        //是否有基础纹理，有则使用纹理，没有则使用颜色
+        if (code.indexOf("$materialColor") != -1)
+            if (flag_texture) {
+                code = code.replaceAll("$materialColor", 'materialColor = textureSample(u_texture, u_Sampler, fsInput.uv);\n');
+            }
+            else {
+                code = code.replaceAll("$materialColor", '');
+            }
+
+        //是否有高光纹理，有则使用纹理，没有则使用颜色
+        if (code.indexOf("spec") != -1)
+            if (flag_spec) {
+                //这里的u_metalness也需要被使用，否则报错，乘上之后就是金属度的增加
+                let specTexture = `let specc= textureSample(u_specularTexture, u_Sampler,  uv).rgb ;
+            specularColor  = light_atten_coff * u_bulinphong.metalness *specc*    spec * lightColor;\n`;//spec是高光系数，然后乘以高光纹理，产生高光差异
+                // let specTexture = "spec =textureSample(u_specularTexture, u_Sampler,  uv);\n";
+                code = code.replaceAll("$spec", specTexture);
+            }
+            else {
+                code = code.replaceAll("$spec", " ");
+            }
+        //是否有法线纹理，有则使用纹理，没有则使几何体的法线
+        if (code.indexOf("$normal") != -1)
+            if (flag_normal) {
+                let normalTexture = `  normal =textureSample(u_normalTexture, u_Sampler,  uv).rgb;\n
+                normal= getNormalFromMap( vNormal ,normal,position, uv);\n`;
+
+                code = code.replaceAll("$normal", normalTexture);
+            }
+            else {
+                code = code.replaceAll("$normal", " ");
+            }
         code += `@group(1) @binding(${binding}) var<uniform> u_bulinphong : bulin_phong; \n`
+
+
+
+
+
         return this.shaderCodeProcess(code);
     }
 
@@ -293,7 +189,7 @@ export class PhongMaterial extends PhongColorMaterial {
             for (let i in this.textures) {
                 const one = {
                     binding,
-                    resource: this.textures[i].createView(),
+                    resource: this.textures[i].texture.createView(),
                 };
                 phong.push(one);
                 binding++;

@@ -1,4 +1,5 @@
 import { RootOfGPU } from "../organization/root";
+import { Texture } from "../texture/texture";
 
 //todo:20241126,还有多种组合模式，等待扩展
 export enum weSamplerKind {
@@ -14,7 +15,7 @@ export interface weResourceBuffer {
 }
 
 export interface weResourceTexture {
-    [name: string]: GPUTexture
+    [name: string]: Texture
 }
 
 export interface weResourceImageBitmap {
