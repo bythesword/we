@@ -2,7 +2,7 @@ import { PerspectiveCamera, optionPerspProjection } from "../../../../src/we/bas
 import { optionCamreaControl } from "../../../../src/we/base/control/cameracCntrol"
 import { CameraActor, optionCameraActor } from "../../../../src/we/base/actor/cameraActor"
 
-import { Scene, sceneInputJson } from "../../../../src/we/base/scene/scene"
+import { sceneInputJson } from "../../../../src/we/base/scene/scene"
 import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { OneColorCube } from "../../../../src/we/base/geometry/oneColorCube"
 import { mat4, vec3 } from "wgpu-matrix"
@@ -12,7 +12,7 @@ import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMa
 import { SpotLight } from "../../../../src/we/base/light/SpotLight"
 import { initScene } from "../../../../src/we/base/scene/initScene"
 import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/vertexColorMatrial"
- 
+
 
 
 declare global {
@@ -29,6 +29,14 @@ let input: sceneInputJson = {
     green: 0.5,
     blue: 0.5,
     alpha: 1
+  },
+  ambientLight: {
+    color: {
+      red: 1,
+      green: 1,
+      blue: 1
+    },
+    intensity: 0.25
   }
 }
 let outputDIV = document.getElementById("output")
@@ -101,8 +109,8 @@ let cubeMaterial = new CubeSkyMaterial({
 })
 let sky = new Mesh(
   {
-    name:"sky",
-    scale:[100,100,100],
+    name: "sky",
+    scale: [100, 100, 100],
     geometry: skyGeometry,
     material: cubeMaterial,
     wireFrame: false,
@@ -111,7 +119,7 @@ let sky = new Mesh(
 
   }
 );
-await scene.add(sky,"Sky")
+await scene.add(sky, "Sky")
 
 
 /////////////////////////////////////////////////////////////////////////
@@ -124,19 +132,19 @@ let woodMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
   metalness: 1,
   texture: {
-    texture: "/examples/resource/images/box/container2.png",
-    specularTexture: "/examples/resource/images/box/container2_specular.png",
+    texture: { texture: "/examples/resource/images/box/container2.png" },
+    specularTexture: { texture: "/examples/resource/images/box/container2_specular.png" },
   }
 });
 //box实体
 let woodBoxEntity = new Mesh(
   {
-    name:"box",
+    name: "box",
     geometry: woodBoxGeometry,
     material: woodMaterial,
     wireFrame: false,
     dynamicPostion: true,
-    position:[0,-3,0],
+    position: [0, -3, 0],
     update: (scope, deltaTime, startTime, lastTime) => {
       const now = Date.now() / 1000;
       scope.rotate(vec3.fromValues(Math.sin(now), Math.cos(now), 0), 1);
@@ -146,13 +154,13 @@ let woodBoxEntity = new Mesh(
 );
 //增加实体到scene
 await scene.add(woodBoxEntity)
-let spotLight= new SpotLight(
+let spotLight = new SpotLight(
   {
     direction: [0.0, 0.0, -1.0],
-    position: [0,0, 12],
+    position: [0, 0, 12],
     intensity: 22.0,
-    angle: 29/180*Math.PI,//12.5
-    angleOut: 38/180*Math.PI //17.5
+    angle: 29 / 180 * Math.PI,//12.5
+    angleOut: 38 / 180 * Math.PI //17.5
   }
 );
 
@@ -169,7 +177,7 @@ let actorBoxEntity = new Mesh(
     geometry: actorBoxGeometry,
     material: redMaterial,
     wireFrame: false,
-    position:[-6,3,0],
+    position: [-6, 3, 0],
     // dynamicPostion: true,
     // update: (scope, deltaTime, startTime, lastTime) => {
     //   // console.log("12");
@@ -188,7 +196,7 @@ let actorBoxEntity = new Mesh(
   }
 );
 //增加实体到scene
-await scene.add(actorBoxEntity,"Actor")
+await scene.add(actorBoxEntity, "Actor")
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -220,7 +228,7 @@ let colorBoxEntity = new Mesh(
     wireFrame: false,
     dynamicPostion: true,
     numInstances: 16,
-    position:[0,0,-8],
+    position: [0, 0, -8],
     instancesPosition: positiones,
     update: (scope, deltaTime, startTime, lastTime) => {
       scope.matrix = mat4.identity();
@@ -241,7 +249,7 @@ let colorBoxEntity = new Mesh(
             m4
           );
 
-          scope.matrixWorldBuffer.set(m4,  i * 16);
+          scope.matrixWorldBuffer.set(m4, i * 16);
           i++;
         }
       }
@@ -252,4 +260,4 @@ let colorBoxEntity = new Mesh(
 );
 colorBoxEntity.flagUpdateForPerInstance = true;//如果单独更新每个instance，这个是必须的，否则更新的是mesh的矩阵
 //增加实体到scene
-await scene.add(colorBoxEntity,"DynamicEntities")
+await scene.add(colorBoxEntity, "DynamicEntities")
