@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>WE 3D</title>
+  <style>
+    :root {
+      color-scheme: light;
+    }
+
+    html,
+    body {
+      margin: 0;
+      /* remove default margin */
+      height: 100%;
+      /* make body fill the browser window */
+      display: flex;
+      place-content: center center;
+      background-color: bisque;
+    }
+
+    canvas {
+      width: 600px;
+      height: 600px;
+      max-width: 100%;
+      display: block;
+      background-color: #404040;
+      background-image:
+        linear-gradient(45deg, #808080 25%, transparent 25%),
+        linear-gradient(-45deg, #808080 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #808080 75%),
+        linear-gradient(-45deg, transparent 75%, #808080 75%);
+      background-size: 32px 32px;
+      background-position: 0 0, 0 16px, 16px -16px, -16px 0px;
+    }
+  </style>
+  <script defer src="./mipmap_1.ts" type="module"></script>
+</head>
+
+<body>
+  <canvas id="render"></canvas>
+</body>
+
+</html>

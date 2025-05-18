@@ -7,7 +7,7 @@ import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.
 import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.fs.wgsl?raw"
 
 import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
-import { optionTextureSource } from "../texture/texture";
+import { optionTexture } from "../texture/texture";
 import { lifeState } from "../const/coreConst";
 
 /**材质的初始化状态 */

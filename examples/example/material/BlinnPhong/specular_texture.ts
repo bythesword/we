@@ -105,6 +105,12 @@ let boxEntity = new Mesh(
       scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);
       return true;
     },
+    // UV:{
+    //   uvScale:{
+    //     u:2,
+    //     v:2
+    //   }
+    // }
   }
 );
 //增加实体到scene

@@ -1,5 +1,5 @@
 import { uniformEntries } from "../../command/commandDefine";
-import { optionTextureSource, Texture } from "../../texture/texture";
+import { optionTexture, Texture } from "../../texture/texture";
 import { BaseMaterial, optionBaseMaterial } from "../baseMaterial";
 import PBRFS from "../../shader/material/PBR/PBRColor.fs.wgsl?raw"
 import { color4F, lifeState } from "../../const/coreConst";
@@ -11,21 +11,21 @@ export interface valuesOfPBR {
 
     albedo: {
         value?: [number, number, number],
-        texture?: optionTextureSource | Texture,
+        texture?: optionTexture | Texture,
     }
     metallic: {
         value?: number,
-        texture?: optionTextureSource | Texture,
+        texture?: optionTexture | Texture,
     }
     roughness: {
         value?: number,
-        texture?: optionTextureSource | Texture,
+        texture?: optionTexture | Texture,
     }
     ao?: {
-        texture?: optionTextureSource | Texture,
+        texture?: optionTexture | Texture,
     }
     normal?: {
-        texture: optionTextureSource | Texture,
+        texture: optionTexture | Texture,
     }
     /**
      * 非金属可以有颜色和纹理
@@ -33,7 +33,7 @@ export interface valuesOfPBR {
      */
     color?: {
         value?: color4F,
-        texture?: optionTextureSource | Texture,
+        texture?: optionTexture | Texture,
     }
 }
 /** PBR 纹理 */

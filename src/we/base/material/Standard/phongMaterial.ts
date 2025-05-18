@@ -10,7 +10,7 @@ import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
 import { weResourceTexture, weSamplerKind } from "../../resource/weResource";
-import { optionTextureSource, Texture, textureType } from "../../texture/texture";
+import { optionTexture, Texture  } from "../../texture/texture";
 import { uniformEntries } from "../../command/commandDefine";
 import { lifeState } from "../../const/coreConst";
 
@@ -21,10 +21,10 @@ import { lifeState } from "../../const/coreConst";
 */
 export interface optionPhongMaterial extends optionPhongColorMaterial {
     texture?: {
-        texture?: optionTextureSource | Texture,
-        normalTexture?: optionTextureSource | Texture,
-        specularTexture?: optionTextureSource | Texture,
-        parallax?: optionTextureSource | Texture,//视差贴图
+        texture?: optionTexture | Texture,
+        normalTexture?: optionTexture | Texture,
+        specularTexture?: optionTexture | Texture,
+        parallax?: optionTexture | Texture,//视差贴图
 
     },
     samplerFilter?: GPUMipmapFilterMode,

@@ -26,7 +26,12 @@ export interface renderCommands {
 }
 
 
-
+export interface meshConstantsVS {
+    uvScale_u?: number,
+    uvScale_v?: number,
+    uvOffset_x?: number,
+    uvOffset_y?: number
+}
 /**createDCCC的参数
  * 
  */
@@ -217,6 +222,10 @@ export abstract class BaseEntity extends RootOfGPU {
     entity_id: Uint32Array;
     /**for shader */
     stage_id: Uint32Array;
+
+    uvU: Float32Array;
+    /**uvV */
+    uvV: Float32Array;
     /** stageID*/
     stageID!: number;
     /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
@@ -416,7 +425,8 @@ export abstract class BaseEntity extends RootOfGPU {
         this.matrixWorldBuffer = new Float32Array(this.structUnifomrBuffer, 0, 4 * 4 * this.numInstances);
         this.entity_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4, 1);
         this.stage_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4, 1);
-
+        this.uvU=new Float32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4*2, 1);
+        this.uvV=new Float32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4*3, 1);
 
         this.visible = true;
         this.children = [];
@@ -438,6 +448,19 @@ export abstract class BaseEntity extends RootOfGPU {
         }
         this.commmands = {};
         this.commandsOfShadowOfTransparent = {};
+    }
+
+    get UVu(){
+        return this.uvU[0]; 
+    }
+    get UVv(){
+        return this.uvV[0]; 
+    }
+    set UVu(u:number){
+        this.uvU[0]=u; 
+    }
+    set UVv(v:number){
+        this.uvV[0]=v; 
     }
 
     /**

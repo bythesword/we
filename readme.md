@@ -57,7 +57,7 @@
 | Blinn-Phong 高光贴图                              | 法线纹理                                          | 视差纹理                                          |
 | ![1744796262724](images/readme/1744796262724.png) | ![1747492397105](images/readme/1747492397105.png) |                                                   |
 | 视频材质                                          | mipmap                                            | PBR:Cook-Torrance BRDF                            |
-|                                                   |                                                   | ![1747296878767](images/readme/1747296878767.png) |
+|                                                   | ![1747570958252](images/readme/1747570958252.png) | ![1747296878767](images/readme/1747296878767.png) |
 | PBR:Cook-Torrance 纹理BRDF                        | IBL                                               | PBR+IBL                                           |
 | ![1747334270746](images/readme/1747334270746.png) |                                                   |                                                   |
 | SSGI                                              | SSR                                               | SSAO                                              |

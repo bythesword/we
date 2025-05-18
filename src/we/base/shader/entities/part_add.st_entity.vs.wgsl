@@ -3,6 +3,8 @@ struct ST_entity {
   MatrixWorld : array<mat4x4f, $instacnce >,
   entity_id : u32,
   stage_id : u32,
+  uvu:f32,      //uv动画使用
+  uvv:f32,      //uv动画使用
 };
 @group(1) @binding(0) var<uniform> entity : ST_entity;
 //end part.st_entity.vs.wgsl

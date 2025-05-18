@@ -26,7 +26,7 @@ let input: sceneInputJson = {
     red: 0,
     green: 0.51,
     blue: 1,
-    alpha: 1
+    alpha: 0
   },
   ambientLight: {
     color: {
@@ -50,7 +50,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [9, 3, 9],
+  position: [0, 0, 1],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -81,68 +81,53 @@ scene.addCameraActor(actor, true)
 ////enities 初始化
 
 let planeGeometry = new PlaneGeometry({
-  width: 10,
-  height: 10
+  width: 1,
+  height: 1
 });
 let groundMaterial = new TextureMaterial({
-  transparent: {
-    
-    // opacity: 0.0,
-  },
+
   textures: {
     texture: {
-      premultipliedAlpha:false,
+      premultipliedAlpha: false,
       name: "we logo",
-      texture: "/examples/resource/images/we/logo.png"
+      texture: "/examples/resource/images/box/container2.png",
+      samplerDescriptor: {
+        magFilter: "linear",
+        minFilter: "linear",
+        addressModeU: "clamp-to-edge",
+        addressModeV: "clamp-to-edge"
+      }
     },
+
   }
 });
 
-let bottomPlane = new Mesh({
-  name: "bottomPlane",
+let plane = new Mesh({
+  name: "Plane",
   geometry: planeGeometry,
   material: groundMaterial,
-  position: [0, -1, 0],
-  rotate: {
-    axis: [1, 0, 0],
-    angleInRadians: -Math.PI / 2,
-  },
+  // position: [0, -1, 0],
+  // rotate: {
+  //   axis: [1, 0, 0],
+  //   angleInRadians: -Math.PI / 2,
+  // },
   wireFrame: false,
-  cullmode: "none"
-});
-
-
- 
-let colorMaterial_1 = new TextureMaterial({
-  textures: {
-
-    texture: {
-      name: "skyforce",
-      texture: "/examples/resource/images/img/skyforce.png"
+  cullmode: "none",
+  UV: {
+    uvScale: {
+      u: 2,
+      v: 2
     },
+    uvOffset: {
+      x: -0.1,
+      y: -0.1,
+    }
   }
 });
-//box实体
-let sky = new Mesh(
-  {
-    name: "透明plane",
-    geometry: planeGeometry,
-    material: colorMaterial_1,
-    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
-    wireFrame: false,
-    // position:vec3.create(1,0,0),
-    // scale:[2,2,1],
-    rotate: {
-      axis: [0, 1, 0],
-      angleInRadians: 0.5 * Math.PI
-    },
-    cullmode: "none"
-  }
-);
 
-//增加实体到scene
-await scene.add(sky)
-await scene.add(bottomPlane);
+scene.add(plane);
+
+
 let light1 = new PointLight(
   {
     position: [0.0, 0.0, 8.0],

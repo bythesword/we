@@ -5,7 +5,7 @@
  * @author  TomSong
  * @date    2024-5-10
  */
-import { optionTextureSource } from "../../texture/texture";
+import { optionTexture } from "../../texture/texture";
 import { optionTextureMaterial, TextureMaterial } from "./textureMaterial";
 
 

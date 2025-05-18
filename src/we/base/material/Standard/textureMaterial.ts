@@ -21,13 +21,13 @@ import { uniformEntries } from "../../command/commandDefine";
 import textureFS from "../../shader/material/simple/texture.fs.wgsl?raw"
 import textureTransparentFS from "../../shader/material/simple/textureTransparent.fs.wgsl?raw"
 import { GBuffersRPDAssemble, lifeState, textureAlphaZero } from "../../const/coreConst";
-import { optionTextureSource, Texture } from "../../texture/texture";
+import { optionTexture, Texture } from "../../texture/texture";
 import { weSamplerKind } from "../../resource/weResource";
 
 export interface optionTexutresKindOfMaterial {
-    texture: optionTextureSource | Texture,
-    // normal?: optionTextureSource | Texture,
-    // specular?: optionTextureSource | Texture,
+    texture: optionTexture | Texture,
+    // normal?: optionTexture | Texture,
+    // specular?: optionTexture | Texture,
 }
 /**
  * 纹理材质的初始化参数

@@ -1,5 +1,5 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
+import { BaseEntity, meshConstantsVS, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand } from "../../command/DrawCommand";
@@ -30,6 +30,19 @@ export interface optionMeshEntity extends optionBaseEntity {
     wireFrameColor?: coreConst.color4F,
     /**剔除面 */
     cullmode?: GPUCullMode,
+    /**UV option */
+    UV?: {
+        /**UV sacale */
+        uvScale?: {
+            u: number,
+            v: number
+        },
+        /**UV offset */
+        uvOffset?: {
+            x: number,
+            y: number
+        },
+    }
 }
 
 
@@ -45,7 +58,7 @@ export interface optionMeshEntity extends optionBaseEntity {
  * 
  */
 export class Mesh extends BaseEntity {
-
+    declare input: optionMeshEntity;
 
 
     _geometry!: BaseGeometry;
@@ -189,6 +202,26 @@ export class Mesh extends BaseEntity {
         let shader;
         let binding = 0;
         let constants = {};
+        let constantsVS: meshConstantsVS = {};
+        if (this.input?.UV) {
+            if (this.input.UV.uvScale) {
+                if (this.input.UV.uvScale.u) {
+                    constantsVS.uvScale_u = this.input.UV.uvScale.u;
+                }
+                if (this.input.UV.uvScale.v) {
+                    constantsVS.uvScale_v = this.input.UV.uvScale.v;
+                }
+            }
+            if (this.input.UV.uvOffset) {
+                if (this.input.UV.uvOffset.x) {
+                    constantsVS.uvOffset_x = this.input.UV.uvOffset.x;
+
+                }
+                if (this.input.UV.uvOffset.y) {
+                    constantsVS.uvOffset_y = this.input.UV.uvOffset.y;
+                }
+            }
+        }
         let uniforms: unifromGroup[] = [];
         if (this._wireFrameOnly === false) {
             uniforms.push(
@@ -267,7 +300,8 @@ export class Mesh extends BaseEntity {
                 vertex: {
                     code: shader,
                     entryPoint: "vs",
-                    buffers: vsa
+                    buffers: vsa,
+                    constants: constantsVS
                 },
                 fragment: {
                     code: shader,
@@ -398,7 +432,26 @@ export class Mesh extends BaseEntity {
             this.commandsOfTransparent[camera] = [];
         }
         let scope = this;
+        let constantsVS: meshConstantsVS = {};
+        if (this.input?.UV) {
+            if (this.input.UV.uvScale) {
+                if (this.input.UV.uvScale.u) {
+                    constantsVS.uvScale_u = this.input.UV.uvScale.u;
+                }
+                if (this.input.UV.uvScale.v) {
+                    constantsVS.uvScale_v = this.input.UV.uvScale.v;
+                }
+            }
+            if (this.input.UV.uvOffset) {
+                if (this.input.UV.uvOffset.x) {
+                    constantsVS.uvOffset_x = this.input.UV.uvOffset.x;
 
+                }
+                if (this.input.UV.uvOffset.y) {
+                    constantsVS.uvOffset_y = this.input.UV.uvOffset.y;
+                }
+            }
+        }
         ///////////////////////////////
 
         const renderPassDescriptor = this.stage!.getRenderPassDescriptorOfTransparent(camera);
@@ -501,7 +554,8 @@ export class Mesh extends BaseEntity {
                 vertex: {
                     code: shader,
                     entryPoint: "vs",
-                    buffers: vsa
+                    buffers: vsa,
+                    constants: constantsVS
                 },
                 fragment: {
                     code: shader,
