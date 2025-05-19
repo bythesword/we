@@ -1,6 +1,6 @@
 // import { Mat4, mat4, vec3, Vec3, Vec2, Vec4, Mat3, mat3,TypedArray } from 'wgpu-matrix';
 import { TypedArray } from 'webgpu-utils';
-import { baseOptionOfCommand, localUniformGroups, uniformBufferAll, uniformBufferPart, unifromGroup } from './commandDefine';
+import { baseOptionOfCommand, localUniformGroups, uniformBufferAll, uniformBufferPart, unifromGroup, dynGPUBindGroupEntry } from './commandDefine';
 // declare type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array;
 // import * as baseDefine from "../scene/base"
 
@@ -37,7 +37,7 @@ export abstract class BaseCommand {
      * todo：20250414
      * bindGroupLayout 句柄 
      * 先创建 bindGroupLayout  */
-    bindGroupLayout: GPUBindGroupLayout;
+    bindGroupLayout!: GPUBindGroupLayout;
     /**
      * bindingGroup 描述 
      * 
@@ -68,6 +68,8 @@ export abstract class BaseCommand {
     /**这个类的webGPU的 commandEncoder */
     input!: baseOptionOfCommand;
 
+    /**是否动态更新bindGroup */
+    dynamicBindGroup:boolean=false;
 
     constructor(options: baseOptionOfCommand) {
         if (options.name) {
@@ -203,8 +205,14 @@ export abstract class BaseCommand {
 
         let unifromGroupSource = this.input.uniforms as unifromGroup[];
         for (let perGroup of unifromGroupSource) {
+            let dyn = false;
             let entries: GPUBindGroupEntry[] = [];
             for (let perOne of perGroup.entries) {//循环entries
+                if ("dynGPUBindGroupEntry" in perOne) {
+                    dyn = true;
+                    this.dynamicBindGroup=true;
+                    perOne.resource=perOne.getResource();//动态获取importExternalTexture，20250519
+                }
                 if ("size" in perOne) {//如果是DCC自定义的uniformBufferPart，即size存在的
                     /**
                      * 1、创建uniform buffer的描述，并将uniformBuffer(GPUBuffer) 存储到this.unifromBuffer中。
@@ -227,6 +235,9 @@ export abstract class BaseCommand {
                 label: "bind to " + perGroup.layout,
                 layout: bindLayout,
                 entries: entries,
+            }
+            if (dyn) {//20250519 ,增加动态dynamic的判断字符串
+                groupDesc.label = "dynamic|" + groupDesc.label;
             }
             const uniformBindGroup = device.createBindGroup(groupDesc);
             bindGroup[perGroup.layout] = uniformBindGroup;
@@ -284,8 +295,8 @@ export abstract class BaseCommand {
                 ],
             });
             */
-           
-           //这个转换肯定时错的，需要具体展开，visibility项和resoure中对应到GPUBindGroupLayoutEntry的类型一致。
+
+            //这个转换肯定时错的，需要具体展开，visibility项和resoure中对应到GPUBindGroupLayoutEntry的类型一致。
             const bindGroupLayout = device.createBindGroupLayout({
                 entries: entries as unknown as GPUBindGroupLayoutEntry[],//todo:20250414，需要验证正确性，未作验证。
             });

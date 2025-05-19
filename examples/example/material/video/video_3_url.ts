@@ -97,7 +97,7 @@ let groundMaterial = new VideoMaterial({
       name: "sea video",
       texture: "/examples/resource/video/sea.mp4",
       // texture: video_1
-      // model:"External"
+      model:"External"
     },
   }
 });

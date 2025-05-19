@@ -155,7 +155,7 @@ export class VideoMaterial extends BaseMaterial {
 
 
 
- 
+
         if (code.indexOf("$red")) code = code.replaceAll("$red", this.red.toString());
         if (code.indexOf("$blue")) code = code.replaceAll("$blue", this.blue.toString());
         if (code.indexOf("$green")) code = code.replaceAll("$green", this.green.toString());
@@ -166,32 +166,64 @@ export class VideoMaterial extends BaseMaterial {
                 //这个需要与getUniform(startBinding: number)中的sampler对应，都是在texture之前
                 code += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;
                 binding++;
-                //u_texture是texture的名字，
-                code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
+                if (this.textures[key].model == "copy") {
 
-                //materialColor 替换字符串
-                let materialColor = `materialColor = textureSample(u_${key}, u_Sampler, fsInput.uv );\n`;
 
-                let materialColorAdd = '';
-                if (this._transparent) {//如果存在透明，就需要进行alphaTest比较或者opacity的预乘
-                    if (this._transparent?.alphaTest == 0.0) {
-                        materialColorAdd = `if( materialColor.a < ${AlphaZero}){discard;}\n        `;//如果alphaTest=0.0，就直接丢弃。
-                    }
-                    else if (this._transparent?.alphaTest != undefined) {
-                        materialColorAdd = `if( materialColor.a < ${this._transparent.alphaTest}){discard;}\n  `;//如果alphaTest!=0.0，就使用alphaTest进行比较,关于预乘：在纹理加载时就决定了是否进行预乘，默认时进行预乘。
-                    }
-                    else if (this._transparent?.opacity != undefined) {
-                        materialColorAdd = `materialColor = materialColor* ${this._transparent.opacity};\n        `;//如果opacity!=0.0，就使用opacity进行再次的预乘。 alpha也会被预乘，透明度进一步降低。
-                    }
-                    // materialColorAdd = `  materialColor=vec4f(0.5);\n        `;//没有透明 。 
+                    //u_texture是texture的名字，
+                    code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
 
+                    //materialColor 替换字符串
+                    let materialColor = `materialColor = textureSample(u_${key}, u_Sampler, fsInput.uv );\n`;
+
+                    let materialColorAdd = '';
+                    if (this._transparent) {//如果存在透明，就需要进行alphaTest比较或者opacity的预乘
+                        if (this._transparent?.alphaTest == 0.0) {
+                            materialColorAdd = `if( materialColor.a < ${AlphaZero}){discard;}\n        `;//如果alphaTest=0.0，就直接丢弃。
+                        }
+                        else if (this._transparent?.alphaTest != undefined) {
+                            materialColorAdd = `if( materialColor.a < ${this._transparent.alphaTest}){discard;}\n  `;//如果alphaTest!=0.0，就使用alphaTest进行比较,关于预乘：在纹理加载时就决定了是否进行预乘，默认时进行预乘。
+                        }
+                        else if (this._transparent?.opacity != undefined) {
+                            materialColorAdd = `materialColor = materialColor* ${this._transparent.opacity};\n        `;//如果opacity!=0.0，就使用opacity进行再次的预乘。 alpha也会被预乘，透明度进一步降低。
+                        }
+                        // materialColorAdd = `  materialColor=vec4f(0.5);\n        `;//没有透明 。 
+
+                    }
+                    else {
+                        materialColorAdd = `  materialColor.a=1.0;\n        `;//没有透明 。 
+                        // materialColorAdd = `if( materialColor.a < ${AlphaZero}){ materialColor.a=1.0;}\n        `;//如果没有透明，就需要进行alphaTest比较。 
+                    }
+                    materialColor = materialColor + materialColorAdd;
+                    code = code.replaceAll("$materialColor", materialColor);
                 }
                 else {
-                    materialColorAdd = `  materialColor.a=1.0;\n        `;//没有透明 。 
-                    // materialColorAdd = `if( materialColor.a < ${AlphaZero}){ materialColor.a=1.0;}\n        `;//如果没有透明，就需要进行alphaTest比较。 
+                    //u_texture是texture的名字，
+                    code += `@group(1) @binding(${binding}) var u_${key}: texture_external;\n`;
+
+                    //materialColor 替换字符串
+                    let materialColor = `materialColor = textureSampleBaseClampToEdge(u_${key}, u_Sampler, vec2f(fsInput.uv.x,1.0-fsInput.uv.y) );\n`;
+
+                    let materialColorAdd = '';
+                    // if (this._transparent) {//如果存在透明，就需要进行alphaTest比较或者opacity的预乘
+                    //     if (this._transparent?.alphaTest == 0.0) {
+                    //         materialColorAdd = `if( materialColor.a < ${AlphaZero}){discard;}\n        `;//如果alphaTest=0.0，就直接丢弃。
+                    //     }
+                    //     else if (this._transparent?.alphaTest != undefined) {
+                    //         materialColorAdd = `if( materialColor.a < ${this._transparent.alphaTest}){discard;}\n  `;//如果alphaTest!=0.0，就使用alphaTest进行比较,关于预乘：在纹理加载时就决定了是否进行预乘，默认时进行预乘。
+                    //     }
+                    //     else if (this._transparent?.opacity != undefined) {
+                    //         materialColorAdd = `materialColor = materialColor* ${this._transparent.opacity};\n        `;//如果opacity!=0.0，就使用opacity进行再次的预乘。 alpha也会被预乘，透明度进一步降低。
+                    //     }
+                    //     // materialColorAdd = `  materialColor=vec4f(0.5);\n        `;//没有透明 。 
+
+                    // }
+                    // else {
+                    //     materialColorAdd = `  materialColor.a=1.0;\n        `;//没有透明 。 
+                    //     // materialColorAdd = `if( materialColor.a < ${AlphaZero}){ materialColor.a=1.0;}\n        `;//如果没有透明，就需要进行alphaTest比较。 
+                    // }
+                    materialColor = materialColor + materialColorAdd;
+                    code = code.replaceAll("$materialColor", materialColor);
                 }
-                materialColor = materialColor + materialColorAdd;
-                code = code.replaceAll("$materialColor", materialColor);
             }
 
         }
@@ -216,17 +248,27 @@ export class VideoMaterial extends BaseMaterial {
                 resource: sampler,
             });
             // 然后是texture，与getCodeFS()中的对应。这里只有一个texture，所以直接写死了。如果有多个texture，就需要循环写入
-            uniforms.push({
-                binding: binding++,
-                resource: this.textures[key].texture.createView(),
-            });
+            if (this.textures[key].texture instanceof GPUTexture) {
+                uniforms.push({
+                    binding: binding++,
+                    resource: this.textures[key].texture.createView(),
+                });
+            }
+            else if (this.textures[key].texture instanceof GPUExternalTexture) {
+                let abc = () => {
+                    return this.textures[key].getExternalTexture(this.textures[key]);
+                };
+                uniforms.push({
+                    binding: binding++,
+                    dynGPUBindGroupEntry: true,
+                    update: true,
+                    getResource: abc,
+                    resource: this.textures[key].texture,
+                });
+            }
         }
-
-
-
         return uniforms;
     }
-
     getTransparent(): boolean {
         if (this._transparent) {
             return true;

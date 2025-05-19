@@ -114,7 +114,9 @@ export interface dynGPUBindGroupEntry {
      * The resource to bind, which may be a {@link GPUSampler}, {@link GPUTextureView},
      * {@link GPUExternalTexture}, or {@link GPUBufferBinding}.
      */
-    resource: () => GPUBindingResource;
+    resource: GPUBindingResource,
+    getResource: ( ) => GPUBindingResource;//20250519，增加动态获取importExternalTexture的箭头函数
+    // getResource: (scope: any) => GPUBindingResource;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //

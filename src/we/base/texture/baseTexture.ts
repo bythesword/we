@@ -2,7 +2,19 @@ import { lifeState, optionUpdate } from "../const/coreConst";
 
 /**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
 export type textureType = string | GPUTexture | GPUCopyExternalImageSource;
-
+/**
+ * 纹理材质的初始化参数
+ * 
+ * 1、texture：纹理来源
+ * 
+ * 2、samplerFilter：采样器过滤模式，默认为linear
+ * 
+ * 3、mipmap：是否生成mipmap，默认为true
+ * 
+ * 4、premultipliedAlpha：是否预乘alpha，默认为true,只有在有透明的情况下有效。
+ * 
+ * 5、upsideDownY：是否上下翻转Y轴，默认为true
+ */
 export interface optionBaseForTextureAndMaterailGlobe extends optionUpdate {  /**纹理名称 */
 
     /** 
@@ -42,23 +54,11 @@ export interface optionBaseForTextureAndMaterailGlobe extends optionUpdate {  /*
     usage?: GPUTextureUsageFlags,
 }
 
-/**
- * 纹理材质的初始化参数
- * 
- * 1、texture：纹理来源
- * 
- * 2、samplerFilter：采样器过滤模式，默认为linear
- * 
- * 3、mipmap：是否生成mipmap，默认为true
- * 
- * 4、premultipliedAlpha：是否预乘alpha，默认为true,只有在有透明的情况下有效。
- * 
- * 5、upsideDownY：是否上下翻转Y轴，默认为true
- */
+
 export interface optionBaseTexture extends optionBaseForTextureAndMaterailGlobe {
     name?: string,
     /**纹理来源 */
-    texture?: textureType,
+    texture?: any,
 
 }
 export abstract class BaseTexture {
@@ -74,7 +74,7 @@ export abstract class BaseTexture {
     /**纹理 
      * 外部访问对象
     */
-    texture!: GPUTexture;
+    texture: any;// GPUTexture| GPUExternalTexture;
 
     /**纹理是否完成，这个是需要处理的（异步数据的加载后，改为true，或没有异步数据加载，在init()中改为true）；
      * constructor中设置为false。 

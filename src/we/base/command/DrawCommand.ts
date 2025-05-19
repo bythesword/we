@@ -338,6 +338,9 @@ export class DrawCommand extends BaseCommand {
      */
     submit() {
         const device = this.device;
+          if(this.dynamicBindGroup){
+             this.uniformGroups = this.createUniformGroups();
+        }
         //是否是raw shader
         if (this.rawUniform) {//RAW
 
@@ -374,6 +377,8 @@ export class DrawCommand extends BaseCommand {
         const commandEncoder = device.createCommandEncoder({ label: "Draw Command :commandEncoder" });
         const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
         passEncoder.setPipeline(this.pipeline);
+
+      
 
         //this.uniformGroups 包括了0-3的groups,不区分RAW模式
         for (let i in this.uniformGroups) {

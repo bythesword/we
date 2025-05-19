@@ -1,6 +1,11 @@
 import { lifeState } from "../const/coreConst";
 import { BaseTexture, optionBaseTexture, textureType } from "./baseTexture";
 
+/**
+ * copy模式简单，可以mipmap
+ * external模式，速度快，没有mipmap
+ */
+type modelOfVideo = "copy" | "External";
 export interface optionVideoTexture extends optionBaseTexture {
     // video: textureType;
     texture: textureType,
@@ -9,19 +14,27 @@ export interface optionVideoTexture extends optionBaseTexture {
     muted?: boolean,
     controls?: boolean,
     waitFor?: "canplaythrough" | "loadedmetadata",
+    model?: modelOfVideo,
 }
 
 export class VideoTexture extends BaseTexture {
 
+    model: modelOfVideo = "copy";
     declare input: optionVideoTexture;
+    declare texture: GPUTexture | GPUExternalTexture;
     width!: number;
     height!: number;
     premultipliedAlpha!: boolean;
-    video!: HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas;
+    video!: HTMLVideoElement | HTMLCanvasElement | OffscreenCanvas | VideoFrame;
     constructor(input: optionVideoTexture, device: GPUDevice) {
         super(input, device);
         this.input = input;
-
+        if (input.model) {
+            this.model = input.model;
+        }
+        if (input.texture instanceof VideoFrame) {
+            this.model = "External";
+        }
     }
 
 
@@ -42,6 +55,8 @@ export class VideoTexture extends BaseTexture {
         else if (source instanceof HTMLVideoElement || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas || source instanceof VideoFrame) {
             this._already = await this.generateTextureBySource(source);
         }
+        // else if (source instanceof VideoFrame) {
+        // }
         else {
             console.warn("texture init error");
         }
@@ -59,8 +74,12 @@ export class VideoTexture extends BaseTexture {
         video.src = res;
         video.muted = options.muted ?? true;
         video.loop = options.loop ?? true;
-        video.autoplay =  true;  //这个必须
+        // video.autoplay =  true;  //这个必须
 
+        await video.play();
+
+        //OK
+        // video.autoplay =  true;  //这个必须
         // await new Promise((resolve) => {
         //     video.onloadedmetadata = resolve;
         //     video.onerror = () => {
@@ -69,14 +88,16 @@ export class VideoTexture extends BaseTexture {
         // });
 
         // 确保视频可以播放，这个也是必须
-        if (video.readyState < 2) {
-            await new Promise((resolve) => {
-                video.oncanplay = resolve;
-            });
-        }
-        if (video.autoplay)
-            video.play();
-        let ready = await scope.generateTextureBySource(video as HTMLVideoElement);
+        // if (video.readyState < 2) {
+        //     await new Promise((resolve) => {
+        //         video.oncanplay = resolve;
+        //     });
+        // }
+        // if (video.autoplay)
+        //     video.play();
+
+
+        let ready = await scope.generateTextureBySource(video);
         return ready;
     }
 
@@ -111,19 +132,23 @@ export class VideoTexture extends BaseTexture {
             premultipliedAlpha = true;
         }
         this.premultipliedAlpha = premultipliedAlpha;
+        if (this.model == "copy" || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas) {
+            this.texture = this.device.createTexture({
+                size: [width, height, 1],
+                format: this.input.format!,
+                // format: 'rgba8unorm',//bgra8unorm
+                mipLevelCount: this.input.mipmap ? this.numMipLevels([width, height]) : 1,
+                // sampleCount: 1,
+                // dimension: '2d',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+            });
 
-        this.texture = this.device.createTexture({
-            size: [width, height, 1],
-            format: this.input.format!,
-            // format: 'rgba8unorm',//bgra8unorm
-            mipLevelCount: this.input.mipmap ? this.numMipLevels([width, height]) : 1,
-            // sampleCount: 1,
-            // dimension: '2d',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-        });
 
-
-
+        }
+        else {
+            if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
+                this.texture = this.device.importExternalTexture({ source })
+        }
         // this.device.queue.copyExternalImageToTexture(
         //     { source: source, flipY: this._upsideDownY }, //webGPU 的UV从左下角开始，所以需要翻转Y轴。
         //     { texture: this.texture, premultipliedAlpha: premultipliedAlpha },
@@ -135,16 +160,28 @@ export class VideoTexture extends BaseTexture {
         this._already = lifeState.finished;
         return this._already;
     }
+    getExternalTexture(scopy:any): GPUBindingResource {
+        let source: HTMLVideoElement | VideoFrame = scopy.video as HTMLVideoElement | VideoFrame ;
+        // if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
+        return scopy.device.importExternalTexture({ source: source })
+
+    }
     update(): void {
         super.update();
         let source = this.video;
-        this.device.queue.copyExternalImageToTexture(
-            { source: source, flipY: this._upsideDownY }, //webGPU 的UV从左下角开始，所以需要翻转Y轴。
-            { texture: this.texture, premultipliedAlpha: this.premultipliedAlpha },
-            [this.width, this.height]
-        );
-        if (this.texture.mipLevelCount > 1) {
-            this.generateMips(this.device, this.texture);
+        if (this.model == "copy" || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas) {
+            this.device.queue.copyExternalImageToTexture(
+                { source: source, flipY: this._upsideDownY }, //webGPU 的UV从左下角开始，所以需要翻转Y轴。
+                { texture: this.texture as GPUTexture, premultipliedAlpha: this.premultipliedAlpha },
+                [this.width, this.height]
+            );
+            if ((this.texture as GPUTexture).mipLevelCount > 1) {
+                this.generateMips(this.device, this.texture as GPUTexture);
+            }
+        }
+        else {
+            if (source instanceof HTMLVideoElement || source instanceof VideoFrame)
+                this.texture = this.device.importExternalTexture({ source })
         }
 
     }

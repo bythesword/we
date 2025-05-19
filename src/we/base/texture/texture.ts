@@ -10,15 +10,16 @@ export interface optionTexture extends optionBaseTexture {
 
 export class Texture extends BaseTexture {
     declare input: optionTexture;
+    declare texture: GPUTexture ;
     constructor(input: optionTexture, device: GPUDevice) {
         super(input, device);
         //初始化参数
         this.device = device;
         this.input = input;
-        if (input.texture == undefined) {
-            console.error("texture is undefined");
-            return;
-        } 
+        // if (input.texture == undefined) {
+        //     console.error("texture is undefined");
+        //     return;
+        // } 
     }
     async init(): Promise<lifeState> {
         let source = this.input.texture;

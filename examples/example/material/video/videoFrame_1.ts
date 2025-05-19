@@ -23,8 +23,8 @@ declare global {
     DC: any
     video_1: any
   }
-} 
- 
+}
+
 let input: sceneInputJson = {
   canvas: "render",
   // renderPassSetting:{color:{clearValue:[0.5,0.5,0.5,1]}}//ok
@@ -90,14 +90,24 @@ let planeGeometry = new PlaneGeometry({
   width: 0.544,
   height: 0.960
 });
-let groundMaterial = new VideoMaterial({  
+
+const video = document.createElement("video");
+video.crossOrigin = "anonymous";
+video.src = "/examples/resource/video/sea.mp4";
+video.muted = true;
+video.loop = true;
+await video.play();
+
+// video.autoplay =  true;  //这个必须
+let videoFrame = new VideoFrame(video);
+
+let groundMaterial = new VideoMaterial({
   textures: {
     video: {
       premultipliedAlpha: false,
       name: "sea video",
-      texture: "/examples/resource/video/sea.mp4",
-      // texture: video_1
-      // model:"External"
+      texture: videoFrame,
+      model: "External"
     },
   }
 });
