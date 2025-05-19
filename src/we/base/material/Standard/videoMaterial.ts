@@ -1,51 +1,44 @@
 /**
- * @author TomSong 2025-04-28
- * @description 基础纹理材质
- * @version 0.0.1
- * @requires BaseMaterial.ts
- * @requires textureMaterial.fs.wgsl
- * @requires textureMaterialTransparent.fs.wgsl
- * @requires textureMaterial.vs.wgsl
- * @requires textureMaterialTransparent.vs.wgsl
+ * @author TomSong 2025-05-19
+ * @description 视频纹理材质
+ * @version 0.0.1 
  * 
- * 基础纹理材质
- * 1、支持基础颜色
- * 2、支持纹理
- * 3、支持透明
- *    A、alphaTest，alpha值（texture)
- *    B、opacity,整体透明度
+ * 视频纹理材质
+ * 1、只支持视频，没有其他材质
+ * 2、支持透明：opacity,整体透明度,todo
  */
 import { BaseMaterial, optionBaseMaterial, optionTransparentOfMaterial } from "../baseMaterial";
 import { uniformEntries } from "../../command/commandDefine";
 
-import textureFS from "../../shader/material/simple/texture.fs.wgsl?raw"
-import textureTransparentFS from "../../shader/material/simple/textureTransparent.fs.wgsl?raw"
+import textureFS from "../../shader/material/simple/video.fs.wgsl?raw"
+// import textureTransparentFS from "../../shader/material/simple/textureTransparent.fs.wgsl?raw"
 import { GBuffersRPDAssemble, lifeState, textureAlphaZero } from "../../const/coreConst";
 import { optionTexture, Texture } from "../../texture/texture";
 import { weSamplerKind } from "../../resource/weResource";
+import { optionVideoTexture, VideoTexture } from "../../texture/videoTexture";
 
-export interface optionTexutresKindOfMaterial {
-    texture: optionTexture | Texture,
+
+export interface optionVideoTexutresKindOfMaterial {
+    video: optionVideoTexture | VideoTexture,
     // normal?: optionTexture | Texture,
     // specular?: optionTexture | Texture,
 }
-/**
- * 纹理材质的初始化参数 * 
- */
-export interface optionTextureMaterial extends optionBaseMaterial {
-    textures: optionTexutresKindOfMaterial,
-
+export interface optionVideoTextureMaterial extends optionBaseMaterial {
+    /**
+     * video纹理参数，可以是VideoTexture，也可以是optionVideoTexture（这个是初始化VideoTexture的参数）
+     */
+    textures: optionVideoTexutresKindOfMaterial
 }
 
-export class TextureMaterial extends BaseMaterial {
+export class VideoMaterial extends BaseMaterial {
 
     sampler!: GPUSampler;
-    declare input: optionTextureMaterial;
+    declare input: optionVideoTextureMaterial;
     // /**是否上下翻转Y轴 */
     // _upsideDownY: boolean;
     /**纹理收集器 */
     declare textures: {
-        [name: string]: Texture
+        [name: string]: VideoTexture
     };
     /**纹理数量 */
     countOfTextures!: number;
@@ -53,7 +46,7 @@ export class TextureMaterial extends BaseMaterial {
     countOfTexturesOfFineshed!: number;
 
 
-    constructor(input: optionTextureMaterial) {
+    constructor(input: optionVideoTextureMaterial) {
         super(input);
         this.textures = {};
         this.countOfTextures = 0;
@@ -62,56 +55,49 @@ export class TextureMaterial extends BaseMaterial {
             this.countOfTextures = Object.keys(input.textures!).length;
         this._already = lifeState.unstart;
 
+        // if (input.transparent != undefined) {// && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0)) {//如果是透明的，就设置为透明
 
-        //是否上下翻转Y轴
-        // this._upsideDownY = true;
-        // if (input.upsideDownY != undefined) {
-        //     this._upsideDownY = input.upsideDownY;
+        //     //默认混合
+        //     let transparent: optionTransparentOfMaterial = {
+        //         blend: {
+        //             color: {
+        //                 srcFactor: "src-alpha",//源
+        //                 dstFactor: "one-minus-src-alpha",//目标
+        //                 operation: "add"//操作
+        //             },
+        //             alpha: {
+        //                 srcFactor: "one",//源
+        //                 dstFactor: "one-minus-src-alpha",//目标
+        //                 operation: "add"//操作  
+        //             }
+        //         }
+        //     };
+
+        //     if (input.transparent != undefined) {
+        //         this._transparent = input.transparent;
+        //     }
+        //     else {
+        //         this._transparent = transparent;
+        //     }
+
+        //     if (input.transparent.blend != undefined) {
+        //         this._transparent.blend = input.transparent.blend;
+        //     }
+        //     else {
+        //         this._transparent.blend = transparent.blend;
+        //     }
+
+        //     if (input.transparent.alphaTest == undefined && input.transparent.opacity == undefined) {//如果没有设置alphaTest,且没有opacity，就设置为0.0
+        //         this._transparent.alphaTest = 0.0;//直接使用texture的alpha，（因为有其他alpha的半透明）；就是不做任何处理。
+        //     }
+        //     else if (input.transparent.alphaTest != undefined && input.transparent.opacity == undefined) {//如果有设置alphaTest，就设置为alphaTest
+        //         this._transparent.alphaTest = input.transparent.alphaTest;//FS 中使用的是alphaTest对应texture的alpha进行比较，小于阈值的= 0.0，大于阈值的不变（因为有可能有大于阈值的半透明）
+        //     }
+        //     else if (input.transparent.alphaTest == undefined && input.transparent.opacity != undefined) {//如果没有设置alphaTest，就设置为opacity
+        //         // this._transparent.alphaTest = input.transparent.opacity;
+        //         this._transparent.opacity = input.transparent.opacity;//FS code中使用的是opacity，而不是alphaTest
+        //     }
         // }
-        if (input.transparent != undefined) {// && this.input.transparent.opacity != undefined && this.input.transparent.opacity < 1.0)) {//如果是透明的，就设置为透明
-
-            //默认混合
-            let transparent: optionTransparentOfMaterial = {
-                blend: {
-                    color: {
-                        srcFactor: "src-alpha",//源
-                        dstFactor: "one-minus-src-alpha",//目标
-                        operation: "add"//操作
-                    },
-                    alpha: {
-                        srcFactor: "one",//源
-                        dstFactor: "one-minus-src-alpha",//目标
-                        operation: "add"//操作  
-                    }
-                }
-            };
-
-            if (input.transparent != undefined) {
-                this._transparent = input.transparent;
-            }
-            else {
-                this._transparent = transparent;
-            }
-
-            if (input.transparent.blend != undefined) {
-                this._transparent.blend = input.transparent.blend;
-            }
-            else {
-                this._transparent.blend = transparent.blend;
-            }
-
-            if (input.transparent.alphaTest == undefined && input.transparent.opacity == undefined) {//如果没有设置alphaTest,且没有opacity，就设置为0.0
-                this._transparent.alphaTest = 0.0;//直接使用texture的alpha，（因为有其他alpha的半透明）；就是不做任何处理。
-            }
-            else if (input.transparent.alphaTest != undefined && input.transparent.opacity == undefined) {//如果有设置alphaTest，就设置为alphaTest
-                this._transparent.alphaTest = input.transparent.alphaTest;//FS 中使用的是alphaTest对应texture的alpha进行比较，小于阈值的= 0.0，大于阈值的不变（因为有可能有大于阈值的半透明）
-            }
-            else if (input.transparent.alphaTest == undefined && input.transparent.opacity != undefined) {//如果没有设置alphaTest，就设置为opacity
-                // this._transparent.alphaTest = input.transparent.opacity;
-                this._transparent.opacity = input.transparent.opacity;//FS code中使用的是opacity，而不是alphaTest
-            }
-
-        }
     }
     destroy() {
         for (let key in this.textures) {
@@ -133,31 +119,22 @@ export class TextureMaterial extends BaseMaterial {
             });
         }
         for (let key in this.input.textures) {
-            let texture = this.input.textures[key as keyof optionTexutresKindOfMaterial]!;
-            if (texture instanceof Texture) {
+            // let kkk: keyof optionTexutresKindOfMaterial = key;
+            let texture = this.input.textures[key as keyof optionVideoTexutresKindOfMaterial]!;
+            if (texture instanceof VideoTexture) {
                 this.textures[key] = texture;
+                this._already = lifeState.finished;
             }
             else {
-                let textureInstace = new Texture(texture, this.device);
-                await textureInstace.init();
-                this.textures[key] = textureInstace;
+                let textureInstace = new VideoTexture(texture, this.device);
+                this._already = await textureInstace.init();
+                if (this._already == lifeState.finished)
+                    this.textures[key] = textureInstace;
+                // else {
+                //     this._already = lifeState.unstart;
+                // }
             }
-            // this.countOfTexturesOfFineshed++;
-            this._already = lifeState.finished;
         }
-        //ok
-        // if (this.input.textures) {
-        //     if (this.input.textures.texture) {
-        //         let texture = this.input.textures.texture;
-        //         let textureInstace = new Texture(texture, this.device);
-        //         this.textures["texture"] = textureInstace;
-        //         await textureInstace.init();
-        //         this._already = true;
-        //     }
-        // }
-
-
-
     }
     /**
      * 获取FS code
@@ -178,32 +155,14 @@ export class TextureMaterial extends BaseMaterial {
 
 
 
-        if (this.getTransparent()) {
-            code = textureTransparentFS;
-            // code += `@group(1) @binding(${binding}) var u_${key}: texture_2d<f32>;\n`;
-            let bindingOfTransparent = 1;;
-            Object.entries(GBuffersRPDAssemble).forEach(([key, _value]) => {
-                if (key != "color") {// 这个与TransparentRender中的getBindGroupOfTextures()的保持一致，使用的是GBuffersRPDAssemble中的顺序。而且都不需要color的数据。
-                    if (key == "depth") {
-                        code += `@group(1) @binding(${bindingOfTransparent}) var u_depth_opacity : texture_depth_2d ; `;
-                    }
-                    else if (key == "entityID") {
-                        code += `@group(1) @binding(${bindingOfTransparent}) var u_entityID_opacity : texture_2d<u32> ; `;
-                    }
-                    else {
-                        code += `@group(1) @binding(${bindingOfTransparent}) var u_${key}_opacity : texture_2d<f32> ; `;
-                    }
-                    bindingOfTransparent++;
-                }
-            });
-        }
+ 
         if (code.indexOf("$red")) code = code.replaceAll("$red", this.red.toString());
         if (code.indexOf("$blue")) code = code.replaceAll("$blue", this.blue.toString());
         if (code.indexOf("$green")) code = code.replaceAll("$green", this.green.toString());
         if (code.indexOf("$alpha")) code = code.replaceAll("$alpha", this.alpha.toString());
 
         for (let key in this.textures) {
-            if (key == "texture") {//如果是texture，就使用$materialColor，否则使用$materialColor_${key}
+            if (key == "video") {//如果是texture，就使用$materialColor，否则使用$materialColor_${key}
                 //这个需要与getUniform(startBinding: number)中的sampler对应，都是在texture之前
                 code += ` @group(1) @binding(${binding}) var u_Sampler : sampler; \n `;
                 binding++;

@@ -4,7 +4,7 @@ import { optionTexture } from "./texture";
 export type textureTypeForImageOrUrl = string | GPUCopyExternalImageSource;
 
 export interface optionCubeTexture extends optionBaseTexture {
-    texture: {
+    cubeTexture: {
         positiveX: optionTexture,
         negativeX: optionTexture,
         positiveY: optionTexture,
@@ -21,7 +21,7 @@ export class CubeTexture extends BaseTexture {
         super(input, device); 
     }
 
-    init(): Promise<void> {
+    async init(): Promise<lifeState> {
         throw new Error("Method not implemented.");
     }
  

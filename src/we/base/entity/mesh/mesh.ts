@@ -96,6 +96,10 @@ export class Mesh extends BaseEntity {
 
         this._init = lifeState.unstart;
     }
+    update(parent: BaseStage, deltaTime: number, startTime: number, lastTime: number): void {
+        super.update(parent, deltaTime, startTime, lastTime);
+        this._material.update();
+    }
     /**覆写 Root的function,因为材料类需要GPUDevice */
     async readyForGPU() {
         await this._material.init({

@@ -7,13 +7,11 @@ import partOutput_GBuffer_Replace_FS from "../shader/material/part/part_replace.
 import defer_depth_replace_FS from "../shader/material/part/defer_depth_replace.fs.wgsl?raw"
 
 import { BaseEntity, optionShadowEntity } from "../entity/baseEntity";
-import { optionTexture } from "../texture/texture";
+// import { optionTexture } from "../texture/texture";
 import { lifeState } from "../const/coreConst";
+import { BaseTexture, optionBaseForTextureAndMaterailGlobe } from "../texture/baseTexture";
 
-/**材质的初始化状态 */
-// export type  lifeState =lifeState;
 
-// type names="texture"|"normal"|"specspecular"|"AO"|"light"|"alpha";
 /**透明材质的初始化参数 */
 export interface optionTransparentOfMaterial {
     /** 不透明度，float32，默认=1.0 
@@ -46,7 +44,7 @@ export interface optionTransparentOfMaterial {
      * 
      * 2、加载场景模式，原则上是通过加载器带入parent参数。todo
      */
-export interface optionBaseMaterial {
+export interface optionBaseMaterial extends optionBaseForTextureAndMaterailGlobe {
 
     /**基础颜色 */
     color?: coreConst.color4F//number[],
@@ -65,6 +63,7 @@ export interface optionBaseMaterial {
      * 默认不透明：没有此参数
      */
     transparent?: optionTransparentOfMaterial,
+
 }
 /**三段式初始化的第二步：init */
 export interface optionBaseMaterialStep2 {
@@ -87,7 +86,7 @@ export abstract class BaseMaterial extends RootOfGPU {
      * constructor中设置为false。 
      * 如果更改为为true，在材质不工作
     */
-    _already: lifeState;
+    _already: lifeState = lifeState.unstart;
     /**
      * blending混合的状态interface
      * 
@@ -96,6 +95,9 @@ export abstract class BaseMaterial extends RootOfGPU {
      */
     _transparent: optionTransparentOfMaterial | undefined;
 
+    textures!: {
+        [name: string]: BaseTexture
+    };
 
     deferRenderDepth!: boolean;
     deferRenderColor!: boolean;
@@ -224,6 +226,11 @@ export abstract class BaseMaterial extends RootOfGPU {
      * @returns true：可以使用，false：需要等待。     
      */
     getReady(): lifeState {
+        if (this._already == lifeState.unstart) {//videoTexture的情况，需要等待video内容的加载完成
+            if (this._readyForGPU) {
+                this.__init();
+            }
+        }
         if (this._readyForGPU) {
             return this._already;
         }
@@ -279,5 +286,19 @@ export abstract class BaseMaterial extends RootOfGPU {
 
 
         return shaderCode;
+    }
+    /** 更新材质的调用入口     
+     */
+    update() {
+        //更新texture的update()
+        for (let i in this.textures) {
+            let perTexture = this.textures[i];
+            if (perTexture) {
+                perTexture.update();
+            }
+        }
+        if (this.input.update) {
+            this.input.update(this);
+        }
     }
 }

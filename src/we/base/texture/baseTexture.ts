@@ -1,33 +1,20 @@
-import { lifeState } from "../const/coreConst";
+import { lifeState, optionUpdate } from "../const/coreConst";
 
 /**纹理的输入类型，可以是url，图片，也可以是GPUTexture */
 export type textureType = string | GPUTexture | GPUCopyExternalImageSource;
 
- 
+export interface optionBaseForTextureAndMaterailGlobe extends optionUpdate {  /**纹理名称 */
 
-/**
- * 纹理材质的初始化参数
- * 
- * 1、texture：纹理来源
- * 
- * 2、samplerFilter：采样器过滤模式，默认为linear
- * 
- * 3、mipmap：是否生成mipmap，默认为true
- * 
- * 4、premultipliedAlpha：是否预乘alpha，默认为true,只有在有透明的情况下有效。
- * 
- * 5、upsideDownY：是否上下翻转Y轴，默认为true
- */
-export interface optionBaseTexture {
-    /**纹理名称 */
-    name?: string,
-    /**纹理来源 */
-    texture?: any,
-    /** 简单设置采样器模式，如果有samplerDescriptor设置 ，则忽略此设置 
-     * 采样器过滤模式，默认为linear
+    /** 
+     * 1、简单设置采样器模式，如果有samplerDescriptor设置 ，则忽略此设置 
+     * 2、采样器过滤模式，默认为linear
+     * 3、在material中设置，会覆盖此类设置。
      */
     samplerFilter?: GPUFilterMode,
-    /**采样器 */
+    /**采样器。
+     * 1、若有此参数，忽略samplerFilter的参数
+     * 2、在material中设置，会覆盖此类设置。
+     */
     samplerDescriptor?: GPUSamplerDescriptor,
     /**是否生成纹理的mipmap
      * */
@@ -54,6 +41,26 @@ export interface optionBaseTexture {
      */
     usage?: GPUTextureUsageFlags,
 }
+
+/**
+ * 纹理材质的初始化参数
+ * 
+ * 1、texture：纹理来源
+ * 
+ * 2、samplerFilter：采样器过滤模式，默认为linear
+ * 
+ * 3、mipmap：是否生成mipmap，默认为true
+ * 
+ * 4、premultipliedAlpha：是否预乘alpha，默认为true,只有在有透明的情况下有效。
+ * 
+ * 5、upsideDownY：是否上下翻转Y轴，默认为true
+ */
+export interface optionBaseTexture extends optionBaseForTextureAndMaterailGlobe {
+    name?: string,
+    /**纹理来源 */
+    texture?: textureType,
+
+}
 export abstract class BaseTexture {
     device: GPUDevice;
 
@@ -73,8 +80,8 @@ export abstract class BaseTexture {
      * constructor中设置为false。 
      * 如果更改为为true，在材质不工作
     */
-    _already: lifeState;
-    constructor(input: any, device: GPUDevice) {
+    _already: lifeState = lifeState.unstart;
+    constructor(input: optionBaseTexture, device: GPUDevice) {
         this.device = device;
         this.input = input;
         //是否上下翻转Y轴
@@ -95,16 +102,26 @@ export abstract class BaseTexture {
                 minFilter: 'linear',
             });
         }
-        this._already = lifeState.unstart;
+        if (input.format == undefined) {
+            this.input.format = 'rgba8unorm';
+        }
+        if (input.upsideDownY != undefined) {
+            this._upsideDownY = input.upsideDownY;
+        }
+        if (input.texture == undefined) {
+            console.error("texture is undefined");
+            return;
+        }
     }
 
-    abstract init(): Promise<void>;
+    abstract init(): Promise<lifeState>;
     destroy() {
         if (this.texture) {
             this.texture.destroy();
             this.texture = undefined as any;
         }
     }
+
     /**
      * 
      * @returns 是否已经准备好
@@ -223,4 +240,9 @@ export abstract class BaseTexture {
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
     };
+    update() {
+        if (this.input.update) {
+            this.input.update(this);
+        }
+    }
 }  

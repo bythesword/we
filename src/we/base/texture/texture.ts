@@ -15,19 +15,12 @@ export class Texture extends BaseTexture {
         //初始化参数
         this.device = device;
         this.input = input;
-        if (input.format == undefined) {
-            this.input.format = 'rgba8unorm';
-        }
-        if (input.upsideDownY != undefined) {
-            this._upsideDownY = input.upsideDownY;
-        }
         if (input.texture == undefined) {
             console.error("texture is undefined");
             return;
-        }
-        // this.init();
+        } 
     }
-    async init() {
+    async init(): Promise<lifeState> {
         let source = this.input.texture;
         //url
         if (typeof source == "string") {
@@ -43,16 +36,9 @@ export class Texture extends BaseTexture {
         else if (source instanceof ImageBitmap || source instanceof ImageData || source instanceof HTMLImageElement || source instanceof HTMLVideoElement || source instanceof HTMLCanvasElement || source instanceof OffscreenCanvas || source instanceof VideoFrame) {
             await this.generateTextureByImageSource(source);
         }
-
+        return this._already;
     }
 
-
-
-
-    /**
-     * 
-     * @param res 
-     */
     async generateTextureByString(res: string) {
         let scope = this;
         let response = await fetch(res);
@@ -114,5 +100,6 @@ export class Texture extends BaseTexture {
             this.generateMips(this.device, this.texture);
         }
         scope._already = lifeState.finished;
-    };
+    }
+
 }
