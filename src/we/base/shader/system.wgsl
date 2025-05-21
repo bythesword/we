@@ -10,6 +10,7 @@ struct ST_AmbientLight {
   color: vec3f,
   intensity: f32,
 };
+//单个光源参数
 struct ST_Light {
   position: vec3f,
   decay: f32,
@@ -28,17 +29,14 @@ struct ST_Light {
   shadow_map_array_lenght: u32,  //1 or 6
   shadow_map_enable: i32,  //depth texture array 会在light add之后的下一帧生效，这个是标志位
 };
+//全部光源参数
 struct ST_Lights {
   lightNumber: u32,
   Ambient: ST_AmbientLight,
   //$lightsArray    //这个是变量的化，shader的编译会有问题，会不变的
   lights: array<ST_Light, $lightNumber>, //这在scene.getWGSLOfSystemShader()中进行替换,是默认或者设置的最大值，用不用都是有32lights的buffer
 };
-struct bulin_phong {
-  shininess: f32,
-  metalness: f32,
-  roughness: f32,
-}
+
 //U_shadowMapMatrix（ST_shadowMapMatrix）与  U_shadowMap_depth_texture是一一对应的，此两者与light的关系通过ST_Lights中ST_shadowMap
 struct ST_shadowMapMatrix {
   light_id: u32,
@@ -60,11 +58,11 @@ var<private> matrix_z : mat4x4f = mat4x4f(
     0.0, 0.0, 1.0, 0.0,
     0.0, 0.0, 0.0, 1.0
 );
-@group(0) @binding(0) var<uniform> U_MVP : ST_SystemMVP;
-@group(0) @binding(1) var<uniform> U_lights : ST_Lights;
+@group(0) @binding(0) var<uniform> U_MVP : ST_SystemMVP;            //当前的摄像机的MVP结构
+@group(0) @binding(1) var<uniform> U_lights : ST_Lights;            //全部的光源的uniform结构
 //下面三个是fs中使用的，如果同时有VS和FS，则正确；如果只有VS，则报错（需要使用，SystemOnlyVS.wgsl）
-@group(0) @binding(2) var<uniform> U_shadowMapMatrix : array<ST_shadowMapMatrix, $lightNumberShadowNumber >;    //这里shadowNumber是需要和 depth texture一起计算的
-@group(0) @binding(3) var U_shadowMap_depth_texture : texture_depth_2d_array;     //按照cube方式排列 right=0,left=1,up=2,down=3,back=4,front=5
+@group(0) @binding(2) var<uniform> U_shadowMapMatrix : array<ST_shadowMapMatrix, $lightNumberShadowNumber >;    //1、所有光源的shadowmap;2、这里shadowNumber是需要和 depth texture一起计算的
+@group(0) @binding(3) var U_shadowMap_depth_texture : texture_depth_2d_array;     //1、目前是都安装cube计算的，有浪费，todo;2、按照cube方式排列 right=0,left=1,up=2,down=3,back=4,front=5
 @group(0) @binding(4)  var shadowSampler: sampler_comparison;
 fn initSystemOfVS() {
     defaultCameraPosition = U_MVP.cameraPosition;
@@ -113,6 +111,100 @@ const  PI= 3.141592653589793;
 const  NUM_SAMPLES: i32=100;
 const  NUM_RINGS: i32 = 10;
 const FILTER_RADIUS =10.0;
+//材质
+fn ParallaxMappingBase( texCoords:vec2f,  viewDir:vec3f,heightScale:f32,depthMap:texture_2d<f32>,depthSampler:sampler)-> vec2f
+{ 
+    let  height =  textureSample(depthMap,depthSampler, texCoords).r;     
+    return texCoords - viewDir.xy/viewDir.z * (height * heightScale);        
+}
+fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, depthMap : texture_2d<f32>, depthSampler : sampler) -> vec2f
+{
+    const layers = 11;
+    var heightArray = array<f32, layers > (); 
+    let layerDepth = 1.0 / layers;
+
+    let P : vec2f = viewDir.xy / viewDir.z * heightScale;       //P点的向量
+    let depthOfP = textureSample(depthMap, depthSampler, texCoords).r;//P点的高度
+    let height = depthOfP;
+
+    let deltaTexCoords = P / layers;                    //deltaTexCoords 是每一层的向量增量
+    var currentTexCoords = texCoords;                   //currentTexCoords 是当前的纹理坐标
+
+    // depth of current layer
+    var currentLayerDepth = 0.0;
+    var targetLayer : i32 = -1;
+    var targetMapDepth : f32 = 0.0;
+    var targetTexCoords : vec2f = vec2f(0.0, 0.0);
+    var targetLayerDepth : f32 = 0.0;
+    for (var i : i32 = 0; i < layers; i = i + 1)
+    {
+        currentTexCoords -= deltaTexCoords;
+        let currentDepthMapValue = textureSample(depthMap, depthSampler, currentTexCoords).r;
+        heightArray[i] = currentDepthMapValue  ;
+        currentLayerDepth += layerDepth; 
+        if(currentLayerDepth < currentDepthMapValue){
+            targetLayer = i;
+            targetTexCoords = currentTexCoords;
+            targetMapDepth = currentDepthMapValue;
+            targetLayerDepth = currentLayerDepth;
+        }
+    }  
+    if (targetLayer == -1 ||targetLayer == layers - 1) {//没有找到
+       return texCoords - viewDir.xy/viewDir.z * (height * heightScale);                
+    }
+    else {
+        let prevTexCoords = targetTexCoords + deltaTexCoords;//前一层的纹理坐标
+
+        let afterDpeth = targetMapDepth -targetLayerDepth;   // get depth after and before collision for linear interpolation
+
+        let beforeLayerDepth = heightArray[targetLayer - 1]- targetLayerDepth + layerDepth;
+         
+        let weight = afterDpeth/ (afterDpeth - beforeLayerDepth);//这个插值比例todo，应该就是线性插值，为什么是这个比例todo
+ 
+
+       // let finalTexCoords = prevTexCoords * weight + targetTexCoords * (1.0 - weight);
+        let finalTexCoords = prevTexCoords *0.5 + targetTexCoords * 0.5;
+
+
+        return finalTexCoords;
+    }
+}
+//切线空间norml转世界空间normal
+fn getNormalFromMap(normal : vec3f, normalMapValue : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f
+{
+    let tangentNormal = normalMapValue * 2.0 - 1.0;             //切线空间的法线，切线空间的(局部坐标)
+
+    let Q1 = dpdx(WorldPos);        //世界的，X方向
+    let Q2 = dpdy(WorldPos);        //世界的，Y方向
+    let st1 = dpdx(TexCoords);      //uv的
+    let st2 = dpdy(TexCoords);      //uv的
+
+   // let N = normalize(normal);                          //切线空间的法线，（Z轴相对于世界Z的变化量）
+   // let T = normalize(Q1 * st2.y - Q2 * st1.y);          //切线空间的切线，（X轴相对于世界X轴的变化量）
+   // let B = normalize(cross(T, N));                          //切线空间的副切线，（Y轴对应于世界Y轴的变化量）
+   // let TBN = mat3x3(T, B, N);                                          //切线空间的矩阵，local相当于世界的各个分量的变化量，
+    let TBN = getTBN(normal,WorldPos,TexCoords);
+    return normalize(TBN * tangentNormal);  //从局部到世界，所以 TBN*切线空间的法线，得到世界的法线世界的
+    //20250521，todo：blin-phong 中的视差贴图使用的normal在计算光照阴影时，出现了xy方向的翻转问题，需要进行手工修正为相反的量，这个在PBR待定。
+    // return normalize(TBN * vec3f(-tangentNormal.x,-tangentNormal.y,tangentNormal.z));  //从局部到世界，所以 TBN*切线空间的法线，得到世界的法线世界的
+}
+fn getTBN(normal:vec3f,WorldPos:vec3f,TexCoords:vec2f)->mat3x3f
+{
+      let Q1 = dpdx(WorldPos);        //世界的，X方向
+    let Q2 = dpdy(WorldPos);        //世界的，Y方向
+    let st1 = dpdx(TexCoords);      //uv的
+    let st2 = dpdy(TexCoords);      //uv的
+
+//from learn opengl 
+    //let N = normalize(normal);                          //切线空间的法线，（Z轴相对于世界Z的变化量）
+    //let T =  normalize(Q1 * st2.y - Q2 * st1.y);          //切线空间的切线，（X轴相对于世界X轴的变化量）
+    //let B = normalize(cross(T, N));                          //切线空间的副切线，（Y轴对应于世界Y轴的变化量）
+    
+    let N = normalize(normal);                          //切线空间的法线，（Z轴相对于世界Z的变化量）
+    let T =  normalize( Q2 * st1.y-Q1 * st2.y );          //切线空间的切线，（X轴相对于世界X轴的变化量）,X轴=偏导数（DY方向-DX方向的）
+    let B = normalize(cross(T, N));                          //切线空间的副切线，（Y轴对应于世界Y轴的变化量）,webgpu的纹理UV（0，0）在左上角，使用时 T cross N
+    return mat3x3(T, B, N);                                          //切线空间的矩阵，local相当于世界的各个分量的变化量，
+}
 //shadow map  使用 相关
 override shadowDepthTextureSize : f32 = 2048.0;
 fn rand_0to1(x: f32) -> f32 {

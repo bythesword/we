@@ -75,22 +75,7 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     output.color = vec4f(colorOfPBR, 1);    //
     return output;
 }
-fn getNormalFromMap(normal : vec3f, normalMapValue : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f
-{
-    let tangentNormal = normalMapValue * 2.0 - 1.0;
 
-    let Q1 = dpdx(WorldPos);
-    let Q2 = dpdy(WorldPos);
-    let st1 = dpdx(TexCoords);
-    let st2 = dpdy(TexCoords);
-
-    let N = normalize(normal);
-    let T = normalize(Q1 * st2.y - Q2 * st1.y);
-    let B = normalize(cross(T, N));
-    let TBN = mat3x3(T, B, N);
-
-    return normalize(TBN * tangentNormal);
-}
 fn fresnelSchlick(cosTheta : f32, F0 : vec3f) -> vec3f
 {
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);

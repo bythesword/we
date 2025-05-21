@@ -1,5 +1,11 @@
 
 //start :lightsphong.fs.wgsl //@group(1) @binding(1) var<uniform> u_bulinphong : bulin_phong;//20241215 转移到TS中
+struct bulin_phong {
+  shininess: f32,
+  metalness: f32,
+  roughness: f32,
+  parallaxScale: f32,
+}
 //检查pixel是否在光源的阴影中   //未处理距离
 fn checkPixelInPointLightRange(pixelWorldPosition : vec3f, onelight : ST_Light,) -> i32 {
     var index = -1;
@@ -19,24 +25,12 @@ fn checkPixelInPointLightRange(pixelWorldPosition : vec3f, onelight : ST_Light,)
     }
     return index;
 }
-fn getNormalFromMap(normal : vec3f, normalMapValue : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f
-{
-    let tangentNormal = normalMapValue * 2.0 - 1.0;
 
-    let Q1 = dpdx(WorldPos);
-    let Q2 = dpdy(WorldPos);
-    let st1 = dpdx(TexCoords);
-    let st2 = dpdy(TexCoords);
-
-    let N = normalize(normal);
-    let T = normalize(Q1 * st2.y - Q2 * st1.y);
-    let B = normalize(cross(T, N));
-    let TBN = mat3x3(T, B, N);
-
-    return normalize(TBN * tangentNormal);
-}
 @fragment
 fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
+    var uv = fsInput.uv;
+    var normal=fsInput.normal;
+    $normal   
     $deferRender_Depth                                  //占位符
     let shininess = u_bulinphong.shininess;
     let metalness = u_bulinphong.metalness;
@@ -65,17 +59,17 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
             if (onelight.kind ==0)
             {
                 computeShadow = true;
-                onelightPhongColor = phongColorOfDirectionalLight(fsInput.worldPosition, fsInput.normal, onelight.direction, onelight.color, onelight.intensity, defaultCameraPosition, fsInput.uv);
+                onelightPhongColor = phongColorOfDirectionalLight(fsInput.worldPosition, normal, onelight.direction, onelight.color, onelight.intensity, defaultCameraPosition, uv);
             }
             else if (onelight.kind ==1)
             {
                 computeShadow = true;
                 shadow_map_index = checkPixelInPointLightRange(fsInput.worldPosition, onelight);
-                onelightPhongColor = phongColorOfPointLight(fsInput.worldPosition, fsInput.normal, onelight.position, onelight.color, onelight.intensity, defaultCameraPosition, fsInput.uv);
+                onelightPhongColor = phongColorOfPointLight(fsInput.worldPosition, normal, onelight.position, onelight.color, onelight.intensity, defaultCameraPosition, uv);
             }
             else if (onelight.kind ==2)
             {
-                onelightPhongColor = phongColorOfSpotLight(fsInput.worldPosition, fsInput.normal, onelight.position, onelight.direction, onelight.color, onelight.intensity, onelight.angle, defaultCameraPosition, fsInput.uv);
+                onelightPhongColor = phongColorOfSpotLight(fsInput.worldPosition, normal, onelight.position, onelight.direction, onelight.color, onelight.intensity, onelight.angle, defaultCameraPosition, uv);
                 computeShadow = inShadowRangOfSpotLight(fsInput.worldPosition, onelight.position, onelight.direction, onelight.angle);
             }
             if(shadow_map_index >=0){            //如果在点光源的阴影中，计算阴影
@@ -85,13 +79,13 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
                 shadow_map_index = onelight.shadow_map_array_index;
             }
             if (onelight.kind ==1){//点光源的pcss在计算block是需要适配，目前多出来了边界的黑框，目前考虑是block的uv在边界的地方越界了，需要进行特殊处理
-                visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal,0.08);
+                visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
             }
             else{
-             visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal, 0.08); 
-            //visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  fsInput.worldPosition, fsInput.normal);
-            //visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal,0.08);
-           // visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, fsInput.normal);
+             visibility = shadowMapVisibilityPCSS(onelight, shadow_map_index, fsInput.worldPosition, normal, 0.08); 
+            //visibility = shadowMapVisibilityPCF_3x3(onelight,shadow_map_index,  fsInput.worldPosition, normal);
+            //visibility = shadowMapVisibilityPCF(onelight, shadow_map_index, fsInput.worldPosition, normal,0.08);
+           // visibility = shadowMapVisibilityHard(onelight, shadow_map_index, fsInput.worldPosition, normal);
            }
             if (onelight.shadow ==1 && computeShadow)            {            }
             else
@@ -131,14 +125,14 @@ fn phongColorOfDirectionalLight(position : vec3f, vNormal : vec3f, lightDir : ve
 {
     var colos_DS : array<vec3f, 2>;
     var normal = normalize(vNormal);
-    $normal         //占位符
+ 
     let light_atten_coff = lightIntensity;  //方向光不衰减
     let diff = max(dot(lightDir, normal), 0.0);
     let diffColor = diff * light_atten_coff * lightColor * u_bulinphong.roughness;
     var spec = 0.0;
     let viewDir = normalize(viewerPosition - position);
-    let halfDir = normalize(lightDir - viewDir);//半程向量，
-    //let halfDir = normalize(lightDir + viewDir);//半程向量，这个再确认一下，相加会产生问题（box有小视角阴影有问题）
+   // let halfDir = normalize(lightDir - viewDir);//半程向量，
+    let halfDir = normalize(lightDir + viewDir);//todo：半程向量，这个再确认一下，相加会产生问题（box有小视角阴影有问题）
     spec = pow (max(dot(viewDir, halfDir), 0.0), u_bulinphong.shininess);
     var specularColor = light_atten_coff * u_bulinphong.metalness * spec * lightColor;
     $spec           //占位符
@@ -157,7 +151,7 @@ fn phongColorOfPointLight(position : vec3f, vNormal : vec3f, lightPosition : vec
     var colos_DS : array<vec3f, 2>;
     let lightDir = normalize(lightPosition - position);
     var normal = normalize(vNormal);            //归一化normal，或法线贴图的值
-    $normal             //占位符
+ 
     let light_atten_coff = lightIntensity / length(lightPosition - position);   //光衰减，这里阳光是平方，todo，需要考虑gamma校正
     let diff = max(dot(lightDir, normal), 0.0);
     let diffColor = diff * light_atten_coff * lightColor * u_bulinphong.roughness;
@@ -183,7 +177,7 @@ fn phongColorOfSpotLight(position : vec3f, vNormal : vec3f, lightPosition : vec3
     let lightDir = normalize(lightPosition - position);                     //光源到物体的点的方向
     let viewDir = normalize(viewerPosition - position);
     var normal = normalize(vNormal);                //归一化normal，或法线贴图的值
-    $normal         //占位符
+     
     let light_atten_coff = lightIntensity / length(lightPosition - position);               //光衰减，这里阳光是平方，todo，需要考虑gamma校正
     var diffColor = vec3f(0);
     let limit_inner = cos(angle.x);                                                 //spot内角度的点积域

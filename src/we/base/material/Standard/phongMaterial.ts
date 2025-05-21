@@ -10,11 +10,15 @@ import lightsFS from "../../shader/material/simple/lightsphong.fs.wgsl?raw"
 
 import { PhongColorMaterial, optionPhongColorMaterial } from "./phongColorMaterial";
 import { weResourceTexture, weSamplerKind } from "../../resource/weResource";
-import { optionTexture, Texture  } from "../../texture/texture";
+import { optionTexture, Texture } from "../../texture/texture";
 import { uniformEntries } from "../../command/commandDefine";
 import { lifeState } from "../../const/coreConst";
+import { inverse } from "wgpu-matrix/dist/2.x/vec2-impl";
 
-
+export interface optionParallaxTexture extends optionTexture {
+    scale?: number,//视差贴图的缩放,默认是0.1
+    layers?: number,//视差贴图的层数,默认是10
+}
 
 /*
 * 这个phong模型是PBR的，结果只是近似
@@ -24,18 +28,17 @@ export interface optionPhongMaterial extends optionPhongColorMaterial {
         texture?: optionTexture | Texture,
         normalTexture?: optionTexture | Texture,
         specularTexture?: optionTexture | Texture,
-        parallax?: optionTexture | Texture,//视差贴图
-
+        parallaxTexture?: optionParallaxTexture,//视差贴图
     },
-    samplerFilter?: GPUMipmapFilterMode,
-    mipmap?: boolean,
 }
 
 
 export class PhongMaterial extends PhongColorMaterial {
 
     declare input: optionPhongMaterial;
-    textures!: weResourceTexture
+    declare textures: weResourceTexture;
+
+
     countOfTextures!: number;
     countOfTexturesOfFineshed!: number;
     sampler!: GPUSampler
@@ -47,7 +50,12 @@ export class PhongMaterial extends PhongColorMaterial {
         this.textures = {};
         if (this.input.texture)
             this.countOfTextures = Object.keys(this.input.texture!).length;
-
+        if (this.input.texture?.parallaxTexture) {
+            // if (this.input.texture.parallaxTexture.layers == undefined) {
+            //     this.input.texture.parallaxTexture.layers = 10;
+            // }
+            this.countOfTextures++;
+        }
     }
 
 
@@ -97,6 +105,7 @@ export class PhongMaterial extends PhongColorMaterial {
         let flag_spec = false;
         let flag_texture = false;
         let flag_normal = false;
+        let flag_parallax = false;
 
         // @group(1) @binding(4) var u_Sampler: sampler;
         // @group(1) @binding(5) var u_Texture: texture_2d<f32>;
@@ -116,14 +125,55 @@ export class PhongMaterial extends PhongColorMaterial {
                 if (i == "normalTexture") {
                     flag_normal = true;
                 }
+                if (i == "parallaxTexture") {
+                    flag_parallax = true;
+                }
                 code += `@group(1) @binding(${binding}) var u_${i}: texture_2d<f32>;\n`;//u_${i}是texture的名字，指定的三种情况，texture，specularTexture，normalTexture
                 binding++;
             }
         }
+        //是否有法线纹理，有则使用纹理，没有则使几何体的法线
+        if (code.indexOf("$normal") != -1)
+            if (flag_normal) {
+                let normalTexture = ` let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb;
+               normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv);
+            //    normal.x=-normal.x;//todo,不明原因，需要翻转,应该时TBN的问题，待查
+            //    normal.y=-normal.y;//todo,不明原因，需要翻转,应该时TBN的问题，待查
+                `;
+
+
+                code = code.replaceAll("$normal", normalTexture);
+            }
+            else {
+                code = code.replaceAll("$normal", " ");
+            }
         //是否有基础纹理，有则使用纹理，没有则使用颜色
         if (code.indexOf("$materialColor") != -1)
             if (flag_texture) {
-                code = code.replaceAll("$materialColor", 'materialColor = textureSample(u_texture, u_Sampler, fsInput.uv);\n');
+                if (flag_parallax && flag_normal) {
+                    let parallaxTexture = ` 
+                    let TBN=getTBN(fsInput.normal,fsInput.worldPosition,fsInput.uv);
+                    let invertTBN=transpose(TBN );
+
+                    let viewDir= normalize( defaultCameraPosition- fsInput.worldPosition);
+                    // let viewDir= normalize(invertTBN*defaultCameraPosition-invertTBN*fsInput.worldPosition);//todo,纹理产生了较大便宜，不应该的
+                    `;
+                    if (this.input.texture!.parallaxTexture!.layers) {
+                        parallaxTexture += `uv = parallax_occlusion(fsInput.uv, viewDir, u_bulinphong.parallaxScale,u_parallaxTexture, u_Sampler);\n`;
+                    }
+                    else {
+                        parallaxTexture += ` uv = ParallaxMappingBase(fsInput.uv, viewDir, u_bulinphong.parallaxScale,u_parallaxTexture, u_Sampler);\n`;
+                    }
+                    parallaxTexture += `
+                    if(uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0){
+                            discard;
+                       }                   
+                    materialColor = textureSample(u_texture, u_Sampler, uv);\n`;
+                    code = code.replaceAll("$materialColor", parallaxTexture);
+                }
+                else {
+                    code = code.replaceAll("$materialColor", 'materialColor = textureSample(u_texture, u_Sampler, fsInput.uv);\n');
+                }
             }
             else {
                 code = code.replaceAll("$materialColor", '');
@@ -141,17 +191,7 @@ export class PhongMaterial extends PhongColorMaterial {
             else {
                 code = code.replaceAll("$spec", " ");
             }
-        //是否有法线纹理，有则使用纹理，没有则使几何体的法线
-        if (code.indexOf("$normal") != -1)
-            if (flag_normal) {
-                let normalTexture = `  normal =textureSample(u_normalTexture, u_Sampler,  uv).rgb;\n
-                normal= getNormalFromMap( vNormal ,normal,position, uv);\n`;
 
-                code = code.replaceAll("$normal", normalTexture);
-            }
-            else {
-                code = code.replaceAll("$normal", " ");
-            }
         code += `@group(1) @binding(${binding}) var<uniform> u_bulinphong : bulin_phong; \n`
 
 
@@ -195,16 +235,22 @@ export class PhongMaterial extends PhongColorMaterial {
                 binding++;
             }
         }
+        let parallarScale = 0.1;
+        if (this.input.texture?.parallaxTexture) {
+            if (this.input.texture.parallaxTexture.scale)
+                parallarScale = this.input.texture.parallaxTexture.scale ? this.input.texture.parallaxTexture.scale : 0.1;
+        }
         phong.push(
             {
                 label: "Mesh FS bulin phong",
                 binding: binding++,
-                size: 4 * 3,
+                size: 4 * 4,
                 get: () => {
-                    let a = new Float32Array(3);
+                    let a = new Float32Array(4);
                     a[0] = scope.input.Shininess as number;
                     a[1] = scope.input.metalness as number;
                     a[2] = scope.input.roughness as number;
+                    a[3] = parallarScale;
                     return a;
                 },
             },

@@ -54,7 +54,7 @@ export interface optionPBRMaterial extends optionBaseMaterial {
 export class PBRMaterial extends BaseMaterial {
 
     declare input: optionPBRMaterial;
-    textures: valuesOfPBR_Texture;
+    declare textures: valuesOfPBR_Texture;
     uniform: ArrayBuffer;
     uniformSize: number = 48;
     sampler!: GPUSampler

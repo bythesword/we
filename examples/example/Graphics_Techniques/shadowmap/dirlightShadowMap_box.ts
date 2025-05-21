@@ -12,6 +12,9 @@ import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight
 import { initScene } from "../../../../src/we/base/scene/initScene"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
 import { BoxGeometry } from "../../../../src/we/base/geometry/boxGeometry"
+import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMaterial"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
+import { vec3 } from "wgpu-matrix"
 
 declare global {
   interface Window {
@@ -49,7 +52,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.1,
   far: 30,
-  position: [-10, 10, 10],
+  position: [0, 10, 10],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -85,7 +88,7 @@ let Geometry = new BoxGeometry({
   depth: 2
 });
 //极简测试材质，red
-let redMaterial = new PhongLightsMaterial(
+let redMaterial = new PhongMaterial(
   {
     color: { red: 0, green: 0.9, blue: 1, alpha: 1 },
     Shininess: 16,
@@ -116,7 +119,7 @@ let planeGeometry = new PlaneGeometry({
   width: 10,
   height: 10
 });
-let groundMaterial = new PhongLightsMaterial(
+let groundMaterial = new PhongMaterial(
   {
     color: { red: 0.85, green: 0.85, blue: 0.85, alpha: 1 },
     Shininess: 32,
@@ -146,4 +149,21 @@ let dirLight: DirectionalLight = new DirectionalLight(
 );
 
 scene.addLight(dirLight);
-
+ 
+let lightdMaterial = new ColorMaterial(
+  {
+    color: { red: 1, green: 1, blue: 1, alpha: 1 },
+  }
+);
+//box实体
+let lightEntity = new Mesh(
+  {
+    geometry: Geometry,
+    material: lightdMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position:vec3.create(2.5, 5, 10),
+    scale:[0.1,0.1,0.1], 
+  }
+);
+scene.add(lightEntity);

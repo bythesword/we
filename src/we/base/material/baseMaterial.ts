@@ -95,9 +95,10 @@ export abstract class BaseMaterial extends RootOfGPU {
      */
     _transparent: optionTransparentOfMaterial | undefined;
 
-    textures!: {
-        [name: string]: BaseTexture
-    };
+    textures!: any
+    // {
+    //     [name: string]: BaseTexture
+    // };
 
     deferRenderDepth!: boolean;
     deferRenderColor!: boolean;

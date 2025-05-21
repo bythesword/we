@@ -80,26 +80,28 @@ scene.addCameraActor(actor, true)
 ////enities 初始化
 //box
 let planeGeometry = new PlaneGeometry();
+let boxGeometry = new BoxGeometry();
 //极简测试材质，red
 let redMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
-  metalness: 0.,
-  roughness: 1,
-  Shininess: 8,
+  metalness: 0.03,
+  roughness: 0.6,
+  Shininess: 32,
   texture: {
     texture: {
-      texture: "/examples/resource/images/wall/bricks2.jpg",
+      texture: "/examples/resource/images/img/wood.png",
       // upsideDownY:false,
     },
     normalTexture: {
-      texture: "/examples/resource/images/wall/bricks2_normal.jpg",
+      texture: "/examples/resource/images/img/toy_box_normal.png",
       // upsideDownY:false,
 
     },
     parallaxTexture: {
-      texture: "/examples/resource/images/wall/bricks2_disp.jpg",
+      texture: "/examples/resource/images/img/toy_box_disp.png",
       // upsideDownY:false,
-      scale: 0.1,
+      scale:  0.15,
+      layers:10,
     }
   }
 });
@@ -124,18 +126,18 @@ let boxEntity = new Mesh(
 await scene.add(boxEntity)
 
 let pointLight_1 = new PointLight({
-  intensity: 3.0,
-  position: [1, 1, 1],
+  intensity: 4.0,
+  position: [1, 1, 0.51],
   color: { red: 1, green: 1, blue: 1 },
 })
-scene.addLight(pointLight_1)
 
-// let light1 = new DirectionalLight(
-//   { 
-//     intensity: 1.0,
-//     direction: [-0.5, -1, 0.3],
-//   }
-// );
+let light1 = new DirectionalLight(
+  { 
+    intensity: 1.0,
+    direction: [1, 1, 1],
+  }
+);
+scene.addLight(pointLight_1)
 
 // scene.addLight(light1);
 

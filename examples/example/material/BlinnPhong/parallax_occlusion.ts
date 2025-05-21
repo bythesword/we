@@ -85,7 +85,7 @@ let redMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
   metalness: 0.,
   roughness: 1,
-  Shininess: 8,
+  Shininess: 32,
   texture: {
     texture: {
       texture: "/examples/resource/images/wall/bricks2.jpg",
@@ -100,6 +100,7 @@ let redMaterial = new PhongMaterial({
       texture: "/examples/resource/images/wall/bricks2_disp.jpg",
       // upsideDownY:false,
       scale: 0.1,
+      layers:10,
     }
   }
 });

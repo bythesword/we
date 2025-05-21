@@ -152,7 +152,7 @@ export abstract class BaseCamera {
   /**
    * 通过position,dir更新摄像机矩阵（三个，M，V，P）
    * @param position ：摄像机位置
-   * @param direction ：摄像机方向
+   * @param direction ：摄像机方向（归一化）||看向的位置（非归一化）
    * @param normalize ：摄像机方向是否归一化的
    * @returns  MVP的Mat4[]
    */

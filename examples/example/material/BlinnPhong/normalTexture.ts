@@ -81,7 +81,7 @@ let boxGeometry = new BoxGeometry();
 //极简测试材质，red
 let redMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
-  metalness: 1,
+  metalness: 0.75,
   texture: {
     texture: {
       texture: "/examples/resource/images/wall/brickwall.jpg"
