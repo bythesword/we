@@ -99,7 +99,7 @@ let redMaterial = new PhongMaterial({
     parallaxTexture: {
       texture: "/examples/resource/images/wall/bricks2_disp.jpg",
       // upsideDownY:false,
-      scale: 0.1,
+      scale: 0.03,
       layers:10,
     }
   }
@@ -125,7 +125,7 @@ let boxEntity = new Mesh(
 await scene.add(boxEntity)
 
 let pointLight_1 = new PointLight({
-  intensity: 3.0,
+  intensity: 1.0,
   position: [1, 1, 1],
   color: { red: 1, green: 1, blue: 1 },
 })

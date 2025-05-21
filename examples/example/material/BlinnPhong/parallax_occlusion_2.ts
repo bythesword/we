@@ -12,11 +12,15 @@ import { PointLight } from "../../../../src/we/base/light/pointLight"
 import { mat4, vec3 } from "wgpu-matrix"
 import { PlaneGeometry } from "../../../../src/we/base/geometry/planeGeomertry"
 import { DirectionalLight } from "../../../../src/we/base/light/DirectionalLight"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
+import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
 
 declare global {
   interface Window {
     scene: any
     DC: any
+    lightRadius: any
+    lightRadiusFlag: boolean
   }
 }
 let input: sceneInputJson = {
@@ -49,7 +53,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [0, 0, 1],
+  position: [0, 0, 2.3],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -79,16 +83,20 @@ scene.addCameraActor(actor, true)
 
 ////enities 初始化
 //box
-let planeGeometry = new PlaneGeometry();
+let planeGeometry = new PlaneGeometry({
+  width: 2,
+  height: 2
+});
 let boxGeometry = new BoxGeometry();
 //极简测试材质，red
 let redMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
-  metalness: 0.03,
-  roughness: 0.6,
+  metalness: 0.01,
+  roughness: 0.5,
   Shininess: 32,
   texture: {
     texture: {
+      // texture: "/examples/resource/images/img/toy_box_diffuse.png",
       texture: "/examples/resource/images/img/wood.png",
       // upsideDownY:false,
     },
@@ -100,8 +108,8 @@ let redMaterial = new PhongMaterial({
     parallaxTexture: {
       texture: "/examples/resource/images/img/toy_box_disp.png",
       // upsideDownY:false,
-      scale:  0.15,
-      layers:10,
+      scale: 0.01,
+      layers: 10,
     }
   }
 });
@@ -112,27 +120,39 @@ let boxEntity = new Mesh(
     material: redMaterial,
     wireFrame: false,
     // dynamicPostion: true,
-    update: (scope, deltaTime, startTime, lastTime) => {
-      // console.log("12");
-      scope.matrix = mat4.identity();
-      const now = Date.now() / 1000;
-      scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);
-      return true;
-    },
+    // update: (scope, deltaTime, startTime, lastTime) => {
+    //   // console.log("12");
+    //   scope.matrix = mat4.identity();
+    //   const now = Date.now() / 1000;
+    //   scope.rotate(vec3.fromValues(Math.cos(now), Math.sin(now), 0), 1);
+    //   return true;
+    // },
     cullmode: "none"
   }
 );
 //增加实体到scene
 await scene.add(boxEntity)
 
+
+
+window.lightRadius = 0.995;
+window.lightRadiusFlag = true;
+// let lightRadius=
+let lightZ = 0.35
 let pointLight_1 = new PointLight({
-  intensity: 4.0,
-  position: [1, 1, 0.51],
+  intensity: 1.0,
+  position: [1, 1, 1],
   color: { red: 1, green: 1, blue: 1 },
+  update: (scope: any) => {
+    let dir = scope.getDirection();
+    const now = Date.now() / 1000;
+    scope.values.position = vec3.fromValues(Math.sin(now) * window.lightRadius, Math.cos(now) * window.lightRadius, lightZ);
+    return true
+  },
 })
 
 let light1 = new DirectionalLight(
-  { 
+  {
     intensity: 1.0,
     direction: [1, 1, 1],
   }
@@ -140,6 +160,55 @@ let light1 = new DirectionalLight(
 scene.addLight(pointLight_1)
 
 // scene.addLight(light1);
+
+let ballGeometry = new SphereGeometry({
+  radius: 0.1,
+  widthSegments: 8,
+  heightSegments: 8
+});
+let lightMaterial = new ColorMaterial(
+  {
+    color: { red: 1, green: 1, blue: 1, alpha: 1 },
+  });
+
+//light实体
+let light1Entity1 = new Mesh(
+  {
+    geometry: ballGeometry,
+    material: lightMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position: vec3.create(2, 0, 0),
+    scale: [0.1, 0.1, 0.1],
+    dynamicPostion: true,
+    rotate: {
+      axis: [1, 0, 0],
+      angleInRadians: 0.15 * Math.PI
+    },
+    update: (scope: any) => {
+      // let dir = scope.getDirection();
+      const now = Date.now() / 1000;
+      scope.position = vec3.fromValues(Math.sin(now) * window.lightRadius, Math.cos(now) * window.lightRadius, lightZ);
+      if (window.lightRadius >= 1.2) {
+        window.lightRadiusFlag = false;
+      }
+      if (window.lightRadius <=0.30) {
+        window.lightRadiusFlag = true;
+      }
+      if(window.lightRadiusFlag){
+         window.lightRadius+=0.001
+      }
+      else{
+        window.lightRadius-=0.001
+      }
+
+      scope.updateMatrix();
+      return true
+    },
+  }
+);
+//增加实体到scene
+await scene.add(light1Entity1)
 
 //运行场景
 scene.run()

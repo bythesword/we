@@ -119,11 +119,11 @@ fn ParallaxMappingBase( texCoords:vec2f,  viewDir:vec3f,heightScale:f32,depthMap
 }
 fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, depthMap : texture_2d<f32>, depthSampler : sampler) -> vec2f
 {
-    const layers = 11;
+    const layers = 64;
     var heightArray = array<f32, layers > (); 
     let layerDepth = 1.0 / layers;
 
-    let P : vec2f = viewDir.xy / viewDir.z * heightScale;       //P点的向量
+    let P : vec2f = viewDir.xy / viewDir.z  * heightScale;       //P点的向量
     let depthOfP = textureSample(depthMap, depthSampler, texCoords).r;//P点的高度
     let height = depthOfP;
 
@@ -149,25 +149,67 @@ fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, dep
             targetLayerDepth = currentLayerDepth;
         }
     }  
+    var weight:f32=0.0;
+
     if (targetLayer == -1 ||targetLayer == layers - 1) {//没有找到
-       return texCoords - viewDir.xy/viewDir.z * (height * heightScale);                
+        targetTexCoords=texCoords ;
+        targetMapDepth=depthOfP;
+        targetLayerDepth=0.0;
     }
-    else {
-        let prevTexCoords = targetTexCoords + deltaTexCoords;//前一层的纹理坐标
+    let prevTexCoords = targetTexCoords + deltaTexCoords;//前一层的纹理坐标
+    let afterDpeth = targetMapDepth -targetLayerDepth;   // get depth after and before collision for linear interpolation
+    let beforeLayerDepth = heightArray[targetLayer - 1]- targetLayerDepth + layerDepth;
+    weight = afterDpeth/ (afterDpeth - beforeLayerDepth);//这个插值比例todo，应该就是线性插值，为什么是这个比例todo
+    let finalTexCoords = prevTexCoords * weight + targetTexCoords * (1.0 - weight);
+    // let finalTexCoords = prevTexCoords *0.5 + targetTexCoords * 0.5;
+    return finalTexCoords;
+}
+fn parallax_occlusion2(texCoords : vec2f, viewDir : vec3f, heightScale : f32, depthMap : texture_2d<f32>, depthSampler : sampler) -> vec2f
+{
+    const layers = 128;
+    var heightArray = array<f32, layers > (); 
+    let layerDepth = 1.0 / layers;
 
-        let afterDpeth = targetMapDepth -targetLayerDepth;   // get depth after and before collision for linear interpolation
+    let P : vec2f = viewDir.xy / viewDir.z  * heightScale;       //P点的向量
+    let depthOfP = textureSample(depthMap, depthSampler, texCoords).r;//P点的高度
+    let height = depthOfP;
 
-        let beforeLayerDepth = heightArray[targetLayer - 1]- targetLayerDepth + layerDepth;
-         
-        let weight = afterDpeth/ (afterDpeth - beforeLayerDepth);//这个插值比例todo，应该就是线性插值，为什么是这个比例todo
- 
+    let deltaTexCoords = P / layers;                    //deltaTexCoords 是每一层的向量增量
+    var currentTexCoords = texCoords;                   //currentTexCoords 是当前的纹理坐标
 
-       // let finalTexCoords = prevTexCoords * weight + targetTexCoords * (1.0 - weight);
-        let finalTexCoords = prevTexCoords *0.5 + targetTexCoords * 0.5;
+    // depth of current layer
+    var currentLayerDepth = 0.0;
+    var targetLayer : i32 = -1;
+    var targetMapDepth : f32 = 0.0;
+    var targetTexCoords : vec2f = vec2f(0.0, 0.0);
+    var targetLayerDepth : f32 = 0.0;
+    for (var i : i32 = 0; i < layers; i = i + 1)
+    {
+        currentTexCoords -= deltaTexCoords;
+        let currentDepthMapValue = textureSample(depthMap, depthSampler, currentTexCoords).r;
+        heightArray[i] = currentDepthMapValue  ;
+        currentLayerDepth += layerDepth; 
+        if(currentLayerDepth < currentDepthMapValue){
+            targetLayer = i;
+            targetTexCoords = currentTexCoords;
+            targetMapDepth = currentDepthMapValue;
+            targetLayerDepth = currentLayerDepth;
+        }
+    }  
+    var weight:f32=0.0;
 
-
-        return finalTexCoords;
+    if (targetLayer == -1 ||targetLayer == layers - 1) {//没有找到
+        targetTexCoords=texCoords ;
+        targetMapDepth=depthOfP;
+        targetLayerDepth=0.0;
     }
+    let prevTexCoords = targetTexCoords + deltaTexCoords;//前一层的纹理坐标
+    let afterDpeth = targetMapDepth -targetLayerDepth;   // get depth after and before collision for linear interpolation
+    let beforeLayerDepth = heightArray[targetLayer - 1]- targetLayerDepth + layerDepth;
+    weight = afterDpeth/ (afterDpeth - beforeLayerDepth);//这个插值比例todo，应该就是线性插值，为什么是这个比例todo
+    let finalTexCoords = prevTexCoords * weight + targetTexCoords * (1.0 - weight);
+    // let finalTexCoords = prevTexCoords *0.15 + targetTexCoords * 0.85;
+    return finalTexCoords;
 }
 //切线空间norml转世界空间normal
 fn getNormalFromMap(normal : vec3f, normalMapValue : vec3f, WorldPos : vec3f, TexCoords : vec2f) -> vec3f

@@ -30,13 +30,14 @@ fn checkPixelInPointLightRange(pixelWorldPosition : vec3f, onelight : ST_Light,)
 fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     var uv = fsInput.uv;
     var normal=fsInput.normal;
-    $normal   
+     
     $deferRender_Depth                                  //占位符
     let shininess = u_bulinphong.shininess;
     let metalness = u_bulinphong.metalness;
     let roughness = u_bulinphong.roughness;
     var materialColor = vec4f($red, $green, $blue, $alpha);
     $materialColor              //占位符
+    $normal  
     let colorOfAmbient = PhongAmbientColor();
     var colorOfPhoneOfLights : array<vec3f, 2>;
     colorOfPhoneOfLights[0]= vec3f(0.0);                    //所有光源在pixel上的总和

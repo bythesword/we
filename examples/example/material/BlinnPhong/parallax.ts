@@ -124,7 +124,7 @@ let boxEntity = new Mesh(
 await scene.add(boxEntity)
 
 let pointLight_1 = new PointLight({
-  intensity: 3.0,
+  intensity: 1.0,
   position: [1, 1, 1],
   color: { red: 1, green: 1, blue: 1 },
 })
