@@ -44,7 +44,7 @@ export class CubeTexture extends BaseTexture {
             );
             allImages.push(response);
         });
-        Promise.all(allImages).then(imageBitmaps => {
+        await Promise.all(allImages).then(imageBitmaps => {
             // console.log(imageBitmaps)
             this.texture = this.device.createTexture({
                 dimension: '2d',

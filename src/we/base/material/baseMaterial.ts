@@ -94,7 +94,10 @@ export abstract class BaseMaterial extends RootOfGPU {
      * 2、如果是object，说明混合
      */
     _transparent: optionTransparentOfMaterial | undefined;
-
+    /**
+     * 纹理
+     * ！！！这里定义的是any，后续各种材质所需要的纹理根据情况，进行declare
+    */
     textures!: any
     // {
     //     [name: string]: BaseTexture

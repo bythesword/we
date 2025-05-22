@@ -10,8 +10,6 @@ import { VertexColorMaterial } from "../../../../src/we/base/material/Standard/v
 import { mat4, vec3 } from "wgpu-matrix"
 import { CubeSkyMaterial } from "../../../../src/we/base/material/sky/cubeSkyMaterial"
 import { WASDCameraControl } from "../../../../src/we/base/control/wasdCameraControl"
-import { CubeMaterial } from "../../../../src/we/base/material/Standard/cubeMaterial"
-import { initScene } from "../../../../src/we/base/scene/initScene"
 
 
 
@@ -31,9 +29,10 @@ let input: sceneInputJson = {
     alpha: 1
   }
 }
-let scene = await initScene(input);
+let scene = new Scene(input);
+await scene.init();
+
 window.scene = scene;
- 
 
 
 //摄像机初始化参数
@@ -41,7 +40,7 @@ const cameraOption: optionPerspProjection = {
   fov: (2 * Math.PI) / 5,
   aspect: scene.aspect,
   near: 0.1,
-  far: 100,
+  far: 2000,
   position: [0, 0, 10.],
   lookAt: [0, 0, 0.]
 }
@@ -56,8 +55,8 @@ const controlOption: optionCamreaControl = {
   camera: camera,
 };
 //实例化摄像机控制器
-// let control = new WASDCameraControl(controlOption);
-let control = new ArcballCameraControl(controlOption);
+let control = new WASDCameraControl(controlOption);
+// let control = new ArcballCameraControl(controlOption);
 
 //摄像机角色参数
 const ccOption: optionCameraActor = {
@@ -75,33 +74,33 @@ scene.addCameraActor(actor, true)
 //box
 let boxGeometry = new OneColorCube();
 
-let cubeMaterial = new CubeMaterial({
-  textures: {
-    cubeTexture: {
-      texture: [
-        '/examples/resource/images/cubemap/posx.jpg',
-        '/examples/resource/images/cubemap/negx.jpg',
-        '/examples/resource/images/cubemap/posy.jpg',
-        '/examples/resource/images/cubemap/negy.jpg',
-        '/examples/resource/images/cubemap/posz.jpg',
-        '/examples/resource/images/cubemap/negz.jpg',
-      ], 
-    }
-  },
+let cubeMaterial = new CubeSkyMaterial({
+  cubeTexture: {
+    texture: [
+      '/examples/resource/images/cubemap/posx.jpg',
+      '/examples/resource/images/cubemap/negx.jpg',
+      '/examples/resource/images/cubemap/posy.jpg',
+      '/examples/resource/images/cubemap/negy.jpg',
+      '/examples/resource/images/cubemap/posz.jpg',
+      '/examples/resource/images/cubemap/negz.jpg',
+    ],
+  }
 })
 //box实体
 let boxEntity = new Mesh(
   {
-    scale: [1, 1, 1],
+    scale: [100, 100, 100],
     geometry: boxGeometry,
     material: cubeMaterial,
     wireFrame: false,
     dynamicPostion: true,
-    // cullmode: "front",
-    name: "cube"
+    cullmode: "front",
+    name: "sky"
   }
 );
 //增加实体到scene
 await scene.add(boxEntity)
 
 
+//运行场景
+scene.run()
