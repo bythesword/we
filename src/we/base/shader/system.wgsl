@@ -119,7 +119,7 @@ fn ParallaxMappingBase( texCoords:vec2f,  viewDir:vec3f,heightScale:f32,depthMap
 }
 fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, depthMap : texture_2d<f32>, depthSampler : sampler) -> vec2f
 {
-    const layers = 64;
+    const layers = 128;
     var heightArray = array<f32, layers > (); 
     let layerDepth = 1.0 / layers;
 
@@ -155,6 +155,7 @@ fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, dep
         targetTexCoords=texCoords ;
         targetMapDepth=depthOfP;
         targetLayerDepth=0.0;
+        return texCoords;
     }
     let prevTexCoords = targetTexCoords + deltaTexCoords;//前一层的纹理坐标
     let afterDpeth = targetMapDepth -targetLayerDepth;   // get depth after and before collision for linear interpolation

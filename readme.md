@@ -55,11 +55,11 @@
 | 透明渲染                                          | 纹理材质                                          | 纹理材质：贴花,alphatest                          |
 | ![1745857053582](images/readme/1745857053582.png) | ![1746172722475](images/readme/1746172722475.png) | ![1745923119394](images/readme/1745923119394.png) |
 | Blinn-Phong 高光贴图                              | 法线纹理                                          | 视差纹理                                          |
-| ![1744796262724](images/readme/1744796262724.png) | ![1747492397105](images/readme/1747492397105.png) | ![1747813205730](images/readme/1747813205730.png) |
+| ![1744796262724](images/readme/1744796262724.png) | ![1747492397105](images/readme/1747492397105.png) | ![1747885603814](images/readme/1747885603814.png) |
 | 视频材质                                          | mipmap                                            | PBR:Cook-Torrance BRDF                            |
 | ![1747645058399](images/readme/1747645058399.png) | ![1747570958252](images/readme/1747570958252.png) | ![1747296878767](images/readme/1747296878767.png) |
 | PBR:Cook-Torrance 纹理BRDF                        | IBL                                               | PBR+IBL                                           |
-| ![1747334270746](images/readme/1747334270746.png) |                                                   |                                                   |
+| ![1747885928636](images/readme/1747885928636.png) |                                                   |                                                   |
 | SSGI                                              | SSR                                               | SSAO                                              |
 |                                                   |                                                   |                                                   |
 | BVH                                               | GLTF                                              | OBJ                                               |

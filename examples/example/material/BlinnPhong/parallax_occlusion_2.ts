@@ -108,7 +108,7 @@ let redMaterial = new PhongMaterial({
     parallaxTexture: {
       texture: "/examples/resource/images/img/toy_box_disp.png",
       // upsideDownY:false,
-      scale: 0.01,
+      scale: 0.02,
       layers: 10,
     }
   }

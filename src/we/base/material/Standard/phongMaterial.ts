@@ -140,7 +140,9 @@ export class PhongMaterial extends PhongColorMaterial {
                     let parallaxTexture = ` 
                     let TBN=getTBN(fsInput.normal,fsInput.worldPosition,fsInput.uv);
                     let invertTBN=transpose(TBN );
-                    //这个有噪点问题和高度与视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。
+                    //todo:20250521
+                    //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
+                    //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
                      let viewDir= normalize( defaultCameraPosition- fsInput.worldPosition);//这里的viewDir应该是TBN空间内的，但使用TBN（下面的）有问题，变形+偏移
                      //下面三个都会产生摄像机移动，顶点移动
                      //let viewDir=normalize( invertTBN*normalize( defaultCameraPosition- fsInput.worldPosition));
