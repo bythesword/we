@@ -108,6 +108,9 @@ fn fs(fsInput : VertexShaderOutput) -> ST_GBuffer {
     //output.color = vec4f(depthColor.xy,0.,1.0);
     //output.color = vec4f( depthVisibility,depthVisibility,depthVisibility ,1.0);
     //output.color = vec4f(posFromLight.z,posFromLight.z,posFromLight.z,1.0);
+    // output.color = materialColor;
+    // output.color = vec4f( colorOfPhoneOfLights[0]   + colorOfPhoneOfLights[1] , 1.0);
+
     return output;
 }
 fn dotNormal(normal : vec3f, lightDir : vec3f) -> bool{

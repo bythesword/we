@@ -99,7 +99,7 @@ let redMaterial = new PhongMaterial({
     parallaxTexture: {
       texture: "/examples/resource/images/wall/bricks2_disp.jpg",
       // upsideDownY:false,
-      scale: 0.03,
+      scale: 0.1,
       layers:10,
     }
   }

@@ -139,8 +139,8 @@ let boxEntity = new Mesh(
     // position:vec3.create(1,0,0),
     // scale:[2,2,1],
     // rotate:{
-    //   axis:[1,0,0],
-    //   angleInRadians:0.15*Math.PI
+    //   axis:[0,1,0],
+    //   angleInRadians:0.5*Math.PI
     // },
   }
 );

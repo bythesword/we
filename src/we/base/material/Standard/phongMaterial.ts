@@ -138,16 +138,17 @@ export class PhongMaterial extends PhongColorMaterial {
             if (flag_texture) {
                 if (flag_parallax && flag_normal) {
                     let parallaxTexture = ` 
-                    let TBN=getTBN(fsInput.normal,fsInput.worldPosition,fsInput.uv);
+                    // let TBN=getTBN_ForNormalMap(fsInput.normal,fsInput.worldPosition,uv);
+                    let TBN=getTBN_ForNormal(fsInput.normal,fsInput.worldPosition,uv);
+
                     let invertTBN=transpose(TBN );
+
                     //todo:20250521
                     //这个有噪点问题和高度scale的关系，其实也就是插值与采样的颗粒度问题，目前是128layer，太高了
-                    //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
-                     let viewDir= normalize( defaultCameraPosition- fsInput.worldPosition);//这里的viewDir应该是TBN空间内的，但使用TBN（下面的）有问题，变形+偏移
-                     //下面三个都会产生摄像机移动，顶点移动
-                     //let viewDir=normalize( invertTBN*normalize( defaultCameraPosition- fsInput.worldPosition));
-                    //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向
-                    //  let viewDir= normalize(invertTBN*defaultCameraPosition-invertTBN*fsInput.worldPosition);//todo,纹理产生了较大便宜，不应该的
+                   //还有： 视角切顶现象,和height scale的比例有关(比例需要适合，否则有问题)。这个需要有时间仔细看了
+                    //  let viewDir= normalize(invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+                    //  let viewDir= normalize(invertTBN*(fsInput.worldPosition - defaultCameraPosition));//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
+                     let viewDir= normalize(invertTBN*fsInput.worldPosition - invertTBN*defaultCameraPosition);//这里的TBN是通过偏导数求得,故TBN空间内摄像机位置较为方向 ，fs的world position是TBN是原点
                     `;
                     if (this.input.texture!.parallaxTexture!.layers) {
                         parallaxTexture += `uv = parallax_occlusion(fsInput.uv, viewDir, u_bulinphong.parallaxScale,u_parallaxTexture, u_Sampler);\n`;
@@ -156,9 +157,9 @@ export class PhongMaterial extends PhongColorMaterial {
                         parallaxTexture += ` uv = ParallaxMappingBase(fsInput.uv, viewDir, u_bulinphong.parallaxScale,u_parallaxTexture, u_Sampler);\n`;
                     }
                     parallaxTexture += `
-                    if(uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0){
-                            discard;
-                       }                   
+                    // if(uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0){
+                    //         discard;
+                    //    }                   
                     materialColor = textureSample(u_texture, u_Sampler, uv);\n`;
                     code = code.replaceAll("$materialColor", parallaxTexture);
                 }
@@ -174,9 +175,7 @@ export class PhongMaterial extends PhongColorMaterial {
         if (code.indexOf("$normal") != -1)
             if (flag_normal) {
                 let normalTexture = ` let  normalMap =textureSample(u_normalTexture, u_Sampler,  uv).rgb;
-               normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv);
-            //    normal.x=-normal.x;//todo,不明原因，需要翻转,应该时TBN的问题，待查
-            //    normal.y=-normal.y;//todo,不明原因，需要翻转,应该时TBN的问题，待查
+               normal= getNormalFromMap( normal ,normalMap,fsInput.worldPosition, uv); 
                 `;
 
 

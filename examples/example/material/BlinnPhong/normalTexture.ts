@@ -10,6 +10,9 @@ import { Mesh } from "../../../../src/we/base/entity/mesh/mesh"
 import { PhongMaterial } from "../../../../src/we/base/material/Standard/phongMaterial"
 import { PointLight } from "../../../../src/we/base/light/pointLight"
 import { mat4, vec3 } from "wgpu-matrix"
+import { initScene } from "../../../../src/we/base/scene/initScene"
+import { SphereGeometry } from "../../../../src/we/base/geometry/sphereGeometry"
+import { ColorMaterial } from "../../../../src/we/base/material/Standard/colorMaterial"
 
 declare global {
   interface Window {
@@ -35,10 +38,10 @@ let input: sceneInputJson = {
     intensity: 0.5
   }
 }
-let scene = new Scene(input);
-await scene.init();
-
+let scene = await initScene(input);
 window.scene = scene;
+ 
+
 
 
 //摄像机初始化参数
@@ -47,7 +50,7 @@ const cameraOption: optionPerspProjection = {
   aspect: scene.aspect,
   near: 0.0001,
   far: 100,
-  position: [0, 0, 2],
+  position: [-0.717,-0.9,0.9],
   lookAt: [0, 0, 0]
 }
 //实例化摄像机
@@ -81,12 +84,16 @@ let boxGeometry = new BoxGeometry();
 //极简测试材质，red
 let redMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
-  metalness: 0.75,
+  metalness: 0.5,
+  roughness:0.5,
+  Shininess:32,
   texture: {
     texture: {
+      // texture: "/examples/resource/images/img/wood.png",
       texture: "/examples/resource/images/wall/brickwall.jpg"
     },
     normalTexture: {
+      // texture: "/examples/resource/images/img/toy_box_normal.png",
       texture: "/examples/resource/images/wall/brickwall_normal.jpg"
     },
   }
@@ -109,15 +116,73 @@ let boxEntity = new Mesh(
 );
 //增加实体到scene
 await scene.add(boxEntity)
-let light1 = new PointLight(
-  {
-    position: [0.0, 0.0, 5.0],
-    intensity: 1.0,
 
+
+
+window.lightRadius =0.65;
+window.lightRadiusFlag = true;
+// let lightRadius=
+let lightZ = 1.
+
+let pointLight_1 = new PointLight({
+  intensity: 2.0,
+  position: [1, 1, 1],
+  color: { red: 1, green: 1, blue: 1 },
+  // update: (scope: any) => {
+  //   let dir = scope.getDirection();
+  //   const now = Date.now() /2000;
+  //   // scope.values.position = vec3.fromValues(Math.sin(now)* window.lightRadius, Math.cos(now)  * window.lightRadius, lightZ);
+  //   return true
+  // },
+})
+
+scene.addLight(pointLight_1)
+
+let ballGeometry = new SphereGeometry({
+  radius: 0.1,
+  widthSegments: 8,
+  heightSegments: 8
+});
+let lightMaterial = new ColorMaterial(
+  {
+    color: { red: 1, green: 1, blue: 1, alpha: 1 },
+  });
+
+//light实体
+let light1Entity1 = new Mesh(
+  {
+    geometry: ballGeometry,
+    material: lightMaterial,
+    // wireFrameColor: { red: 1, green: 1, blue: 1, alpha: 1 }
+    wireFrame: false,
+    position: vec3.create(1, 1, 1),
+    scale: [0.1, 0.1, 0.1],
+    // dynamicPostion: true,
+    // rotate: {
+    //   axis: [1, 0, 0],
+    //   angleInRadians: 0.15 * Math.PI
+    // },
+    // update: (scope: any) => {
+    //   // let dir = scope.getDirection();
+    //   const now = Date.now() / 2000;
+    //   // scope.position = vec3.fromValues(Math.sin(now) * window.lightRadius, Math.cos(now)  * window.lightRadius, lightZ);
+    //   // if (window.lightRadius >= 1.2) {
+    //   //   window.lightRadiusFlag = false;
+    //   // }
+    //   // if (window.lightRadius <=0.20) {
+    //   //   window.lightRadiusFlag = true;
+    //   // }
+    //   // if(window.lightRadiusFlag){
+    //   //    window.lightRadius+=0.001
+    //   // }
+    //   // else{
+    //   //   window.lightRadius-=0.001
+    //   // }
+
+    //   scope.updateMatrix();
+    //   return true
+    // },
   }
 );
-
-scene.addLight(light1);
-
-//运行场景
-scene.run()
+//增加实体到scene
+await scene.add(light1Entity1)
