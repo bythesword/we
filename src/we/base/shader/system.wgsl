@@ -116,19 +116,19 @@ fn ParallaxMappingBase( texCoords:vec2f,  viewDir:vec3f,heightScale:f32,depthMap
 { 
     let  height =  textureSample(depthMap,depthSampler, texCoords).r;     
     return texCoords - viewDir.xy/viewDir.z * (height * heightScale);        
-}
+} 
 fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, depthMap : texture_2d<f32>, depthSampler : sampler) -> vec2f
 {
-    const layers = 132;
+    const layers = 128;
     const layersRate = 1;
     var viewDirLock =  viewDir;
     let depthOfP = textureSample(depthMap, depthSampler, texCoords).r;          //P点的高度  
     var heightArray = array<f32, layers*layersRate > ();                                  //heightArray 高度队列
-    let layerDepth = 1.0 / (layers );                                              //layerDepth 是每一层的深度
+    let perLayerDepth = 1.0 / (layers );                                              //perLayerDepth 是每一层的深度
     let vectorP : vec2f = viewDirLock.xy / (viewDirLock.z   )* heightScale;       //P点的向量
     let deltaTexCoords = vectorP / (layers );                                 //deltaTexCoords 是每一层的增量
 
-    var currentTexCoords = texCoords;                                           //currentTexCoords 是当前的纹理坐标
+    var currentTexCoords = texCoords +vectorP*.016;                                           //currentTexCoords 是当前的纹理坐标
     var currentLayerDepth = 0.0;                            //深度/高度计算初始值
     var currentDepthMapValue =depthOfP;       //采样
  
@@ -137,18 +137,20 @@ fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, dep
     var targetTexCoords : vec2f = vec2f(0.0, 0.0);          //适配的层的纹理坐标
     var targetLayerDepth : f32 = 0.0;                      //适配的层的深度（递增的深度）
 
+    var finded=false;
     for (var i : i32 = 0; i < layers*layersRate; i = i + 1)
     {
-        if(currentLayerDepth < currentDepthMapValue){           //递减的深度小于map深度，命中
+        if(currentLayerDepth > currentDepthMapValue && finded == false){           //递减的深度>于map深度，命中
             targetLayer = i;
             targetTexCoords = currentTexCoords;
             targetMapDepth = currentDepthMapValue;
             targetLayerDepth = currentLayerDepth;
+            finded=true;
         }
         currentTexCoords -= deltaTexCoords;                     //计算当前层的纹理坐标，从HA点开始，正值，向近view的方向，负值，向远view的方向
         currentDepthMapValue = textureSample(depthMap, depthSampler, currentTexCoords).r;       //采样
         heightArray[i] = currentDepthMapValue  ;                //存储高度
-        currentLayerDepth += layerDepth;                        //累加深度
+        currentLayerDepth += perLayerDepth;                        //累加深度
 
     }  
     var weight:f32=0.0;
@@ -167,10 +169,10 @@ fn parallax_occlusion(texCoords : vec2f, viewDir : vec3f, heightScale : f32, dep
     //命中就是权重
     // let prevTexCoords = targetTexCoords  + deltaTexCoords;//前一层的纹理坐标
     // let afterDpeth = targetMapDepth -targetLayerDepth;   // get depth after and before collision for linear interpolation
-    // let beforeDepth = heightArray[targetLayer - 1]- targetLayerDepth + layerDepth;
+    // let beforeDepth = heightArray[targetLayer - 1]- targetLayerDepth + perLayerDepth;
     let prevTexCoords = targetTexCoords ; 
-    let afterDpeth = heightArray[targetLayer + 1]- f32(targetLayer+1)*layerDepth;
-    let beforeDepth = heightArray[targetLayer ] - f32(targetLayer)*layerDepth;
+    let afterDpeth = heightArray[targetLayer + 1]- f32(targetLayer+1)*perLayerDepth;
+    let beforeDepth = heightArray[targetLayer ] - f32(targetLayer)*perLayerDepth;
 
     weight = afterDpeth/ (afterDpeth - beforeDepth);//这个插值比例todo，应该就是线性插值，为什么是这个比例todo
     // let finalTexCoords = prevTexCoords * weight + targetTexCoords * (1.0 - weight);
