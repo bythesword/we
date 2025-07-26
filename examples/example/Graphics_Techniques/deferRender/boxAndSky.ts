@@ -128,8 +128,8 @@ let woodMaterial = new PhongMaterial({
   color: { red: 0, green: 1, blue: 0, alpha: 1 },
   metalness: 1,
   texture: {
-    texture: "/examples/resource/images/box/container2.png",
-    specularTexture: "/examples/resource/images/box/container2_specular.png",
+    texture: { texture: "/examples/resource/images/box/container2.png" },
+    specularTexture: { texture: "/examples/resource/images/box/container2_specular.png" },
   }
 });
 //box实体
