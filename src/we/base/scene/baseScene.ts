@@ -9,7 +9,6 @@ import { boundingSphere, generateSphereFromBox3, } from '../math/sphere';
 import { renderKindForDCCC } from '../const/coreConst';
 import { optionAmbientLight } from "../light/ambientLight";
 
-export type commmandType = DrawCommand | ComputeCommand | CopyCommandT2T;
 export declare interface sceneJson {
     /**canvas id */
     name?: string,

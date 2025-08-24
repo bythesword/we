@@ -498,7 +498,7 @@ export class Scene extends BaseScene {
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
         });
         await this.initStages();
-        this.lightsManagement = new LightsManagement({ scene: this });
+        this.lightsManagement = new LightsManagement({ scene: this,lightCount:this._maxlightNumber  });
         if (this.input.ambientLight) {
             this.lightsManagement.setAmbientLight(this.input.ambientLight);
         }
@@ -857,8 +857,11 @@ export class Scene extends BaseScene {
                     const deltaTime = scope.clock.deltaTime;
                     const startTime = scope.clock.start;
                     const lastTime = scope.clock.last;
+                    //1、更新
                     await scope.update(deltaTime, startTime, lastTime);
+                    //2、渲染
                     await scope.oneFrameRender();
+                    //3、更新用户自定义功能
                     if (userRun !== undefined)
                         await userRun(scope);
                 }
@@ -1536,7 +1539,7 @@ export class Scene extends BaseScene {
     }
 
     addLight(one: BaseLight) {
-        this.lightsManagement.addLights(one);
+        this.lightsManagement.addLight(one);
     }
     addPostProcess(one: PostProcessEffect) {
         this.postProcessManagement.add(one);

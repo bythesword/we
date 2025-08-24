@@ -1,272 +1,83 @@
 import { mat4, Mat4, vec3, Vec3 } from "wgpu-matrix";
-import { BaseMaterial } from "../material/baseMaterial";
 import { BaseStage } from "../stage/baseStage";
-import * as coreConst from "../const/coreConst"
 import { RootOfGPU } from "../organization/root";
 
 import partAdd_st_entity_VS from "../shader/entities/part_add.st_entity.vs.wgsl?raw"
 import partAdd_st_VertexShaderOutput_VS from "../shader/entities/part_add.st.VertexShaderOutput.vs.wgsl?raw"
 import partReplace_VertexShaderOutput_VS from "../shader/entities/part_replace.VertexShaderOutput.vs.wgsl?raw"
-import { commmandType } from "../scene/baseScene";
 import { boundingBox, generateBox3 } from "../math/Box";
 import { boundingSphere, generateSphereFromBox3 } from "../math/sphere";
 import { lifeState, renderKindForDCCC } from "../const/coreConst";
 
+import {
+    geometryBufferOfEntity,
+    optionBaseEntity,
+    optionBaseEntityStep2,
+    optionShadowEntity,
+    valuesForCreateDCCC,
+} from "./baseEntityDefine";
 
-/** 不透明渲染的队列类型 */
-export interface renderCommands {
-    /**前向渲染 */
-    forward: commmandType[],
-    /**单像素延迟渲染的深度渲染 */
-    depth: commmandType[],
-    /**20250501未使用， 
-     * 延迟渲染的shader合并后的渲染队列，
-    */
-    color: commmandType[],
-}
+import { commandsOfEntity, commandsOfShadowOfEntity, commandsOfShadowOfEntityOfTransparent, commandsOfTransparentOfEntity, commmandType } from "../command/base";
 
 
-export interface meshConstantsVS {
-    uvScale_u?: number,
-    uvScale_v?: number,
-    uvOffset_x?: number,
-    uvOffset_y?: number
-}
-/**createDCCC的参数
- * 
- */
-export interface valuesForCreateDCCC {
-    parent: BaseStage,
-    id: string,//camera id or light id 
-    kind: renderKindForDCCC,//enmu 
-    matrixIndex?: number,//matrix of light MVP[]
-}
 
-
-export type positionArray = Float32Array | Float64Array | Uint8Array | Uint16Array | Uint32Array;
-export interface geometryBufferOfEntity {
-    /**索引buffer
-     * 非必须 
-     * 索引模型应该有2的256次方的大小限制，todo(webGPU 是否相同，20240813)
-     */
-    index?: Uint32Array,
-    /** 
-     * 可以是一个，也可以是多个属性合一的buffer
-           三角形：多属性合一的概念示例
-                position: positionArray,float32x3          
-                normal?: Float32Array,float32x3
-                uv?: Float32Array,     float32x2
-                color?: Uint8Array,    Uint8x4
-            线段：
-                position
-                color?
-                uv?
-            点：
-                position
-                color?
-     */
-    position: positionArray,
-    /** 单个数据宽度 */
-    arrayStride: number,
-    /**
-     * 多种primitive 模式
-     *  数据匹配性与正确性由具体调用负责保障
-     */
-    type: "triangles" | "lines" | "points",
-}
-
-
-export type entityID = number;
-
-
-/**
- * 顶点和材质一对一
- */
-export interface entityContentOfVertexAndMaterial {
-    vertexes: geometryBufferOfEntity,
-    material: BaseMaterial,
-}
-/** entity的顶点与材质的group */
-export interface entityContentGroup {
-    [name: string]: entityContentOfVertexAndMaterial
-}
-
-/**
- * todo
- * LOD定义
- * 默认 ：0
- */
-export interface LOD {
-    /**
-     * interface索引，对应于this._VM.(通过name进行索引)
-    //  * 简单化，只有一对一
-     */
-    //合批问题再议，延迟
-    objects: entityContentGroup,
-    mimapLevel: number,
-    distance: number,
-}
-
-
-/**
- * enum，实体的状态
- */
-// export type  lifeState = coreConst.lifeState;
-/**
- * 阴影选项
- * 是否接受与是否产生阴影
- * 默认时：全部都是true
- */
-export interface optionShadowEntity {
-    /**是否接收阴影 
-     * 
-     * 默认true
-    */
-    accept: boolean,
-    /**是否产生阴影     
-     * 
-     * 默认true
-    */
-    generate: boolean,
-}
-
-
-/**三段式初始化的第一步： input参数 */
-export interface optionBaseEntity extends coreConst.optionUpdate {
-    /**
-     * 两种情况：
-     * 
-     * 1、代码实时构建，延迟GPU device相关的资源建立需要延迟。需要其顶级使用者被加入到stage中后，才能开始。有其上级类的readyForGPU() 给材料进行GPUDevice的传值
-     * 
-     * 2、代码实时构建，可以显示的带入scene，则不用等待
-     * 
-     * 3、加载场景模式，原则上是通过加载器带入scene参数。todo
-     * 
-     * 20241129,类型从any 改为BaseStage
-     */
-    parent?: BaseStage,
-    name?: string,
-
-    //todo
-    /** 顶点和材质组一对一 */
-    vertexAndMaterialGroup?: entityContentGroup,
-
-    /**阴影选项 */
-    shadow?: optionShadowEntity,
-    /**初始化的参数matrix  ，这个mesh的   */
-    matrix?: Mat4,
-    /**初始化的参数scale     */
-    scale?: Vec3,
-    /**初始化的参数position     */
-    position?: Vec3,
-    /**初始化的参数rotatae     */
-    rotate?: {
-        axis: Vec3,
-        angleInRadians: number,
-    },
-    /**是否每帧更新Matrix，默认=false */
-    updateMatrixPerFrame?: boolean,
-    // /** side,显示的面，默认:front */
-    // side?: "front" | "back" | "all",
-    /**剔除面 */
-    cullmode?: GPUCullMode,
-    /**
-     * 实体是否为动态，boolean
-     * 默认=false
-     */
-    dynamicPostion?: boolean,
-    /**
-     * 是否未动态形变物体
-     * 默认=false
-     */
-    dynamicMesh?: boolean,
-    /**实例化数量，默认为1 */
-    numInstances?: number,
-    /**
-     * 这里是实例化的每个实例的位置，默认是[0,0,0]
-     * 
-     * 一个可以使用默认，多个就会重叠
-     */
-    instancesPosition?: Vec3[],
-    /**自定义shader代码，包括VS和FS */
-    shaderCode?: string,
-}
-/**三段式初始化的第二步：init */
-export interface optionBaseEntityStep2 {
-    stage: BaseStage,
-    ID: number,
-    deferRenderDepth: boolean,
-    deferRenderColor: boolean,
-    reversedZ: boolean,
-}
-/**为多摄像机输出的commmand格式 */
-export interface commandsOfEntity {
-    [name: string]: renderCommands
-}
-/**为多shadow map输出的commmand格式
- * 
- * name=light.id(转换后的string 格式)
- */
-export interface commandsOfShadowOfEntity {
-    [name: string]: commmandType[]
-}
-export type commandsOfTransparentOfEntity = commandsOfShadowOfEntity;
-export type commandsOfShadowOfEntityOfTransparent = commandsOfShadowOfEntity;
 export abstract class BaseEntity extends RootOfGPU {
-
-    ////////////////////////////////////////////////////////////////////
-    //基础属性
-    input: optionBaseEntity | undefined;
-    name!: string;
+    ///////////////////////////////////////////
+    // shader
     /**for shader  */
     entity_id: Uint32Array;
     /**for shader */
     stage_id: Uint32Array;
-
+    /**uvU */
     uvU: Float32Array;
     /**uvV */
     uvV: Float32Array;
-    /** stageID*/
-    stageID!: number;
     /**entiy 的ID（u32）等其他数据占位，这个需要与wgsl shader中同步更改 */
     _entityIdSizeForWGSL = 4;//以u32（f32）计算
+
+    ////////////////////////////////////////////////////////////////////
+    //基础属性
+    input: optionBaseEntity | undefined;
+
+    /** stageID*/
+    stageID!: number;
 
     /**
      * 目前没有使用，20250501
      * 顶点信息 */
-    _vertexAndMaterialGroup!: entityContentGroup;
+    // _vertexAndMaterialGroup!: entityContentGroup;
 
 
     ///////////////////////////////////////////////////////////////////
     //层级、LOD、实例化等
 
-    parent!: BaseEntity;
-    /**
-     * 子节点
-     */
-    children!: BaseEntity[];
 
-    /**
-     *  todo     
-     * LOD
-     * */
-    _LOD!: LOD[];//
+    // /**
+    //  *  todo     
+    //  * LOD
+    //  * */
+    // _LOD!: LOD[];//
 
     /**实例化数量，默认为1 */
     numInstances: number;
 
+    /**
+     * 剔除模式
+     * 
+     * 默认=back
+     * */
     _cullMode!: GPUCullMode;
 
     ///////////////////////////////////////////////////////////////////
     //空间属性
-    _position!: Vec3;
-    _scale!: Vec3;
-    _rotation!: Vec3;
+    // _position!: Vec3;
+    // _scale!: Vec3;
+    // _rotation!: Vec3;
 
-    /**当前mesh的local的矩阵，按需更新 */
-    matrix!: Mat4;
-    /**当前entity在世界坐标（层级的到root)，可以动态更新 */
-    matrixWorld !: Mat4;
+    // /**当前mesh的local的矩阵，按需更新 */
+    // matrix!: Mat4;
+    // /**当前entity在世界坐标（层级的到root)，可以动态更新 */
+    // matrixWorld !: Mat4;
     boundingBox!: boundingBox;//initDCC中赋值
     boundingSphere!: boundingSphere;
     /**
@@ -279,7 +90,6 @@ export abstract class BaseEntity extends RootOfGPU {
     ///////////////////////////////////////////////////////////////////
     //状态属性
     _init: lifeState;
-    _destroy: boolean;
     /**是否每帧更新 */
     updateMatrixPerFrame: boolean;
     /**
@@ -314,8 +124,8 @@ export abstract class BaseEntity extends RootOfGPU {
      * 默认=false
      */
     _dynamicMesh: boolean;
-    visible!: boolean;
-    enable!: boolean;
+    // visible: boolean;
+    // enable: boolean;
 
     //////////////////////////////////////////////////////////////////
     //生成与实现
@@ -401,41 +211,38 @@ export abstract class BaseEntity extends RootOfGPU {
         if (input.cullmode) {
             this._cullMode = input.cullmode;
         }
-        this._id = 0;//在stage中的ID，默认=0，如果_id=0，则与ID相关的功能失效 
+
+        //注释掉，20250824
+        // this._id = 0;//在stage中的ID，默认=0，如果_id=0，则与ID相关的功能失效 
+        
         this.stageID = 0;
-        this._LOD = [];
-        this._destroy = false;
+        // this._LOD = [];
+
         this.commmands = {};
         this.commandsOfTransparent = {};
         this.commandsOfShadow = {};
         this.commandsOfShadowOfTransparent = {};
 
-        this._vertexAndMaterialGroup = {};
-        this.enable = true;
-        this._position = vec3.create();
-        this._scale = vec3.create(1, 1, 1);
-        this._rotation = vec3.create();
-        this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
 
 
-        // this.matrixWorldBuffer = new Float32Array(4 * 4 * this.numInstances);
-        this.structUnifomrBuffer = new ArrayBuffer(4 * 4 * this.numInstances * 4 + this._entityIdSizeForWGSL * 4);
+        if (input.position) this._position = input.position;
+        if (input.scale) this._scale = input.scale;
+        if (input.rotate) this._rotate = input.rotate;
+        if (input.name) this.Name = input.name;
 
+        //////////////////
+        //about shader
+        this.structUnifomrBuffer = new ArrayBuffer(this.getSizeOfUniform());//4 * 4 * this.numInstances * 4 + this._entityIdSizeForWGSL * 4
         this.matrixWorldBuffer = new Float32Array(this.structUnifomrBuffer, 0, 4 * 4 * this.numInstances);
         this.entity_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4, 1);
         this.stage_id = new Uint32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4, 1);
-        this.uvU=new Float32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4*2, 1);
-        this.uvV=new Float32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4*3, 1);
+        this.uvU = new Float32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4 * 2, 1);
+        this.uvV = new Float32Array(this.structUnifomrBuffer, 4 * 4 * this.numInstances * 4 + 4 * 3, 1);
 
-        this.visible = true;
-        this.children = [];
-        this.name = ''
-        // this.ID = new Date().getTime();
+
         this.updateMatrixPerFrame = false;
 
-        if (input.name) this.name = input.name;
-        if (input.vertexAndMaterialGroup) this._vertexAndMaterialGroup = input.vertexAndMaterialGroup;
+
         this._shadow = {
             accept: true,
             generate: true,
@@ -446,21 +253,19 @@ export abstract class BaseEntity extends RootOfGPU {
                 this._shadow.generate = false;
             }
         }
-        this.commmands = {};
-        this.commandsOfShadowOfTransparent = {};
     }
 
-    get UVu(){
-        return this.uvU[0]; 
+    get UVu() {
+        return this.uvU[0];
     }
-    get UVv(){
-        return this.uvV[0]; 
+    get UVv() {
+        return this.uvV[0];
     }
-    set UVu(u:number){
-        this.uvU[0]=u; 
+    set UVu(u: number) {
+        this.uvU[0] = u;
     }
-    set UVv(v:number){
-        this.uvV[0]=v; 
+    set UVv(v: number) {
+        this.uvV[0] = v;
     }
 
     /**
@@ -477,8 +282,8 @@ export abstract class BaseEntity extends RootOfGPU {
         await this.setRootENV(values.stage.scene);//为获取在scene中注册的resource
 
         //如果是OBJ等，需要递归设置ID，或采用一个相同的ID，这个需要在OBJ、GLTF、FBX等中进行开发；基础的entity，不考虑这种情况
-        this.ID = values.ID;//这个在最后，update需要判断ID是否存在，以开始更新
-        return this.ID + 1;
+        this.renderID = values.renderID;//这个在最后，update需要判断ID是否存在，以开始更新
+        return this.renderID + 1;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -510,12 +315,13 @@ export abstract class BaseEntity extends RootOfGPU {
     abstract getBlend(): GPUBlendState | undefined;
     /** 获取是否透明 */
     abstract getTransparent(): boolean;
-    /**前向渲染 */
+    /**前向渲染 不透明 */
     abstract createDCCC(values: valuesForCreateDCCC): lifeState
-    /**延迟渲染的深度渲染：单像素模延迟 */
+    /**延迟渲染的深度渲染：单像素模延迟 ，不透明*/
     abstract createDCCCDeferRenderDepth(values: valuesForCreateDCCC): lifeState
-    /**渲染shadowmap */
+    /**渲染shadowmap 不透明*/
     abstract createDCCCForShadowMap(values: valuesForCreateDCCC): lifeState
+    /**渲染shadowmap 透明模式 */
     abstract createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): lifeState
     /**透明渲染 */
     abstract createDCCCForTransparent(values: valuesForCreateDCCC): lifeState
@@ -530,9 +336,7 @@ export abstract class BaseEntity extends RootOfGPU {
     getStageID() {
         return this.stageID;
     }
-    isDestroy() {
-        return this._destroy;
-    }
+
 
     /** 设置是否透明 */
     set transparent(transparent: boolean) {
@@ -585,122 +389,12 @@ export abstract class BaseEntity extends RootOfGPU {
     getUpdateForPerInstance() {
         return this.flagUpdateForPerInstance;
     }
-    // /** */
-    // addContent(name: string, vm: entityContentOfVertexAndMaterial) {
-    //     this._vertexAndMaterialGroup[name] = vm;
-    // }
 
-    /**todo */
-    addLOD(_lod: geometryBufferOfEntity, _level: number) {
-        // this._LOD[level]
-    }
-    /**
-     * 增加子节点
-     * @param obj 子节点
-     */
-    add(obj: BaseEntity) {
-        this.children.push(obj);
-        obj.parent = this;
-    }
-    /**
-     * 删除子节点
-     * @param obj 子节点
-     */
-    remove(obj: BaseEntity) {
-        let index = this.getObjectIndexByID(obj.ID);
-        if (index !== false) {
-            delete this.children[index as number];
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    /**
-     * 返回第一个具有id的object
-     * @param id 子节点的id
-     */
-    getObjectIndexByID(id: entityID): number | boolean {
-        for (let i in this.children) {
-            if (this.children[i].ID == id) {
-                return parseInt(i);
-            }
-        }
-        return false;
-    }
-    /**返回第一个具有name的object */
-    getObjectByName(name: string): BaseEntity | boolean {
-        for (let i of this.children) {
-            if (i.name == name) {
-                return this;
-            }
-            else {
-                let scope = i.getObjectByName(name);
-                if (typeof scope != "boolean") {
-                    return scope;
-                }
-            }
-        }
-        return false;
-    }
 
-    /** 绕任意轴旋转 */
-    rotate(axis: Vec3, angle: number) {
-        ////这里注销到的是因为，for操作的是instance的每个个体
-        // for (let i = 0; i < this.numInstances; i++) {
-        //     this.matrix[i] = mat4.axisRotate(this.matrix[i], axis, angle, this.matrix[i]);
-        // }
-        this.matrix = mat4.axisRotate(this.matrix, axis, angle, this.matrix);
-    }
-    /**绕X轴(1,0,0)旋转 */
-    rotateX(angle: number) {
-        this.rotate([1, 0, 0], angle);
-    }
-    /**绕y轴(0,1,0)旋转 */
-    rotateY(angle: number) {
-        this.rotate([0, 1, 0], angle);
-    }
-    /**绕z轴(0,0,1)旋转 */
-    rotateZ(angle: number) {
-        this.rotate([0, 0, 1], angle);
-    }
-    /**
-     * 在现有matrix（原有的position）上增加pos的xyz，
-         * 将entity的矩阵应用POS的位置变换，是在原有矩阵上增加
-         * @param pos :Vec3
-         */
-    translate(pos: Vec3,) {
-        this.matrix = mat4.translate(this.matrix, pos);
-    }
-    /** 创建单位矩阵，矩阵的xyz(12,13,14)=pos
-    * @param pos :Vec3
-    */
-    translation(pos: Vec3,) {
-        this.matrix = mat4.translation(this.matrix, pos);
-    }
-    /**
-     * 替换pos的位置（matrix的:12,13,14），其他的matrix数据不变，
-     * 将entity的位置变为POS,等价wgpu-matrix的mat4的translation，是替换，不是增加
-     * @param pos :Vec3
-     */
-    setTranslation(pos: Vec3,) {
-        this.matrix = mat4.setTranslation(this.matrix, pos);
-    }
-    /**scale */
-    scale(vec: Vec3) {
-        this.matrix = mat4.scale(this.matrix, vec);
-    }
-
-    get position() {
-        return this._position
-    }
-    set position(pos) {
-        this._position = pos;
-    }
 
 
     /**
-     * 输出实例渲染的个数的buffer
+     * 获取实例渲染的buffer
      * 
      * 单个示例可以在input.update（）进行更新
      */
@@ -708,7 +402,10 @@ export abstract class BaseEntity extends RootOfGPU {
         // return this.matrixWorldBuffer;
         return new Float32Array(this.structUnifomrBuffer);
     }
-
+    /**size of uniform of this.structUnifomrBuffer */
+    getSizeOfUniform(){
+        return this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances;
+    }
     /**检查camear的id在commands中是否已经存在 */
     checkIdOfCommands(id: string, commands: commandsOfEntity | commandsOfShadowOfEntity): boolean {
         for (let i in commands) {
@@ -716,6 +413,7 @@ export abstract class BaseEntity extends RootOfGPU {
         }
         return false;
     }
+
 
 
 
@@ -745,27 +443,30 @@ export abstract class BaseEntity extends RootOfGPU {
      * 其实是没有影响，线性工作在3x3矩阵，位置变换在[12,13,14]
      */
     updateMatrix(): any {
-        this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
-        if (this.input?.matrix)
-            mat4.copy(this.input.matrix, this.matrix);
-        if (this.input?.scale)
-            this.scale(this.input.scale);
-        if (this.input?.rotate)
-            this.rotate(this.input.rotate.axis, this.input.rotate.angleInRadians);
+        super.updateMatrix();
 
-        if (this.input?.position)
-            this.setTranslation(this.input.position);
+        // this.matrix = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        // this.matrixWorld = mat4.create(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,);
+        // if (this.input?.matrix)
+        //     mat4.copy(this.input.matrix, this.matrix);
+        // if (this.input?.scale)
+        //     this.scale(this.input.scale);
+        // if (this.input?.rotate)
+        //     this.rotate(this.input.rotate.axis, this.input.rotate.angleInRadians);
 
-        if (this.input?.dynamicPostion)
-            this.setTranslation(this.position);
+        // if (this.input?.position)
+        //     this.setTranslation(this.input.position);
+
+        // if (this.input?.dynamicPostion)
+        //     this.setTranslation(this.position);
 
         this.matrixWorld = this.updateMatrixWorld();
         this.updateUniformBuffer(this.stage as BaseStage, 0, 0, 0);
     }
 
     /** 
-     * 递归更新每层
+     * todo:20250824,需要更正，第二版设计改为，非子对象递归更新父类的，而是乘以父类的worldMatrix
+     * 递归更新每层,
      */
     updateMatrixWorld(m4: Mat4 | boolean = false): Mat4 {
         if (m4 === false)
@@ -773,7 +474,7 @@ export abstract class BaseEntity extends RootOfGPU {
         else {
             m4 = mat4.multiply(this.matrix, m4 as Mat4);
         }
-        if (this.parent) {
+        if (this.parent instanceof BaseEntity) {
             return this.parent.updateMatrixWorld(m4);
         }
         else {
@@ -914,7 +615,7 @@ export abstract class BaseEntity extends RootOfGPU {
                 this.updateMatrix();//在这里必须更新一次，entityID，stageID，都是延迟到增加至stage之后才更新的。
                 this.initDCC(parent);
                 this.needUpdate = false;
-            } 
+            }
             //比如：material 是在运行中是可以更改的，需要重新初始化。
             //由人工按需触发
             else if (this.needUpdate === true) {
@@ -967,7 +668,7 @@ export abstract class BaseEntity extends RootOfGPU {
             }
             this.matrixWorldBuffer.set(perMatrix, i * 16);
         }
-        this.entity_id[0] = this.ID;
+        this.entity_id[0] = this.renderID;
         this.stage_id[0] = this.getStageID();
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -975,15 +676,7 @@ export abstract class BaseEntity extends RootOfGPU {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * 被update调用
-     * 更新this._vertexAndMaterialGroup对应的DrawCommand组
-     * 
-     * 1、主要是GPUBuffer和材质，是本class管理的（非DrawCommand自己管理范围内的，DC管理自己的）
-     *      A、uniform buffer，GPUBuffer，storageBuffer
-     * 
-     * 2、如果没有更新直接返回DCC的数组
-     * 
-     * 
+     *返回DCC的数组 
      * @param _parent 
      * @param _deltaTime 
      * @param _startTime 
@@ -995,7 +688,6 @@ export abstract class BaseEntity extends RootOfGPU {
     }
 
     /**获取摄像机的渲染commands（所有摄像机的）
-     * 
      * @returns commandsOfEntity, 返回this.commmands 包括多个camera的Commands 每个数组元素中包括3个类型的commands
      */
     getCommandsOfCameras(): commandsOfEntity {
@@ -1101,3 +793,4 @@ export abstract class BaseEntity extends RootOfGPU {
 
 
 }
+

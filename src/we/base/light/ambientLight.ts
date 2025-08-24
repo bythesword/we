@@ -1,6 +1,7 @@
-import { vec3, Vec3 } from "wgpu-matrix";
-import { BaseLight, optionBaseLight, structBaselight } from "./baseLight";
+import { Mat4, vec3, Vec3 } from "wgpu-matrix";
+import { BaseLight, lightType, optionBaseLight, structBaselight } from "./baseLight";
 import * as coreConst from "../const/coreConst";
+import { Scene } from "../scene/scene";
 
 export interface optionAmbientLight extends optionBaseLight {
     color: coreConst.color3U,
@@ -8,10 +9,9 @@ export interface optionAmbientLight extends optionBaseLight {
 }
 
 export class AmbientLight extends BaseLight {
-    generateShadowMap(_device: GPUDevice): false {
-        return false;
+    updateMVP(scene: Scene): Mat4[] {
+        throw new Error("Method not implemented.");
     }
-
 
     _color: Vec3;
     _intensity: number;
@@ -19,7 +19,8 @@ export class AmbientLight extends BaseLight {
 
 
     constructor(input: optionAmbientLight) {
-        super(input);
+        super(input, lightType.ambient);
+
         this._color = [0, 0, 0];
         this._intensity = 0;
         if (input.color)

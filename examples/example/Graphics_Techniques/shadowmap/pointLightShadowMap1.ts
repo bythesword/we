@@ -181,7 +181,7 @@ let light1: PointLight = new PointLight(
     update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
       let dir = scope.getDirection();
       const now = Date.now() / 1000; 
-      scope.values.position=vec3.fromValues(Math.sin(now)*2,  2,Math.cos(now)*2);
+      scope.inputValues.position=vec3.fromValues(Math.sin(now)*2,  2,Math.cos(now)*2);
       return true
     },
   }

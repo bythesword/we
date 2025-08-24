@@ -1,5 +1,5 @@
 import * as coreConst from "../../const/coreConst";
-import { BaseEntity, meshConstantsVS, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
+import { BaseEntity} from "../baseEntity";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseGeometry } from "../../geometry/baseGeometry";
 import { DrawCommand } from "../../command/DrawCommand";
@@ -10,6 +10,7 @@ import partHead_GBuffer_Add_FS from "../../shader/material/part/part_add.st_gbuf
 import partOutput_GBuffer_Replace_FS from "../../shader/material/part/part_replace.st_gbuffer.output.fs.wgsl?raw"
 import { BaseStage } from "../../stage/baseStage";
 import { lifeState, renderKindForDCCC } from "../../const/coreConst";
+import { meshConstantsVS, optionBaseEntity, valuesForCreateDCCC } from "../baseEntityDefine";
 
 
 
@@ -155,27 +156,12 @@ export class Mesh extends BaseEntity {
             this.boundingSphere = this.generateSphere(this.boundingBox);
         }
     }
-    /**
-     * 覆写了父类的这个function
-     * 
-     * 目的：判断是否完成准备工作，如果完成执行createDCCC()
-     * 
-     * @param parent 
-     */
-    // initDCC(parent: BaseStage) {
-    //     let already = this.checkStatus();
-    //     if (already) {
-    //         this._init = lifeState.initializing;
-    //         if (this.deferRenderDepth) this._init = this.createDCCCDeferRenderDepth(parent);
-    //         this._init = this.createDCCC(parent);
-    //         this.generateBox();
-    //     }
-    // }
+
 
     /**
      * 前向渲染
      * 
-     * 创建Draw Compute Commands
+     * 摄像机的创建Draw Compute Commands
      * 
      * DCC push 到this.commmands.forward中 
      * @param parent 
@@ -235,7 +221,7 @@ export class Mesh extends BaseEntity {
                         {
                             label: "Mesh matrixWorld",
                             binding: binding++,
-                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                            size: this.getSizeOfUniform(),
                             get: () => { return scope.getUniformOfMatrix() },
                         }
                     ]
@@ -299,7 +285,7 @@ export class Mesh extends BaseEntity {
                 }
             }
             options = {
-                label: this.name == "" ? "Mesh" : this.name,
+                label: this.Name == "" ? "Mesh" : this.Name,
                 parent: parent,
                 vertex: {
                     code: shader,
@@ -399,7 +385,7 @@ export class Mesh extends BaseEntity {
                             {
                                 label: "Mesh matrixWorld",
                                 binding: 0,
-                                size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                                size: this.getSizeOfUniform(),
                                 get: () => { return scope.getUniformOfMatrix(); },
                             }
                         ]
@@ -423,6 +409,11 @@ export class Mesh extends BaseEntity {
         }
         return lifeState.finished;
     }
+    /**
+     * camera的透明显然队列
+     * @param valuesOfDCCC 
+     * @returns 
+     */
     createDCCCForTransparent(valuesOfDCCC: valuesForCreateDCCC): lifeState {
         const parent: BaseStage = valuesOfDCCC.parent;
         const camera: string = valuesOfDCCC.id;
@@ -473,7 +464,7 @@ export class Mesh extends BaseEntity {
                         {
                             label: "Mesh matrixWorld",
                             binding: binding++,
-                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                            size: this.getSizeOfUniform(),
                             get: () => { return scope.getUniformOfMatrix() },
                         },
                         // {
@@ -653,7 +644,7 @@ export class Mesh extends BaseEntity {
                             {
                                 label: "Mesh matrixWorld",
                                 binding: 0,
-                                size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                                size: this.getSizeOfUniform(),
                                 get: () => { return scope.getUniformOfMatrix(); },
                             }
                         ]
@@ -678,15 +669,9 @@ export class Mesh extends BaseEntity {
         return lifeState.finished;
     }
 
-    // /**返回this.commmands
-    //  * 
-    //  * 其中包括3个类型的commands
-    //   */
-    // updateDCC(_parent: any, deltaTime: number, startTime: number, lastTime: number): commandsOfEntity {
-    //     return this.commmands;
-    // }
+
     /**
-     * 延迟渲染的深度渲染
+     * 摄像机的延迟渲染的深度渲染
      * 
      * DCC push 到this.commmands.depth中 
      */
@@ -721,7 +706,7 @@ export class Mesh extends BaseEntity {
                     {
                         label: "Mesh matrixWorld",
                         binding: 0,
-                        size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                        size: this.getSizeOfUniform(),
                         get: () => { return scope.getUniformOfMatrix() },
                     }
                 ]
@@ -828,7 +813,7 @@ export class Mesh extends BaseEntity {
                         {
                             label: "Mesh matrixWorld",
                             binding: 0,
-                            size: this._entityIdSizeForWGSL * 4 + 4 * 16 * this.numInstances,
+                            size: this.getSizeOfUniform(),
                             get: () => { return scope.getUniformOfMatrix() },
                         }
                     ]
@@ -892,13 +877,26 @@ export class Mesh extends BaseEntity {
 
         return lifeState.initializing;
     }
+
+    /**
+     * 光源的shadowmap的渲染队列，未完成，20250824
+     * @param values 
+     */
     createDCCCForShadowMapOfTransparent(values: valuesForCreateDCCC): lifeState {
         throw new Error("Method not implemented.");
     }
 
+    /**
+     * 材质的blend状态
+     * @returns 
+     */
     getBlend(): GPUBlendState | undefined {
         return this._material.getBlend();
     }
+    /**
+     * 材质的transparent状态
+     * @returns 
+     */
     getTransparent(): boolean {
         // throw new Error("Method not implemented.");
         return this._material.getTransparent();

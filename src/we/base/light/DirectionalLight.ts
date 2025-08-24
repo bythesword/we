@@ -40,15 +40,15 @@ export class DirectionalLight extends BaseLight {
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
 
-                let dir = vec3.normalize(vec3.sub(vec3.create(0, 0, 0), this.values.direction!));
-                if (this.values.direction![0] == 0 && this.values.direction![1] == 1 && this.values.direction![2] == 0) {
-                    vec3.copy(this.values.direction!, back);
+                let dir = vec3.normalize(vec3.sub(vec3.create(0, 0, 0), this.inputValues.direction!));
+                if (this.inputValues.direction![0] == 0 && this.inputValues.direction![1] == 1 && this.inputValues.direction![2] == 0) {
+                    vec3.copy(this.inputValues.direction!, back);
                     vec3.copy(vec3.create(1, 0, 0), right);
                     vec3.copy(vec3.create(0, 0, 1), up);
                 }
                 else {
                     // vec3.copy(vec3.normalize(dir), back);
-                    vec3.copy(vec3.normalize(this.values.direction!), back);
+                    vec3.copy(vec3.normalize(this.inputValues.direction!), back);
                     vec3.copy(vec3.normalize(vec3.cross(up, back)), right);
                     vec3.copy(vec3.normalize(vec3.cross(back, right)), up);
                 }
@@ -83,7 +83,7 @@ export class DirectionalLight extends BaseLight {
 
     }
     constructor(input: optionDirectionalLight) {
-        super(input, lightType.directional);
+        super(input, lightType.direction);
 
     }
 

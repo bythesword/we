@@ -28,5 +28,10 @@ export function WERandomInt(min: number, max: number): number {
 }
 
 export function WeGenerateID() {
-    return Date.now() * 10000 + WERandomInt(1000, 10000)  + WERandomInt(1, 1000);
+    return Date.now() * 10000 + WERandomInt(1000, 10000) + WERandomInt(1, 1000);
+}
+export function WeGenerateUUID() {
+    let sub=7;
+    let len=36
+    return Math.random().toString(len).substring(sub) + '-' +Math.random().toString(len).substring(sub)  + '-' + Math.random().toString(len).substring(sub)  + '-' +Math.random().toString(len).substring(sub) ;
 }

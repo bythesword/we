@@ -28,9 +28,9 @@ export class PointLight extends BaseLight {
         super(input, lightType.point);
     }
 
-    generateShadowMap(_device: GPUDevice): shadowMapBox {
-        throw new Error("Method not implemented.");
-    }
+    // generateShadowMap(_device: GPUDevice): shadowMapBox {
+    //     throw new Error("Method not implemented.");
+    // }
     updateMVP(scene: Scene): Mat4[] {
 
         let MVPS = [];
@@ -75,8 +75,8 @@ export class PointLight extends BaseLight {
             }
             let far = 0;
             let near =1; this.epsilon;
-            if (this.values.distance != 0.0) {
-                far = this.values.distance!;
+            if (this.inputValues.distance != 0.0) {
+                far = this.inputValues.distance!;
             }
             else {
                 far = spshere.radius * 2;
@@ -96,10 +96,10 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.values.position!, position);
+                vec3.copy(this.inputValues.position!, position);
 
 
-                // let dir = vec3.normalize(vec3.sub(this.values.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
+                // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
                 let backdir = vec3.create(-1, 0, 0);//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
                 let upDir = vec3.create(0, 1, 0);
                 let rightDir = vec3.create(0, 0, 1);
@@ -126,10 +126,10 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.values.position!, position);
+                vec3.copy(this.inputValues.position!, position);
 
 
-                // let dir = vec3.normalize(vec3.sub(this.values.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
+                // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
                 let backdir = vec3.create(1, 0, 0);//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
                 let upDir = vec3.create(0, 1, 0);
                 let rightDir = vec3.create(0, 0, -1);
@@ -157,10 +157,10 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.values.position!, position);
+                vec3.copy(this.inputValues.position!, position);
 
 
-                // let dir = vec3.normalize(vec3.sub(this.values.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
+                // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
                 let backdir = vec3.create(0, 0, 1);//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
                 let upDir = vec3.create(0, 1, 0);
                 let rightDir = vec3.create(1, 0, 0);
@@ -187,10 +187,10 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.values.position!, position);
+                vec3.copy(this.inputValues.position!, position);
 
 
-                // let dir = vec3.normalize(vec3.sub(this.values.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
+                // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
                 let backdir = vec3.create(0, 0, -1);//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
                 let upDir = vec3.create(0, 1, 0);
                 let rightDir = vec3.create(-1, 0, 0);
@@ -217,10 +217,10 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.values.position!, position);
+                vec3.copy(this.inputValues.position!, position);
 
 
-                // let dir = vec3.normalize(vec3.sub(this.values.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
+                // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
                 let backdir = vec3.create(0, -1, 0);//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
                 let upDir = vec3.create(0, 0, 1);
                 let rightDir = vec3.create(1, 0, 0);
@@ -247,10 +247,10 @@ export class PointLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.values.position!, position);
+                vec3.copy(this.inputValues.position!, position);
 
 
-                // let dir = vec3.normalize(vec3.sub(this.values.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
+                // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
                 let backdir = vec3.create(0, 1, 0);//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
                 let upDir = vec3.create(0, 0, -1);
                 let rightDir = vec3.create(1, 0, 0);

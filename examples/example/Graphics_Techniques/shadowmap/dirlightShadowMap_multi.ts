@@ -146,7 +146,7 @@ let dirLight: DirectionalLight = new DirectionalLight(
     update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
       let dir = scope.getDirection();
       const now = Date.now() / 2000; 
-      scope.values.direction=vec3.fromValues(Math.sin(now), 1,Math.cos(now));
+      scope.inputValues.direction=vec3.fromValues(Math.sin(now), 1,Math.cos(now));
       return true
     },
   }
@@ -162,7 +162,7 @@ let dirLight2: DirectionalLight = new DirectionalLight(
     update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
       let dir = scope.getDirection();
       const now = Date.now() / 1000; 
-      scope.values.direction=vec3.fromValues(Math.sin(now), 1,Math.cos(now));
+      scope.inputValues.direction=vec3.fromValues(Math.sin(now), 1,Math.cos(now));
       return true
     },
   }

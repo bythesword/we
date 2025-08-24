@@ -25,9 +25,9 @@ export class SpotLight extends BaseLight {
         super(input, lightType.spot);
     }
 
-    generateShadowMap(_device: GPUDevice): shadowMap {
-        throw new Error("Method not implemented.");
-    }
+    // generateShadowMap(_device: GPUDevice): shadowMap {
+    //     throw new Error("Method not implemented.");
+    // }
 
     updateMVP(scene: Scene): Mat4[] {
         // throw new Error("Method not implemented.");
@@ -54,7 +54,7 @@ export class SpotLight extends BaseLight {
                 //     1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
                 // ]);;
                 // let position = new Float32Array(modelMatrix.buffer, 4 * 12, 4);
-                // vec3.copy(this.values.position!, position);
+                // vec3.copy(this.inputValues.position!, position);
 
                 /** 第一行,X轴 */
                 let right = new Float32Array(matrix.buffer, 4 * 0, 4);
@@ -64,18 +64,18 @@ export class SpotLight extends BaseLight {
                 let back = new Float32Array(matrix.buffer, 4 * 8, 4);
                 /** 第四行,位置 */
                 let position = new Float32Array(matrix.buffer, 4 * 12, 4);
-                vec3.copy(this.values.position!, position);
+                vec3.copy(this.inputValues.position!, position);
                 // 
                 // vec3.copy(vec3.create(-3,-3,-3), position);
 
-                // let dir = vec3.normalize(vec3.sub(this.values.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
-                let dir = vec3.normalize(vec3.sub(vec3.create(0, 0, 0), this.values.direction!));//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
-                if (this.values.direction![0] == 0 && this.values.direction![2] == 0 && this.values.direction![1] == 1) {
+                // let dir = vec3.normalize(vec3.sub(this.inputValues.direction!, vec3.create(0, 0, 0)));//摄像机是position-lookat,光的摄像机方向是lookat-position
+                let dir = vec3.normalize(vec3.sub(vec3.create(0, 0, 0), this.inputValues.direction!));//摄像机是position-lookat,光的摄像机方向是（0，0，0）-direction，就是光源的方向看过来
+                if (this.inputValues.direction![0] == 0 && this.inputValues.direction![2] == 0 && this.inputValues.direction![1] == 1) {
                     vec3.copy(dir, back);
                     vec3.copy(vec3.create(1, 0, 0), right);
                     vec3.copy(vec3.create(0, 0, 1), up);
                 }
-                else if (this.values.direction![0] == 0 && this.values.direction![2] == 0 && this.values.direction![1] == -1) {
+                else if (this.inputValues.direction![0] == 0 && this.inputValues.direction![2] == 0 && this.inputValues.direction![1] == -1) {
                     vec3.copy(dir, back);
                     vec3.copy(vec3.create(1, 0, 0), right);
                     vec3.copy(vec3.create(0, 0, -1), up);
@@ -91,10 +91,10 @@ export class SpotLight extends BaseLight {
                 let p0 = vec4.transformMat4(vec4.create(spshere.position[0], spshere.position[1], spshere.position[2], 1), mat4.invert(matrix));
                 // const projectionMatrix = mat4.ortho(p0[0] - spshere.radius - this.epsilon, p0[0] + spshere.radius + this.epsilon, p0[1] - spshere.radius - this.epsilon, p0[1] + spshere.radius + this.epsilon, p0[2] - spshere.radius - this.epsilon, p0[2] + spshere.radius*2 + this.epsilon);
 
-                const projectionMatrix = mat4.perspective(this.values.angleOut! * 2, 1, 0.51, p0[2] + spshere.radius * 2 + this.epsilon);//todo,分析：near ,需要大于0.5，否则会被裁掉
-                // const projectionMatrix = mat4.perspective(this.values.angleOut! * 2, 1, 0.1, 30);//ok,test
+                const projectionMatrix = mat4.perspective(this.inputValues.angleOut! * 2, 1, 0.51, p0[2] + spshere.radius * 2 + this.epsilon);//todo,分析：near ,需要大于0.5，否则会被裁掉
+                // const projectionMatrix = mat4.perspective(this.inputValues.angleOut! * 2, 1, 0.1, 30);//ok,test
 
-                let m4 = mat4.lookAt(this.values.position!, vec3.add(this.values.position!, this.values.direction!), vec3.create(0, 1, 0));//正交的测试
+                let m4 = mat4.lookAt(this.inputValues.position!, vec3.add(this.inputValues.position!, this.inputValues.direction!), vec3.create(0, 1, 0));//正交的测试
                 let mm = mat4.invert(matrix);
 
                 const MVP = mat4.multiply(projectionMatrix, mat4.invert(matrix));

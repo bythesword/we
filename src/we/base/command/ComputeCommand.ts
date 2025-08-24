@@ -1,7 +1,7 @@
 // import { BaseCommand, uniformBufferAll, baseOptionOfCommand, } from './baseCommand';
 
-import { BaseCommand, uniformBufferAll } from "./baseCommand";
-import { computeOptionOfCommand } from "./commandDefine";
+import { BaseCommand  } from "./baseCommand";
+import { computeOptionOfCommand, uniformBufferAll } from "./commandDefine";
 
 
 

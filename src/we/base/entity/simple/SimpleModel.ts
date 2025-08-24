@@ -2,9 +2,10 @@ import { uniformEntries, unifromGroup, drawModeIndexed, DrawOptionOfCommand, ind
 import { DrawCommand } from "../../command/DrawCommand";
 import { BaseMaterial } from "../../material/baseMaterial";
 import { BaseStage } from "../../stage/baseStage";
-import { BaseEntity, optionBaseEntity, valuesForCreateDCCC } from "../baseEntity";
+import { BaseEntity} from "../baseEntity";
 import simpleModelVS from "../../shader/model/simpleModel.vs.wgsl?raw"
 import { lifeState, renderKindForDCCC } from "../../const/coreConst";
+import { optionBaseEntity, valuesForCreateDCCC } from "../baseEntityDefine";
 
 interface modelData {
     positions: [number, number, number][],

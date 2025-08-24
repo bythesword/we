@@ -1,4 +1,4 @@
-import { BaseEntity, valuesForCreateDCCC } from "../entity/baseEntity";
+import { BaseEntity   } from "../entity/baseEntity";
 import { BaseScene, commmandType, sceneJson } from "../scene/baseScene";
 import * as coreConst from "../const/coreConst"
 import { Scene } from "../scene/scene";
@@ -6,7 +6,7 @@ import { CameraActor } from "../actor/cameraActor";
 import { renderKindForDCCC } from "../const/coreConst";
 import { uniformEntries } from "../command/commandDefine";
 
-
+import {valuesForCreateDCCC } from "../entity/baseEntityDefine"
 
 
 
@@ -525,7 +525,7 @@ export class BaseStage extends BaseScene {
         let tempID = this.idOfRoot;
         this.idOfRoot = await one.init({
             stage: this,
-            ID: this.idOfRoot,
+            renderID: this.idOfRoot,
             // ID: this.idOfRoot++,
             reversedZ: this.scene._isReversedZ,
             deferRenderDepth: this.deferRenderDepth,
