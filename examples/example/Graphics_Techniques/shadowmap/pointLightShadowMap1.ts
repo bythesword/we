@@ -206,10 +206,10 @@ let light1Entity = new Mesh(
     //   axis:[1,0,0],
     //   angleInRadians:0.15*Math.PI
     // },
-    update: (scope: any, deltaTime: number, startTime: number, lastTime: number, data?: any) => {
+    update: (scope: any) => {
       // let dir = scope.getDirection();
       const now = Date.now() / 1000; 
-      scope.position=vec3.fromValues(Math.sin(now)*2, 2,Math.cos(now)*2);
+      scope.Position=vec3.fromValues(Math.sin(now)*2, 2,Math.cos(now)*2);
       scope.updateMatrix();
       return true
     },
