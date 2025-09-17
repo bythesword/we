@@ -155,7 +155,7 @@ let light1: PointLight = new PointLight(
     update: (scope: any ) => {
       let dir = scope.getDirection();
       const now = Date.now() / 1000;
-      scope.values.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
+      scope.inputValues.Position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
       return true
     },
   }
@@ -185,7 +185,7 @@ let light1Entity1 = new Mesh(
     update: (scope: any) => {
       // let dir = scope.getDirection();
       const now = Date.now() / 1000;
-      scope.position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
+      scope.Position = vec3.fromValues(Math.sin(now) * 2, 0, Math.cos(now) * 2);
       scope.updateMatrix();
       return true
     },

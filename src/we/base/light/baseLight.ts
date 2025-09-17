@@ -328,7 +328,7 @@ export abstract class BaseLight extends RootOfOrganization {
     updateStructBuffer(): structBaselight {
         let ST_LightValues = new ArrayBuffer(lightStructSize);
         const ST_LightViews = {
-            position: new Float32Array(ST_LightValues, 0, 3),
+            position: new Float32Array(ST_LightValues, 0, 3),//这里position是light的worldposition，即 position * worldMatrix ,需要每帧更新（静态还好，一致。在其他entity的children中，就需要左乘wolrdmatrix）
             decay: new Float32Array(ST_LightValues, 12, 1),
             color: new Float32Array(ST_LightValues, 16, 3),
             intensity: new Float32Array(ST_LightValues, 28, 1),
@@ -401,7 +401,7 @@ export abstract class BaseLight extends RootOfOrganization {
     setShdowMapValues(index: number, count: number, kind: number) {
         let ST_LightValues = this._buffer.buffer;
         const ST_LightViews = {
-            position: new Float32Array(ST_LightValues, 0, 3),
+            position: new Float32Array(ST_LightValues, 0, 3),//这里position是light的worldposition，即 position * worldMatrix ,需要每帧更新（静态还好，一致。在其他entity的children中，就需要左乘wolrdmatrix）
             decay: new Float32Array(ST_LightValues, 12, 1),
             color: new Float32Array(ST_LightValues, 16, 3),
             intensity: new Float32Array(ST_LightValues, 28, 1),

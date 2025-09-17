@@ -12,7 +12,7 @@ struct ST_AmbientLight {
 };
 //单个光源参数
 struct ST_Light {
-  position: vec3f,
+  position: vec3f,//这里position是light的worldposition，即 position * worldMatrix ,需要每帧更新（静态还好，一致。在其他entity的children中，就需要左乘wolrdmatrix）
   decay: f32,
   color: vec3f,
   intensity: f32,

@@ -1,5 +1,7 @@
 # WE 3D引擎(webGPU engine 3D)
 
+目前进行重构第二版本，新的地址 : https://github.com/WebgpuEngine/WE
+
 ## 基础说明
 
 * WE 3D 是是图形学的认知与实现过程，也是一个从底层架构的B端三维渲染引擎；

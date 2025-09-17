@@ -68,6 +68,10 @@ scene.addCameraActor(actor, true)
 ////enities 初始化
 //box
 let boxGeometry = new BoxGeometry();
+window.box=boxGeometry;
+console.log(boxGeometry)
+console.log(boxGeometry.getAttribute())
+
 //极简测试材质，red
 let redMaterial = new ColorMaterial({ color: { red: 1, green: 0, blue: 0, alpha: 1 } });
 //box实体

@@ -5,7 +5,7 @@ import wgsl_main_light from "../shader/shadow/systemForLight.wgsl?raw"
 import * as coreConst from "../const/coreConst"
 import { Mat4, mat4, } from 'wgpu-matrix';
 import { Clock } from '../scene/clock';
-import { BaseScene, commmandType, sceneJson } from './baseScene';
+import { BaseScene,  sceneJson } from './baseScene';
 import { BaseCamera } from "../camera/baseCamera"
 import { BaseActor } from '../actor/baseActor';
 import { CameraActor } from '../actor/cameraActor';
@@ -28,6 +28,7 @@ import { LightsManagement } from "../light/lightsManagement";
 import { TransparentRender } from "./transparentRender";
 import { CopyCommandT2T } from "../command/copyCommandT2T";
 import { uniformEntries } from "../command/commandDefine";
+import { commmandType } from "../command/base";
 
 
 declare global {
