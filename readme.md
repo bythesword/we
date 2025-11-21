@@ -1,6 +1,6 @@
 # WE 3D引擎(webGPU engine 3D)
 
-目前进行重构第二版本，新的地址 : https://github.com/WebgpuEngine/WE
+目前进行重构第二版本，新的地址 : https://github.com/WebgpuEngine/WE3D
 
 ## 基础说明
 
